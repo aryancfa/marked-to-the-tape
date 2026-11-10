@@ -110,7 +110,7 @@ def min_representable_vol(r: float, b: float, T: float, n: int,
 
 def crr_american(S: float, K: float, T: float, r: float, b: float,
                  sigma: float, divs: Sequence[Dividend], is_call: bool,
-                 n: int = 400) -> float:
+                 n: int = 400, _nodes: list | None = None) -> float:
     """
     Cox-Ross-Rubinstein binomial, American exercise, discrete cash dividends.
 
@@ -169,8 +169,110 @@ def crr_american(S: float, K: float, T: float, r: float, b: float,
         V = disc_p * V[:-1] + disc_q * V[1:]
         ex = sign * (grid[n - i:n + i + 1:2] + (rem_pv[i] - K))
         np.maximum(V, ex, out=V)
+        if i == 2 and _nodes is not None:
+            # the three values two steps in, and the share prices they sit at:
+            # greeks_american reads delta and gamma off these
+            _nodes.append((grid[n - 2:n + 3:2] + rem_pv[2], V.copy()))
 
     return float(V[0])
+
+
+# --------------------------------------------------------------------------
+# Greeks
+# --------------------------------------------------------------------------
+
+@dataclass
+class Greeks:
+    """
+    Sensitivities of ONE option, in the units a desk quotes them in.
+
+    delta : price change per $1 move in the share
+    gamma : delta change per $1 move in the share
+    vega  : price change per ONE VOL POINT (0.01 of sigma)
+    theta : price change over ONE CALENDAR DAY, share price held fixed
+    rho   : price change per ONE PERCENTAGE POINT (0.01) of the rate
+    """
+    price: float
+    delta: float
+    gamma: float
+    vega: float
+    theta: float
+    rho: float
+
+
+def bs_greeks(S: float, K: float, T: float, r: float, q: float,
+              sigma: float, is_call: bool) -> Greeks:
+    """Closed-form Black-Scholes Greeks. For SXO, and as the check on the
+    bumped American Greeks where the two models agree."""
+    if T <= 0 or sigma <= 0:
+        raise ValueError("bs_greeks needs T > 0 and sigma > 0")
+    sq = math.sqrt(T)
+    d1 = (math.log(S / K) + (r - q + 0.5 * sigma * sigma) * T) / (sigma * sq)
+    d2 = d1 - sigma * sq
+    pdf = math.exp(-0.5 * d1 * d1) / math.sqrt(2.0 * math.pi)
+    eq, er = math.exp(-q * T), math.exp(-r * T)
+    sign = 1.0 if is_call else -1.0
+    delta = sign * eq * _norm_cdf(sign * d1)
+    gamma = eq * pdf / (S * sigma * sq)
+    vega = S * eq * pdf * sq
+    theta = (-S * eq * pdf * sigma / (2.0 * sq)
+             - sign * r * K * er * _norm_cdf(sign * d2)
+             + sign * q * S * eq * _norm_cdf(sign * d1))
+    rho = sign * K * T * er * _norm_cdf(sign * d2)
+    return Greeks(bs_european(S, K, T, r, q, sigma, is_call), delta, gamma,
+                  vega * 0.01, theta / 365.0, rho * 0.01)
+
+
+def greeks_american(S: float, K: float, T: float, r: float, b: float,
+                    sigma: float, divs: Sequence[Dividend], is_call: bool,
+                    n: int = 400) -> Greeks:
+    """
+    American Greeks by bump and reprice on the same tree.
+
+    There is no formula for an American option with cash dividends, so each
+    Greek is measured: move one input a little, reprice, take the difference.
+    Cash dividends stay fixed when the share is bumped, because a declared
+    dividend does not change with the share price.
+
+    Delta and gamma are the exception. Bumping the share and repricing shifts
+    every node of the tree against the strike, and the second difference then
+    measures that jitter instead of the option's curvature (it was wrong by a
+    factor of three in testing). So they are read off the tree itself: two
+    steps in, the tree holds three share prices and the option's value at
+    each, which is exactly what a slope and a curvature need. The cost is
+    that they are taken two time steps (under a day at n=400) after today.
+
+    Theta moves the valuation date forward one calendar day with the share
+    price unchanged: expiry and every dividend come one day closer. A dividend
+    going ex within that day drops out, so on the day before an ex-date theta
+    includes the loss of the dividend to the option holder.
+    """
+    def px(S_=S, T_=T, r_=r, sig_=sigma, divs_=divs):
+        return crr_american(S_, K, T_, r_, b, sig_, divs_, is_call, n)
+
+    nodes: list = []
+    base = crr_american(S, K, T, r, b, sigma, divs, is_call, n, _nodes=nodes)
+    (s_up, s_mid, s_dn), (v_up, v_mid, v_dn) = nodes[0]
+    delta = (v_up - v_dn) / (s_up - s_dn)
+    gamma = ((v_up - v_mid) / (s_up - s_mid)
+             - (v_mid - v_dn) / (s_mid - s_dn)) / (0.5 * (s_up - s_dn))
+
+    dv = 0.01
+    lo_sig = max(sigma - dv, 2.0 * min_representable_vol(r, b, T, n))
+    vega = (px(sig_=sigma + dv) - px(sig_=lo_sig)) / (sigma + dv - lo_sig) * 0.01
+
+    day = 1.0 / 365.0
+    if T > day:
+        later = [(t - day, d) for (t, d) in divs]
+        theta = px(T_=T - day, divs_=later) - base
+    else:
+        intrinsic = max(S - K, 0.0) if is_call else max(K - S, 0.0)
+        theta = intrinsic - base
+
+    dr = 1e-4
+    rho = (px(r_=r + dr) - px(r_=r - dr)) / (2.0 * dr) * 0.01
+
+    return Greeks(base, float(delta), float(gamma), vega, theta, rho)
 
 
 # --------------------------------------------------------------------------
@@ -208,6 +310,8 @@ class Reject:
     CROSSED = "crossed_or_locked_market"
     STALE_WIDE = "spread_wider_than_limit"
     ILL_CONDITIONED = "vega_too_small_to_invert"
+    TOO_FEW_PAIRS = "too_few_call_put_pairs"
+    NO_SPOT_BRACKET = "call_put_gap_does_not_cross_zero_in_bracket"
 
 
 def screen_quote(price: float, S: float, K: float, T: float, r: float,
@@ -253,6 +357,7 @@ class IVResult:
     iv: float | None
     reason: str
     iterations: int = 0
+    vega: float | None = None       # price change per VOL POINT at the solved vol
 
 
 def implied_vol_american(price: float, S: float, K: float, T: float, r: float,
@@ -325,7 +430,7 @@ def implied_vol_american(price: float, S: float, K: float, T: float, r: float,
     if abs(vega) * 0.01 < min_move_per_vol_pt:
         return IVResult(None, Reject.ILL_CONDITIONED, it)
 
-    return IVResult(iv, Reject.OK, it)
+    return IVResult(iv, Reject.OK, it, vega * 0.01)
 
 
 # --------------------------------------------------------------------------
@@ -409,3 +514,91 @@ def finance_band_american(call: float, put: float, S: float, K: float,
 
     lo, hi = base - eep_call_max, base + eep_put_max
     return FinanceBand(lo, hi, hi - lo, basis)
+
+
+# --------------------------------------------------------------------------
+# share price implied by the option quotes
+# --------------------------------------------------------------------------
+
+@dataclass
+class SpotResult:
+    spot: float | None
+    reason: str
+    pairs_used: int = 0
+    gap_at_spot: float | None = None      # mean call-minus-put vol left over
+
+
+def implied_spot_american(pairs: Sequence[tuple[float, float, float]],
+                          T: float, r: float, b: float,
+                          divs: Sequence[Dividend], s_lo: float, s_hi: float,
+                          n: int = 400, tol_rel: float = 1e-5,
+                          min_pairs: int = 2, max_shrinks: int = 5) -> SpotResult:
+    """
+    The share price at which calls and puts agree on volatility.
+
+    `pairs` is [(strike, call_price, put_price), ...] for ONE expiry, taken
+    near the money, where both sides are two-sided quote midpoints.
+
+    Why: a call and a put at the same strike must imply the same vol. Feed
+    the inverter a share price that is too high and every call looks cheap
+    (low vol) while every put looks dear (high vol); too low and the reverse.
+    So the mean call-minus-put vol falls steadily as the assumed share price
+    rises, and the price where it crosses zero is the one the option market
+    was actually quoting against. It belongs to the same instant as the
+    quotes, which a closing print does not.
+
+    What it cannot do: it takes r, b and the dividends as given, so it really
+    pins the FORWARD for this expiry. Use the nearest expiry, where a wrong
+    rate moves the answer least (25 basis points of rate over 30 days is 2
+    basis points of price), and then test the carry assumptions on the other
+    expiries. On the expiry used here the call-put gap is zero by
+    construction and proves nothing.
+
+    The bracket narrows itself when it has to. Close to expiry an option
+    quote is only consistent with a thin band of share prices: move the
+    assumed price 1.5% and a one-week option is already below its exercise
+    value, so it has no implied vol at all and the ends of the bracket cannot
+    be evaluated. (This refused the very first day of real data.) So when an
+    end cannot be evaluated the bracket is halved about its centre, up to
+    `max_shrinks` times, before giving up.
+
+    Returns no spot, with a reason, when fewer than `min_pairs` strikes invert
+    on both sides at the ends of even the narrowest bracket, or when the gap
+    does not change sign inside the bracket. Bisection stops at a relative
+    width of `tol_rel` (default 0.1 basis points).
+    """
+    def gap(S: float) -> tuple[float | None, int]:
+        diffs = []
+        for K, c, p in pairs:
+            ivc = implied_vol_american(c, S, K, T, r, b, divs, True, n, tol=1e-5)
+            ivp = implied_vol_american(p, S, K, T, r, b, divs, False, n, tol=1e-5)
+            if ivc.iv is not None and ivp.iv is not None:
+                diffs.append(ivc.iv - ivp.iv)
+        if len(diffs) < min_pairs:
+            return None, len(diffs)
+        return sum(diffs) / len(diffs), len(diffs)
+
+    centre, half = 0.5 * (s_lo + s_hi), 0.5 * (s_hi - s_lo)
+    for _ in range(max_shrinks + 1):
+        s_lo, s_hi = centre - half, centre + half
+        g_lo, n_lo = gap(s_lo)
+        g_hi, n_hi = gap(s_hi)
+        if g_lo is not None and g_hi is not None:
+            break
+        half *= 0.5
+    if g_lo is None or g_hi is None:
+        return SpotResult(None, Reject.TOO_FEW_PAIRS, min(n_lo, n_hi))
+    if g_lo < 0.0 or g_hi > 0.0:
+        return SpotResult(None, Reject.NO_SPOT_BRACKET, min(n_lo, n_hi))
+
+    lo, hi, used, g_mid = s_lo, s_hi, min(n_lo, n_hi), None
+    while (hi - lo) / lo > tol_rel:
+        mid = 0.5 * (lo + hi)
+        g_mid, used = gap(mid)
+        if g_mid is None:
+            return SpotResult(None, Reject.TOO_FEW_PAIRS, used)
+        if g_mid > 0.0:
+            lo = mid
+        else:
+            hi = mid
+    return SpotResult(0.5 * (lo + hi), Reject.OK, used, g_mid)

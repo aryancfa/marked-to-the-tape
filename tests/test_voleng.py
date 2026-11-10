@@ -18,7 +18,9 @@ import math
 import numpy as np
 import pytest
 
-from voleng import (Reject, bs_european, crr_american, finance_band_american,
+from voleng import (Reject, bs_european, bs_greeks, crr_american,
+                    finance_band_american, greeks_american,
+                    implied_spot_american,
                     implied_forward_european, implied_vol_american,
                     implied_yield_from_forward, mx_tick, screen_quote)
 
@@ -249,3 +251,112 @@ def test_vega_screen_uses_the_bump_actually_taken():
     res = implied_vol_american(px, S, 100.0, 0.25, r, 0.0, [], True, hi=hi,
                                min_move_per_vol_pt=0.15)
     assert res.reason == Reject.OK and abs(res.iv - hi) < 1e-5
+
+
+# ---------------------------------------------------------------------------
+# 8. Greeks (build sheet B7: analytic against bumped repricing)
+# ---------------------------------------------------------------------------
+
+def test_bs_greeks_match_bumped_repricing():
+    """The formulas are checked against the definition: move one input a
+    little, reprice, take the difference."""
+    args = dict(S=S, K=100.0, T=0.5, r=r, q=0.0125, sigma=0.19, is_call=False)
+    g = bs_greeks(**args)
+
+    def f(**k):
+        return bs_european(**{**args, **k})
+
+    h = 0.01
+    assert g.delta == pytest.approx((f(S=S + h) - f(S=S - h)) / (2 * h), abs=1e-7)
+    assert g.gamma == pytest.approx((f(S=S + h) - 2 * f() + f(S=S - h)) / h**2, abs=1e-6)
+    assert g.vega == pytest.approx(f(sigma=0.20) - f(sigma=0.19), rel=0.01)
+    assert g.theta == pytest.approx(f(T=0.5 - 1 / 365) - f(), rel=0.01)
+    assert g.rho == pytest.approx((f(r=r + 1e-5) - f(r=r - 1e-5)) / 2e-5 * 0.01, abs=1e-7)
+
+
+@pytest.mark.parametrize("K,T_", [(100.0, 0.25), (90.0, 0.25), (110.0, 0.25),
+                                 (100.0, 30 / 365), (105.0, 0.75)])
+def test_american_call_greeks_match_black_scholes_without_dividend(K, T_):
+    """No dividend and no borrow means the American call is never exercised
+    early, so its Greeks must equal the European ones. Gamma is the hard one:
+    a bumped-share gamma failed this by a factor of three."""
+    a = greeks_american(S, K, T_, r, 0.0, 0.22, [], True)
+    e = bs_greeks(S, K, T_, r, 0.0, 0.22, True)
+    assert a.delta == pytest.approx(e.delta, abs=2e-3)
+    assert a.gamma == pytest.approx(e.gamma, rel=0.01)
+    assert a.vega == pytest.approx(e.vega, rel=0.02)
+    assert a.theta == pytest.approx(e.theta, rel=0.03)
+    assert a.rho == pytest.approx(e.rho, rel=0.01)
+
+
+def test_american_greeks_have_the_right_signs_with_a_dividend():
+    divs = [(0.10, 1.2)]
+    call = greeks_american(S, 100.0, 0.25, r, 0.0, 0.22, divs, True)
+    put = greeks_american(S, 100.0, 0.25, r, 0.0, 0.22, divs, False)
+    assert 0.0 < call.delta < 1.0 and -1.0 < put.delta < 0.0
+    for g in (call, put):
+        assert g.gamma > 0.0 and g.vega > 0.0 and g.theta < 0.0
+    assert call.rho > 0.0 > put.rho
+
+
+# ---------------------------------------------------------------------------
+# 9. Share price implied by the option quotes
+# ---------------------------------------------------------------------------
+
+def _pairs(S_true, T_, divs, strikes=(97.5, 100.0, 102.5), sig=0.20):
+    return [(K, crr_american(S_true, K, T_, r, 0.0, sig, divs, True),
+             crr_american(S_true, K, T_, r, 0.0, sig, divs, False))
+            for K in strikes]
+
+
+@pytest.mark.parametrize("divs", [[], [(10 / 365, 1.0)]])
+def test_implied_spot_recovers_the_price_the_options_were_struck_against(divs):
+    """Prices are made at 100.37 and the inverter is told only 'somewhere
+    between 99 and 101'. It must find 100.37 to within a basis point."""
+    T_, S_true = 30 / 365, 100.37
+    res = implied_spot_american(_pairs(S_true, T_, divs), T_, r, 0.0, divs, 99.0, 101.0)
+    assert res.reason == Reject.OK and res.pairs_used == 3
+    assert abs(res.spot / S_true - 1.0) < 1e-4
+    assert abs(res.gap_at_spot) < 1e-4
+
+
+def test_implied_spot_narrows_a_bracket_that_is_too_wide_for_a_short_expiry():
+    """One week out, a share price 1.5% away puts the options below exercise
+    value, so the ends of the bracket have no implied vol. The bracket must
+    narrow itself and still find the price."""
+    T_, S_true = 7 / 365, 100.37
+    pairs = _pairs(S_true, T_, [], strikes=(99.0, 100.0, 101.0), sig=0.15)
+    res = implied_spot_american(pairs, T_, r, 0.0, [], S_true * 0.985, S_true * 1.015)
+    assert res.reason == Reject.OK
+    assert abs(res.spot / S_true - 1.0) < 1e-4
+    # with narrowing switched off, the same call refuses
+    off = implied_spot_american(pairs, T_, r, 0.0, [], S_true * 0.985,
+                                S_true * 1.015, max_shrinks=0)
+    assert off.spot is None and off.reason == Reject.TOO_FEW_PAIRS
+
+
+def test_implied_spot_refuses_when_the_bracket_misses():
+    T_ = 30 / 365
+    res = implied_spot_american(_pairs(100.37, T_, []), T_, r, 0.0, [], 99.6, 100.0)
+    assert res.spot is None and res.reason == Reject.NO_SPOT_BRACKET
+
+
+def test_implied_spot_refuses_with_too_few_pairs():
+    T_ = 30 / 365
+    one = _pairs(100.37, T_, [], strikes=(100.0,))
+    res = implied_spot_american(one, T_, r, 0.0, [], 99.0, 101.0, max_shrinks=1)
+    assert res.spot is None and res.reason == Reject.TOO_FEW_PAIRS
+
+
+def test_implied_vol_reports_the_vega_it_measured():
+    """The solver already measures vega to decide whether the vol is
+    identified. Handing it back lets a caller turn a price spread into a vol
+    spread without two more inversions."""
+    from voleng import greeks_american
+    args = (100.0, 100.0, 0.25, 0.03, 0.0)
+    px = crr_american(*args, 0.20, [], True)
+    res = implied_vol_american(px, *args, [], True)
+    g = greeks_american(*args, 0.20, [], True)
+    assert res.vega == pytest.approx(g.vega, rel=0.02)      # per vol point
+    # a rejected quote carries no vega
+    assert implied_vol_american(1e-9, *args, [], True).vega is None

@@ -3,7 +3,7 @@
 The plan for this repo. Each item has a reason, a definition of done and its dependencies.
 Work roughly in phase order. Nothing outside this sheet gets built without a deliberate decision.
 
-**The product is two charts.** Front: implied vol on Montreal options against three references (call vs put at the same strike, a fitted smile, OptionMetrics), in vol points by expiry and moneyness, with a count of everything excluded and why. Closing: residual P&L after short SXF and ZEB, then after a listed-option vega hedge, by name and by sector. The demo opens on the first and closes on the second.
+**The product is two charts.** Front: implied vol on Montreal options against four references (call vs put at the same strike, a fitted smile, the exchange's own implied vol, OptionMetrics), in vol points by expiry and moneyness, with a count of everything excluded and why. Closing: residual P&L after short SXF and ZEB, then after a listed-option vega hedge, by name and by sector. The demo opens on the first and closes on the second.
 
 ## Data stack
 
@@ -15,6 +15,10 @@ Work roughly in phase order. Nothing outside this sheet gets built without a del
 | Python and voleng.py | Pricing, implied volatility, risk | Free | Yours |
 | TradingView (free plan) | Watching markets; not a data source for the project | Free. US real-time: $3 per exchange or $9.95/month bundle | For viewing |
 
+## First milestone: one chart, live
+
+Before anything in Week 3 is started: the front chart for RY only, from real files, with the rejection tally and the three-tier split, on a live link. It needs CAP, A1, A4 for RY, B1, B2, B3, B4 and B5 and nothing else. Every later item makes this chart wider or adds the second one; none of them is worth more than having it exist.
+
 ## Start: Get the data
 
 Four items that decide what data you have and what you may do with it. Finish these before writing application code.
@@ -23,7 +27,7 @@ Four items that decide what data you have and what you may do with it. Finish th
 
 The Montreal Exchange website offers free historical daily summaries for its options and futures, downloadable as CSV in six-month chunks for personal use. If the option files include bid, ask, settlement price, volume and open interest, you have months of history today and the capture becomes a routine download. Confirm the option columns in a browser before relying on them.
 
-- **Done when:** Six months of RY and XIU option summaries downloaded, with the column list and the earliest available date written into the repo README.
+- **Done when:** Six months of RY and XIU option summaries downloaded, with the column list and the earliest available date written into the repo README. XIU has to come down in pieces of about two months, because the site limits the size of one file.
 - **Depends on:** nothing
 
 ### SRC. Set up the ongoing capture
@@ -64,7 +68,11 @@ The same module owns the one rule for turning dates into the times the pricer us
 
 TSX closes at 16:00 ET, while the Canadian dollar and crude oil trade around the clock, and the interlisted names keep trading in New York after Toronto closes. Comparing prices stamped at different times measures the timing gap and passes it off as a relationship.
 
-- **Done when:** All factor series resampled to one 16:00 ET stamp, with the convention documented; New York trading after 16:00 kept as a separate series for the dual-listed names; the change in correlation before and after shown.
+The same problem sits inside the option files. Each file carries a row for the underlying, but its bid and ask are about 20 basis points apart and its last trade sits a median 4 to 5 basis points from their midpoint, so it does not pin the share price at the moment the options were quoted. Ten basis points of error in the share price is about one vol point of call-put gap at one month.
+
+The fix is to take the share price from the option quotes themselves. A call and a put at the same strike must imply the same vol; too high a share price makes every call look cheap and every put dear, and too low does the reverse. The price at which they agree, on the nearest expiry and the strikes closest to the money, is the price the option market was quoting against, at the same instant as the quotes. It really pins the forward for that expiry, so it is used on the nearest one, where a wrong rate matters least, and the carry assumptions are then tested on the later expiries.
+
+- **Done when:** The share price for inversion implied from the nearest monthly expiry's five nearest-the-money call-put pairs (weeklies are too wide to calibrate on) (`voleng.implied_spot_american`), refused with a reason when it can't be found. Its distance from the file's last and midpoint, and from an independent official close, reported in basis points per day. The call-put gap on the expiry used for this marked as zero by construction and left out of B5's evidence. All factor series resampled to one 16:00 ET stamp, with the convention documented; New York trading after 16:00 kept as a separate series for the dual-listed names; the change in correlation before and after shown.
 - **Depends on:** A1
 
 ### A3. A position format that holds a real book
@@ -88,6 +96,13 @@ Demos happen on bad WiFi. The app has to run without a network, and no number ma
 - **Done when:** Cached fetches; a Live/Snapshot switch that reads the local data folder; a global seed; under three seconds to load from the snapshot. The snapshot stays on your laptop, outside the repo.
 - **Depends on:** SRC, LIC, A3
 
+### A6. A rate for each expiry
+
+An option's forward grows at the interest rate until expiry, so the rate has to match the expiry. The overnight rate used for every expiry left a call-minus-put gap on the first RY day that grew with maturity to 1.1 vol points at 319 days, the same at every strike. Reading the rate off the Bank of Canada curve by time to expiry cut that to 0.3.
+
+- **Done when:** A curve from CORRA and the 1, 3, 6 and 12 month Government of Canada T-bill yields, converted to continuous rates and interpolated by time to expiry (`src/rates.py`, done). Held flat beyond one year and labelled so. Days when the bond market is shut carry the last observation and say so. The call-put gap that remains at long expiries reported as a financing spread over T-bills, not tuned away.
+- **Depends on:** A1
+
 ## Week 2: Mark
 
 This is where the project gets checked against the market. Everything here supports one chart and makes it trustworthy, which mostly means being able to say what you excluded and why.
@@ -103,16 +118,20 @@ Binomial pricing for American options with discrete cash dividends, Black-Schole
 
 Exchanges don't settle every option off a trade. Options that didn't trade get a settlement price the exchange calculates from a model, so comparing your model with those prices compares two models.
 
-- **Done when:** Every point tagged as traded (volume above zero) or exchange-calculated, and drawn differently. If the surface comes out smooth and close to zero everywhere, report that as a finding: you are matching a model.
+A series with no trade is not always without market information. In the first files only 15% of RY rows and 4% of XIU rows traded, but 93% carried a two-sided quote, and a quote is a price someone would deal at. So there are three kinds of evidence, and the price to invert is the quote midpoint wherever a two-sided quote exists, because it is the market's number and brings its own error bar, the spread. The settlement is used only where there is no quote.
+
+- **Done when:** Every point tagged as traded (volume above zero), quoted (no trade, two-sided quote) or settlement-only (exchange-calculated), and drawn differently, with the count of each beside the chart. The inverted price is the midpoint where quoted and the settlement otherwise, and each point says which. If the settlement-only points come out smooth and close to zero everywhere, report that as a finding: you are matching a model. The share of settlements that fall outside the closing quote reported, since it measures how far apart in time the two are; each row carries the flag (`settle_in_quote`), a row is inverted from its midpoint or its settlement and never a blend, and the share price paired with a midpoint is the one implied from the quotes (A2).
 - **Depends on:** B1, CAP
 
 ### B3. The error surface  _(front chart)_
 
-A disagreement needs two numbers, and inverting a market price gives you only one. Use three references, strongest last: the call against the put at the same strike (B5), each strike against a smooth curve fitted through its neighbours, and your engine against OptionMetrics (B8).
+A disagreement needs two numbers, and inverting a market price gives you only one. Use four references, strongest last: the call against the put at the same strike (B5), each strike against a smooth curve fitted through its neighbours, your engine against the exchange's own published implied vol, and your engine against OptionMetrics (B8). The exchange's number comes free in the same file. It uses Black-Scholes on American options, so the gap should have a sign you can predict from early-exercise value and dividends; a gap with the wrong sign means an input is wrong, most likely yours.
 
 A difference only means something if it is bigger than what the market itself can't resolve. That limit is the bid-ask spread, not the tree: a 5-cent-wide market on a one-month at-the-money option is about 0.4 vol points wide, ten times the solver's rounding. Input errors are the same size: spot stale by 10 basis points or a dividend amount off by 5% each move the call-put gap by 0.3 to 1 vol point.
 
-- **Done when:** Differences in vol points by expiry and moneyness for strikes that pass the screen, and the same differences divided by the quote's half-spread in vol points (invert the bid and the ask to get it). Two floors drawn on the chart: the half-spread, which is the one that decides signal, and the solver's 0.04 vol points at 400 steps beneath it. A table of how far a stated error in spot, rate and dividend moves the result. A smile fitted per expiry, weighted by vega, starting with a quadratic in log-moneyness; the fit's own error reported per expiry, and any expiry where the curve misses by more than the half-spread flagged as a poor fit instead of read as a disagreement.
+Wide quotes don't make the chart useless, they change what it can show. One day's difference inside the spread proves nothing. The same difference on the same strike region day after day does: noise from a wide quote averages away across days, a real disagreement does not. So the chart has a second reading that pools days.
+
+- **Done when:** For each moneyness and expiry bucket, the mean difference across days with its standard error, and the count of days behind it; a bucket is called a disagreement only when the mean is more than two standard errors from zero. A view restricted to the tightest third of quotes by spread in vol points. Your implied vol minus the exchange's, by moneyness and expiry, with the expected sign stated before the chart is drawn. Differences in vol points by expiry and moneyness for strikes that pass the screen, and the same differences divided by the quote's half-spread in vol points (the half-spread in dollars divided by vega; checked against inverting the bid and the ask). Three bars kept apart on the chart: the standard error of the mean, which decides whether an input is wrong; the half-spread, which decides whether anyone could trade on it; and the solver's 0.04 vol points at 400 steps beneath both. A table of how far a stated error in spot, rate and dividend moves the result. A smile fitted per expiry, weighted by vega, starting with a quadratic in log-moneyness; the fit's own error reported per expiry, and any expiry where the curve misses by more than the half-spread flagged as a poor fit instead of read as a disagreement.
 - **Depends on:** B1, B2, B5
 
 ### B4. Rejection tally
@@ -128,7 +147,7 @@ The vega screen is a floor set at one cent, the smallest tick. It removes quotes
 
 Calls and puts at the same strike and expiry should imply the same volatility. A steady gap across strikes means your dividend or financing assumption is off, because real skew doesn't produce that pattern.
 
-- **Done when:** Both sides inverted with the same carry assumptions, with call minus put plotted by strike for each expiry.
+- **Done when:** Both sides inverted with the same carry assumptions, with call minus put plotted by strike for each expiry, each expiry's mean drawn with its standard error (scatter across strikes on one day, scatter across days when pooled), the quote bar (the two half-spreads in vol points) stated beside it, and the expiry the share price was calibrated on left out of the pooled test. First full run, RY, 124 days: monthlies beyond 60 days sit at +0.25 vol points with a standard error of 0.02, weeklies under 30 days at about -0.4. Both are inside the quote bar and outside the standard error. Explaining them is the open part of this item.
 - **Depends on:** B1
 
 ### B6. Carry over the stress horizon
@@ -142,7 +161,7 @@ A five-day stress includes five days of time decay and funding, and an ex-divide
 
 Each one is cheap and easy to explain, and they catch sign errors before a demo does.
 
-- **Done when:** Put-call parity; analytic Greeks against bumped repricing; zero volatility gives intrinsic value; ES at least VaR; American worth at least European; an empty book gives exactly zero. Passing on every push.
+- **Done when:** Put-call parity; analytic Greeks against bumped repricing (done, with American delta and gamma read off the tree because a bumped gamma was wrong by a factor of three); zero volatility gives intrinsic value; ES at least VaR; American worth at least European; an empty book gives exactly zero. Passing on every push.
 - **Depends on:** B1
 
 ### B8. Check your engine against OptionMetrics  _(second model)_
@@ -266,6 +285,9 @@ These wait until both charts exist and the project is live.
 - Model value is not a market price
 - Untraded options settle at prices the exchange calculates, so comparing against them is model against model
 - Last-trade implied vols are not mid-market
+- Most series don't trade on a given day; the chart rests on quote midpoints, and a midpoint is not a price anyone dealt at
+- The share price at the moment the options were quoted is known only to within several basis points, which is around half a vol point at one month
+- Quotes on these options are wide (a median near 50 cents on RY), so most differences will sit inside the spread
 - Deep in-the-money American options carry no recoverable implied vol, so screen on vega
 - The solver's noise floor is 0.04 vol points at 400 steps; smaller differences are rounding
 - The bid-ask spread is a far higher floor, often 0.4 to 2 vol points; a difference inside it is not a disagreement
@@ -279,6 +301,7 @@ These wait until both charts exist and the project is live.
 - Replay option prices are model prices wherever exchange history doesn't reach
 - Historical moves say nothing about today's liquidity
 - No borrow, no specials, no implied-versus-scheduled dividend
+- Rates are government T-bill yields, below what a dealer funds at; they are day averages, not closing levels, and flat beyond one year
 - No depth or size at the touch, so exit paths aren't modelled
 - Your engine is not the exchange's model
 - The OptionMetrics check covers the New York listings, not the Montreal ones

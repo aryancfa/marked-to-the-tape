@@ -1,5 +1,7 @@
-numpy
-pandas
-matplotlib
-pytest
-wrds
+# Pinned so that a fresh install reproduces the same numbers.
+# To upgrade: change a version here, reinstall, and rerun the tests.
+numpy==2.5.4
+pandas==2.2.3
+matplotlib==3.11.2
+pytest==9.2.0
+wrds==3.5.0
