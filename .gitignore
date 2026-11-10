@@ -1,0 +1,7 @@
+data/
+.env
+.venv/
+private/
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
