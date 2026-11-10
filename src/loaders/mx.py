@@ -70,7 +70,7 @@ _COLS = {
     "Implied Volatility": "mx_iv_pct",
 }
 
-INS_OPTION, INS_UNDERLYING = 0, 3
+INS_OPTION, INS_FUTURE, INS_UNDERLYING = 0, 1, 3
 _CALL_PUT = {0: "C", 1: "P"}
 
 TRADED, QUOTED, SETTLEMENT_ONLY, NO_PRICE = (
@@ -82,6 +82,8 @@ OPTION_COLUMNS = [
     "mark", "mark_source", "settle_in_quote", "mx_iv",
 ]
 UNDERLYING_COLUMNS = ["date", "underlying", "bid", "ask", "mid", "last", "volume"]
+FUTURES_COLUMNS = ["date", "root", "contract", "expiry", "bid", "ask", "settle",
+                   "volume", "open_interest", "two_sided"]
 
 
 def _paths(source: str | Path | Iterable[str | Path]) -> list[Path]:
@@ -107,7 +109,7 @@ def _read(source) -> pd.DataFrame:
         frames.append(df[list(_COLS)].rename(columns=_COLS))
     raw = pd.concat(frames, ignore_index=True)
 
-    unknown = sorted(set(raw["ins_type"].unique()) - {INS_OPTION, INS_UNDERLYING})
+    unknown = sorted(set(raw["ins_type"].unique()) - {INS_OPTION, INS_FUTURE, INS_UNDERLYING})
     if unknown:
         raise ValueError(f"unknown 'Ins. Type' codes {unknown}; "
                          "check what they are before loading")
@@ -217,3 +219,26 @@ def tier_counts(options: pd.DataFrame) -> pd.DataFrame:
             .unstack(fill_value=0)
             .reindex(columns=[TRADED, QUOTED, SETTLEMENT_ONLY, NO_PRICE],
                      fill_value=0))
+
+
+def load_mx_futures(source: str | Path | Iterable[str | Path]) -> pd.DataFrame:
+    """
+    Futures rows (Ins. Type 1) from the same daily files, one row per contract
+    per day. The option and underlying loaders ignore these rows.
+
+    Columns: date, root (CRA, COA, SXF, ...), contract (the exchange symbol),
+    expiry (the file's Expiry Date; for a CORRA future that is the END of the
+    period it averages over), bid, ask, settle, volume, open_interest, and
+    two_sided (a bid above zero and an ask above the bid).
+
+    The settlement is the exchange's own daily mark for a future and is what
+    margin is paid on, so unlike an option settlement it is a firm price.
+    """
+    raw = _read(source)
+    fut = raw[raw["ins_type"] == INS_FUTURE].copy()
+    fut = fut.rename(columns={"underlying": "root", "symbol": "contract"})
+    fut["two_sided"] = (fut["bid"] > 0) & (fut["ask"] > fut["bid"])
+    for c in ("volume", "open_interest"):
+        fut[c] = fut[c].astype(int)
+    return (fut[FUTURES_COLUMNS].sort_values(["root", "date", "expiry"])
+            .reset_index(drop=True))

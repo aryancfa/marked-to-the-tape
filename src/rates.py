@@ -40,9 +40,10 @@ takes: r = ln(1 + y * t) / t.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from pathlib import Path
+from typing import Iterable, Mapping
 
 # series id -> tenor in years
 TENORS: dict[str, float] = {
@@ -92,6 +93,25 @@ class Curve:
     day: date
     points: tuple[tuple[float, float], ...]      # (tenor in years, rate), sorted
     as_of: tuple[tuple[str, date], ...] = ()
+    spread: float = 0.0     # funding spread already added to every point
+    source: str = "Treasury bills"
+    # How to read between two points. False: straight line in the rate (right
+    # for a few bill yields). True: the overnight rate is taken as constant
+    # between points, which is what a strip of futures actually says.
+    constant_forward: bool = False
+
+    def plus(self, spread: float) -> "Curve":
+        """
+        The same curve with `spread` added at every tenor.
+
+        Treasury bills are the cheapest money in the country, and nobody
+        hedging options funds at that rate. The option market's forwards put
+        dealers' funding above the bill curve. The spread comes from
+        surface.trailing_spread, fitted from options on EARLIER days only,
+        and is kept on the curve so every output can say it was used.
+        """
+        return replace(self, points=tuple((t, r + spread) for t, r in self.points),
+                       spread=self.spread + spread)
 
     def rate(self, T: float) -> float:
         """Rate for an option with `T` years to expiry: straight-line between
@@ -99,6 +119,15 @@ class Curve:
         pts = self.points
         if T <= pts[0][0]:
             return pts[0][1]
+        if self.constant_forward:
+            # work with rate * time, which grows in straight lines between
+            # points when the overnight rate is constant between them
+            knots = [(0.0, 0.0)] + [(t, t * r) for t, r in pts]
+            for (t0, a0), (t1, a1) in zip(knots[1:], knots[2:]):
+                if T <= t1:
+                    return (a0 + (a1 - a0) * (T - t0) / (t1 - t0)) / T
+            (t0, a0), (t1, a1) = knots[-2], knots[-1]     # beyond the last point
+            return (a1 + (a1 - a0) / (t1 - t0) * (T - t1)) / T
         if T >= pts[-1][0]:
             return pts[-1][1]
         for (t0, r0), (t1, r1) in zip(pts, pts[1:]):
@@ -149,3 +178,114 @@ def load_curve(folder: str | Path, day: date, max_stale_days: int = 4) -> Curve:
         points.append((tenor, continuous_rate(obs[used], tenor)))
         as_of.append((series, used))
     return Curve(day, tuple(sorted(points)), tuple(as_of))
+
+
+# --------------------------------------------------------------------------
+# a curve from three-month CORRA futures
+# --------------------------------------------------------------------------
+
+def _third_wednesday(year: int, month: int) -> date:
+    first = date(year, month, 1)
+    return first + timedelta(days=(2 - first.weekday()) % 7 + 14)
+
+
+def quarter_start(quarter_end: date) -> date:
+    """Start of a CORRA future's reference quarter: the third Wednesday three
+    months before the third Wednesday it ends on."""
+    m = quarter_end.year * 12 + quarter_end.month - 1 - 3
+    return _third_wednesday(m // 12, m % 12 + 1)
+
+
+def futures_curve(day: date, quotes: Iterable[tuple[date, date, float]],
+                  corra: Mapping[date, float], max_stale_days: int = 4) -> Curve:
+    """
+    The rate for each expiry from three-month CORRA futures (MX symbol CRA).
+
+    Why futures and not bills
+    -------------------------
+    A dealer hedging options funds overnight, at CORRA, day after day. What
+    matters for an option expiring in six months is what that overnight rate
+    is expected to average over those six months. Each CORRA future settles
+    on exactly that average for one quarter, so a strip of them is the
+    market's own forecast of the funding rate. Treasury bills pay less,
+    because investors accept a lower yield to hold government paper.
+
+    How it is built
+    ---------------
+    `quotes` is (observation date, quarter-end date, settlement price) for
+    any number of days; the rows observed on `day` are used. A future priced
+    at P means money grows over its quarter by 1 + (100 - P)/100 * days/365.
+
+    * The front contract's quarter has partly happened. The growth already
+      paid, from the published CORRA fixings in `corra`, is divided out, and
+      what is left is the growth expected from `day` to the quarter's end.
+      Without this a rate change expected next week would be averaged
+      together with rates already paid.
+    * Each later contract multiplies in the growth over its own quarter.
+    * Between those dates the overnight rate is taken as constant.
+
+    Refusals: if `day` has no futures, the latest earlier day within
+    `max_stale_days` is used and recorded (the rate market is shut on a few
+    days the stock exchange is open). Older than that raises. A strip that
+    does not begin with the quarter `day` is in, or a hole in the CORRA
+    fixings, raises. Nothing is filled in.
+
+    Not adjusted for: the small difference between a futures rate and a swap
+    rate (convexity), which is far below a basis point inside a year. The
+    quarter dates follow the file's expiry dates and have not yet been
+    checked against the exchange's contract specification.
+    """
+    quotes = list(quotes)
+    used = next((day - timedelta(days=k) for k in range(max_stale_days + 1)
+                 if any(q[0] == day - timedelta(days=k) for q in quotes)), None)
+    if used is None:
+        raise ValueError(f"no futures within {max_stale_days} days of {day}")
+    strip = sorted((end, px) for obs, end, px in quotes if obs == used and end > day)
+    if not strip:
+        raise ValueError(f"no futures on {used} end after {day}")
+    start = quarter_start(strip[0][0])
+    if start > day:
+        raise ValueError(f"the front contract's quarter starts {start}, after {day}; "
+                         "the strip does not cover today")
+
+    # growth already paid in the front quarter, from the overnight fixings
+    fix = sorted(d for d in corra if d < day)
+    if start < day:
+        if not fix or fix[0] > start or (day - fix[-1]).days > max_stale_days:
+            raise ValueError(f"CORRA fixing missing between {start} and {day}")
+    paid = 1.0
+    for d0, d1 in zip(fix, fix[1:] + [day]):
+        lo, hi = max(d0, start), min(d1, day)
+        if hi > lo:
+            paid *= 1.0 + corra[d0] * (hi - lo).days / 365.0
+
+    points, growth, prev = [], 1.0, start
+    for end, px in strip:
+        if quarter_start(end) != prev:
+            break                               # a hole in the strip: stop there
+        q = 1.0 + (100.0 - px) / 100.0 * (end - prev).days / 365.0
+        growth *= q / paid if prev == start else q
+        t = (end - day).days / 365.0
+        points.append((t, math.log(growth) / t))
+        prev = end
+    return Curve(day, tuple(points), (("CRA", used),), source="CORRA futures",
+                 constant_forward=True)
+
+
+def load_base_curve(folder: str | Path, day: date,
+                    cra_quotes: Iterable[tuple[date, date, float]] | None = None,
+                    max_stale_days: int = 4) -> Curve:
+    """
+    The rate curve to use on `day`: CORRA futures where the day has them,
+    Treasury bills where it does not. The curve's `source` says which.
+
+    Futures are the base because they are the market's forecast of the
+    overnight rate a dealer actually funds at. Bills are the fallback for
+    days before the futures files start. `folder` holds the Bank of Canada
+    files; the CORRA fixings in it are needed for the futures curve too.
+    """
+    quotes = list(cra_quotes or [])
+    if any(0 <= (day - q[0]).days <= max_stale_days for q in quotes):
+        corra = read_boc_series(Path(folder) / "AVG.INTWO.csv")
+        return futures_curve(day, quotes, corra, max_stale_days)
+    return load_curve(folder, day, max_stale_days)

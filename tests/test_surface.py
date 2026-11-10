@@ -258,3 +258,83 @@ def test_analyse_day_reports_why_when_no_share_price_can_be_implied():
     day = analyse_day(chain(strikes=(50.0,)), approx_spot=S0, rate=R, divs=DIVS)
     assert day.spot is None and day.spot_reason == Reject.TOO_FEW_PAIRS
     assert day.inverted is None and day.summary is None
+
+
+# ---------------------------------------------------------------------------
+# Forward error and the funding spread
+# ---------------------------------------------------------------------------
+
+from surface import trailing_spread
+
+MID = date(2027, 1, 15)
+THREE = (NEAR, MID, FAR)                     # three monthly expiries
+
+
+def funded_chain(spread):
+    """Prices made at R + spread with no dividends: a market that funds
+    above the rate the model is about to be given."""
+    rows = []
+    for e in THREE:
+        T = year_fraction(VAL, e)
+        for K in WIDE:
+            for cp in "CP":
+                px = crr_american(S0, K, T, R + spread, 0.0, SIG, [], cp == "C")
+                rows.append(dict(
+                    date=pd.Timestamp(VAL), underlying="ZZZ", expiry=pd.Timestamp(e),
+                    strike=K, call_put=cp, bid=px - HALF, ask=px + HALF, settle=px,
+                    volume=0, open_interest=0, traded=False, two_sided=True,
+                    tier="quoted", mark=px, mark_source="mid"))
+    return pd.DataFrame(rows)
+
+
+def test_a_market_that_funds_above_the_model_rate_shows_as_a_forward_error():
+    """The market funds 20 bp a year above the model's rate. The share price
+    is implied from the front expiry, so the error there is zero and grows
+    with the time beyond it: 20 bp a year times that time."""
+    day = analyse_day(funded_chain(0.002), approx_spot=S0, rate=R, divs=[])
+    extra = year_fraction(NEAR, FAR)
+    assert day.summary.loc[FAR, "fwd_error_bp"] == pytest.approx(20.0 * extra, rel=0.15)
+    assert day.summary.loc[FAR, "mean_gap"] > 0          # calls look dear
+    assert day.funding_spread == pytest.approx(0.002, rel=0.15)
+
+
+def test_no_spread_is_found_when_the_rate_is_right():
+    day = analyse_day(funded_chain(0.0), approx_spot=S0, rate=R, divs=[])
+    assert abs(day.funding_spread) < 2e-4
+    assert day.summary["fwd_error_bp"].abs().max() < 0.5
+
+
+def test_the_spread_ignores_expiries_that_rest_on_a_projected_dividend():
+    """Only MID is then usable, and one expiry is not enough to fit from."""
+    day = analyse_day(funded_chain(0.002), approx_spot=S0, rate=R, divs=[],
+                      first_projected=date(2027, 1, 25))
+    assert day.funding_spread is None
+
+
+def test_trailing_spread_uses_only_earlier_days():
+    est = {date(2026, 11, d): 0.001 * d for d in (2, 3, 4, 5, 6)}
+    # for the 5th: days 2, 3, 4 only. The 5th itself and the 6th are left out.
+    assert trailing_spread(est, date(2026, 11, 5), min_days=3) == pytest.approx(0.003)
+    # not enough history: no number, and the caller applies no spread
+    assert trailing_spread(est, date(2026, 11, 4), min_days=3) is None
+    # days with no estimate do not count
+    est[date(2026, 11, 3)] = None
+    assert trailing_spread(est, date(2026, 11, 5), min_days=3) is None
+
+
+def test_weighted_gap_leans_on_the_tight_quotes():
+    """Two tight strikes agree at zero; one strike quoted ten times wider
+    says -3. The plain mean is -1. Weighting each strike by 1 / bar squared,
+    the way any measurement with known error bars is averaged, gives nearly
+    zero."""
+    g = _gap_frame(FAR, [0.0, 0.0, -3.0])
+    g["error_bar"] = [1.0, 1.0, 10.0]
+    row = gap_summary(g, VAL).loc[FAR]
+    assert row["mean_gap"] == pytest.approx(-1.0)
+    assert row["weighted_gap"] == pytest.approx(-3.0 * 0.01 / 2.01)
+
+
+def test_weighted_gap_falls_back_to_the_plain_mean_without_quote_bars():
+    g = _gap_frame(FAR, [0.1, 0.3, 0.5], bar=np.nan)
+    row = gap_summary(g, VAL).loc[FAR]
+    assert row["weighted_gap"] == pytest.approx(0.3)

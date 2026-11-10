@@ -2,7 +2,7 @@
 
 A risk system for a small book of Canadian listed options. It prices positions with its own engine for American options with discrete dividends. It compares the implied volatilities with Montreal Exchange settlements and with an independent source. Then it replays real historical days and shows what risk is left after hedging with SXF, ZEB and XIU.
 
-**Status:** in progress. Done and tested: the pricing, inversion and Greeks core (`src/voleng.py`), the trading calendar (`src/tradingcal.py`), the Montreal Exchange loader (`src/loaders/mx.py`) and chain inversion (`src/surface.py`). The call-put check has run on all 124 RY days (`scripts/run_days.py`); it shows a small, persistent gap that is not yet explained, described below.
+**Status:** in progress. Done and tested: the pricing, inversion and Greeks core (`src/voleng.py`), the trading calendar (`src/tradingcal.py`), the Montreal Exchange loader (`src/loaders/mx.py`) and chain inversion (`src/surface.py`). The call-put check has run on all 124 RY days (`scripts/run_days.py`); it traces a small, persistent gap to funding cost and removes it out of sample, as described below.
 
 ## Data
 
@@ -53,7 +53,7 @@ python -m venv .venv
 
 On macOS or Linux, use `.venv/bin/python` instead.
 
-## First result: calls against puts on RY, 124 days
+## First result: calls against puts on RY
 
 ![Call minus put implied vol by expiry, pooled across days](reports/ry_cp_gap_pooled.png)
 
@@ -61,21 +61,45 @@ A call and a put at the same strike and expiry should imply the same volatility.
 they don't, a carry input (share price, rate or dividend) is wrong, because that kind
 of error moves every strike of an expiry the same way.
 
-The chart shows the mean gap for each expiry across 8 May to 4 November 2026. Each
-point has two bars, and they answer different questions:
+The chart shows the mean gap for each expiry over 92 days (24 June to 4 November
+2026). Three things are drawn for each expiry:
 
-- **Grey: the quote bar.** Half the bid-ask spread of the call plus that of the put,
-  in vol points. A gap inside it cannot be traded on.
-- **Blue or brown: two standard errors of the mean.** How well the average is known
-  from its day-to-day scatter. A mean outside it is not noise.
+- **Pale band: the quote bar.** Half the bid-ask spread of the call plus that of the
+  put, in vol points. A gap inside it cannot be traded on.
+- **Hollow grey point: rates from CORRA futures alone.** Its bar is two standard
+  errors of the mean, from the day-to-day scatter. A mean outside it is not noise.
+- **Filled point: the same with a funding spread added.**
 
-What it shows: every gap is inside the quote bar, so nothing here is a trade. But
-monthly expiries more than 60 days out sit about 0.25 vol points above zero on almost
-every day, and weekly expiries under 30 days sit about 0.4 below. Both are many
-standard errors from zero. The model has a small systematic error that is not yet
-explained. The candidates are the rate (T-bill yields sit below dealers' funding
-rate), the ex-dividend date convention, and lopsided midpoints on wide weekly quotes.
+| Expiries | Futures only | Plus funding spread |
+|---|---|---|
+| Monthly, over 60 days, declared dividends | +0.15 | -0.01 |
+| Monthly, over 60 days, projected dividends | +0.37 | +0.07 |
+| Weekly, up to 30 days | -0.20 | -0.16 |
 
-Limits: the standard error treats days as independent, and neighbouring days are not.
-The share price is implied from the nearest monthly expiry, so that expiry is left out
-on the days it is used. Dividends after the last declared one are projected.
+What it shows:
+
+1. **Nothing here is a trade.** Every gap is inside the quote bar.
+2. **The overnight rate is too low a funding rate.** The base curve is built from
+   three-month CORRA futures, the market's forecast of the overnight rate. With it
+   alone, long monthly expiries show calls 0.15 vol points above puts, the same at
+   every strike. As a forward price the error grows with maturity at about 17 basis
+   points a year. Treasury bills give the same picture (20 basis points).
+3. **A spread fitted from earlier days removes it.** Each day uses the mean spread
+   implied by the options on previous days only, never its own. On expiries that
+   rest on declared dividends the gap falls to -0.01, which is zero within error.
+4. **Dividend projections are tested, not fitted.** 2027 dividends are projected by
+   a rule from RBC's own history (a raise twice a year, the size of last year's).
+   With no raise the gap was -0.19; with the rule it is +0.07. The rule overshoots
+   a little at the longest expiry.
+5. **One effect is unexplained.** Weekly expiries just after an ex-dividend date
+   show puts about 0.6 vol points above calls, fading over the following two weeks.
+   The likely cause is how the pricing tree treats early exercise of calls around
+   the ex-date. It has not been investigated yet.
+
+Limits. The spread is fitted from the same option market the check then tests, so
+on rates this check is not independent; it is labelled "fitted from options"
+wherever it is used. The futures curve is independent, and it shows a spread is
+needed but cannot say what it should be. Standard errors treat days as independent,
+and neighbouring days are not. The share price is implied from the nearest monthly
+expiry, so that expiry is left out on the days it is used. This is one name over
+six months.

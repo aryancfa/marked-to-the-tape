@@ -147,3 +147,38 @@ def test_unknown_instrument_type_raises(tmp_path):
     odd[8] = 7
     with pytest.raises(ValueError, match="Ins. Type"):
         load_mx_options(write(tmp_path, ROWS + [odd]))
+
+
+# ---------------------------------------------------------------------------
+# Futures rows (Ins. Type 1), e.g. CORRA futures downloaded into the same folder
+# ---------------------------------------------------------------------------
+
+def future(date, symbol, expiry, bid, ask, settle, volume=10, oi=100):
+    root = symbol[:3]
+    return [date, symbol, root, root, root, 0, expiry, 0, 1, bid, ask, 5, 5, 0.0,
+            volume, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 1, settle, oi, 0, 0, "", 0]
+
+
+FUT = [future("2026-11-02", "QQQZ26", "2027-03-17", 97.40, 97.41, 97.405),
+       future("2026-11-02", "QQQH27", "2027-06-16", 0.0, 0.0, 97.300, volume=0)]
+
+
+def test_futures_rows_do_not_break_or_enter_the_option_tables(tmp_path):
+    """A futures file sits in the same folder as the option files."""
+    write(tmp_path, ROWS)
+    write(tmp_path, FUT, name="quote_QQQ.csv")
+    o = load_mx_options(tmp_path)
+    u = load_mx_underlying(tmp_path)
+    assert set(o["underlying"]) == {"ZZZ"} and len(o) == 4
+    assert set(u["underlying"]) == {"ZZZ"}
+
+
+def test_futures_table(tmp_path):
+    from loaders.mx import FUTURES_COLUMNS, load_mx_futures
+    write(tmp_path, ROWS)
+    f = load_mx_futures(write(tmp_path, FUT, name="quote_QQQ.csv").parent)
+    assert list(f.columns) == FUTURES_COLUMNS and len(f) == 2
+    a = f.set_index("contract").loc["QQQZ26"]
+    assert a["root"] == "QQQ" and a["expiry"] == pd.Timestamp("2027-03-17")
+    assert a["settle"] == pytest.approx(97.405) and bool(a["two_sided"])
+    assert not f.set_index("contract").loc["QQQH27", "two_sided"]

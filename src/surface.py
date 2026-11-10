@@ -26,14 +26,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Callable, Sequence
+from typing import Callable, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
 
 from tradingcal import is_monthly_expiry, year_fraction
-from voleng import (Reject, implied_spot_american, implied_vol_american,
-                    screen_quote)
+from voleng import (Reject, crr_american, implied_spot_american,
+                    implied_vol_american, screen_quote)
 
 EXPIRED = "expired_or_expiring_today"
 NO_MARK = "no_price_to_invert"
@@ -251,6 +251,9 @@ def gap_summary(gap: pd.DataFrame, valuation: date, front: date | None = None,
       days              calendar days to expiry
       pairs             strikes with both a call vol and a put vol
       mean_gap          mean call-minus-put vol, in vol points
+      weighted_gap      the same mean with each strike weighted by
+                        1 / (its quote bar squared); the plain mean where no
+                        strike has a quote bar
       scatter           standard deviation of the gap across strikes
       std_error         scatter / sqrt(pairs): how well the MEAN is known
       t_stat            mean_gap / std_error
@@ -262,6 +265,12 @@ def gap_summary(gap: pd.DataFrame, valuation: date, front: date | None = None,
     above about 2 says the mean is not quote noise. Fewer than three strikes
     give no scatter worth the name, so std_error and t_stat stay empty.
 
+    Why weight: a strike quoted five vol points wide tells you far less
+    than one quoted one point wide, and its midpoint is often lopsided. A
+    plain mean lets a few such strikes drag the expiry. Weighting by one over
+    the bar squared is how measurements with known error bars are averaged.
+    forward_errors uses the weighted mean.
+
     The standard error is a LOWER bound. It treats strikes as independent,
     and one dealer's quotes across neighbouring strikes are not. The scatter
     across days (pool_across_days) is the sturdier measure.
@@ -270,13 +279,17 @@ def gap_summary(gap: pd.DataFrame, valuation: date, front: date | None = None,
     out = g.groupby("expiry").agg(
         pairs=("gap", "size"), mean_gap=("gap", "mean"), scatter=("gap", "std"),
         median_quote_bar=("error_bar", "median"))
+    w = 1.0 / g["error_bar"].where(g["error_bar"] > 0) ** 2
+    weighted = (g["gap"] * w).groupby(g["expiry"]).sum(min_count=1) / \
+        w.groupby(g["expiry"]).sum(min_count=1)
+    out["weighted_gap"] = weighted.fillna(out["mean_gap"])
     out["scatter"] = out["scatter"].where(out["pairs"] >= 3)
     out["std_error"] = out["scatter"] / np.sqrt(out["pairs"])
     out["t_stat"] = out["mean_gap"] / out["std_error"].where(out["std_error"] > 0)
     out.insert(0, "days", [(e - valuation).days for e in out.index])
     out["carry"] = [carry_label(e, front, first_projected) for e in out.index]
-    return out[["days", "pairs", "mean_gap", "scatter", "std_error", "t_stat",
-                "median_quote_bar", "carry"]]
+    return out[["days", "pairs", "mean_gap", "weighted_gap", "scatter",
+                "std_error", "t_stat", "median_quote_bar", "carry"]]
 
 
 def pool_across_days(daily: pd.DataFrame) -> pd.DataFrame:
@@ -317,6 +330,101 @@ def vs_exchange(inverted: pd.DataFrame) -> dict:
     return out
 
 
+# --------------------------------------------------------------------------
+# from a vol gap to a forward error to a funding spread
+# --------------------------------------------------------------------------
+
+def forward_sensitivity(S: float, K: float, T: float, r: float, sigma: float,
+                        divs: Sequence[tuple[float, float]], n: int = 400,
+                        bump: float = 1e-3) -> float:
+    """
+    Vol points of call-minus-put gap produced when the market's forward price
+    sits ONE BASIS POINT above the model's. NaN if it cannot be measured.
+
+    Measured, not approximated: price the call and the put with the share
+    price raised by `bump` (which raises the forward by the same proportion),
+    invert both at the unbumped price, and see what gap appears.
+    """
+    up = S * (1.0 + bump)
+    c = crr_american(up, K, T, r, 0.0, sigma, divs, True, n)
+    p = crr_american(up, K, T, r, 0.0, sigma, divs, False, n)
+    ic = implied_vol_american(c, S, K, T, r, 0.0, divs, True, n).iv
+    ip = implied_vol_american(p, S, K, T, r, 0.0, divs, False, n).iv
+    if ic is None or ip is None:
+        return float("nan")
+    return (ic - ip) * 100.0 / (bump * 1e4)
+
+
+def forward_errors(gap: pd.DataFrame, summary: pd.DataFrame, spot: float,
+                   rate: Callable[[float], float],
+                   divs: Sequence[DatedDividend], valuation: date,
+                   n: int = 400) -> list[float]:
+    """
+    For each expiry in `summary`: how far the market's forward sits above the
+    model's, in basis points of the share price.
+
+    A vol gap of 0.25 points means something different at one month than at
+    ten. A forward error is the same thing at every maturity, so it can be
+    compared across expiries: one that grows in step with time points to the
+    rate, and one that jumps at an ex-dividend date points to that dividend.
+    It is the expiry's weighted mean gap divided by forward_sensitivity at
+    the strike nearest the share price.
+    """
+    dts = dividend_times(valuation, divs)
+    expiry = [_as_date(e) for e in gap["expiry"]]
+    out = []
+    for e, row in summary.iterrows():
+        g = gap[[x == e for x in expiry]]
+        atm = g.iloc[(g["strike"] - spot).abs().to_numpy().argmin()]
+        T = year_fraction(valuation, e)
+        sens = forward_sensitivity(spot, float(atm["strike"]), T, rate(T),
+                                   0.5 * (atm["iv_call"] + atm["iv_put"]), dts, n)
+        out.append(row["weighted_gap"] / sens if sens and np.isfinite(sens) else np.nan)
+    return out
+
+
+def fit_funding_spread(summary: pd.DataFrame, front: date,
+                       min_expiries: int = 2) -> float | None:
+    """
+    One day's estimate of how far the market's funding rate sits above the
+    model's, per year (0.002 = 20 basis points). None if it cannot be fitted.
+
+    A funding rate that is too low by s makes the forward too low by s times
+    the time beyond the calibrated expiry (where the error is zero because
+    the share price was implied there). So fit a straight line through zero
+    to forward error against that time; its slope is s.
+
+    Only monthly expiries that rest on declared dividends are used. A
+    projected dividend that is too small looks exactly like a rate that is
+    too high, and the two could not be told apart.
+    """
+    xs, ys = [], []
+    for e, row in summary.iterrows():
+        if (row["carry"] == "declared only" and e > front and is_monthly_expiry(e)
+                and np.isfinite(row["fwd_error_bp"])):
+            xs.append(year_fraction(front, e))
+            ys.append(row["fwd_error_bp"])
+    if len(xs) < min_expiries:
+        return None
+    x, y = np.array(xs), np.array(ys)
+    return float((x * y).sum() / (x * x).sum()) / 1e4
+
+
+def trailing_spread(estimates: Mapping[date, float | None], day: date,
+                    min_days: int = 20) -> float | None:
+    """
+    The funding spread to USE on `day`: the mean of the daily estimates from
+    days strictly before it. None until `min_days` of them exist, and then no
+    spread is applied.
+
+    Earlier days only, the same rule as the hedge ratios. A spread fitted on
+    a day and applied to that same day would close the call-put gap by
+    construction, and the chart would then be the model checking itself.
+    """
+    past = [s for d, s in estimates.items() if d < day and s is not None]
+    return float(np.mean(past)) if len(past) >= min_days else None
+
+
 @dataclass
 class DayResult:
     valuation: date
@@ -327,6 +435,7 @@ class DayResult:
     inverted: pd.DataFrame | None   # None when no share price was implied
     gap: pd.DataFrame | None
     summary: pd.DataFrame | None
+    funding_spread: float | None = None     # this day's own estimate, per year
 
 
 def analyse_day(options: pd.DataFrame, approx_spot: float,
@@ -365,5 +474,8 @@ def analyse_day(options: pd.DataFrame, approx_spot: float,
     inverted = invert_chain(near, res.spot, r, divs, n=n, exact_bars=exact_bars)
     gap = call_put_gap(inverted)
     summary = gap_summary(gap, valuation, front, first_projected)
+    summary["fwd_error_bp"] = forward_errors(gap, summary, res.spot, r, divs,
+                                             valuation, n)
     return DayResult(valuation, front, res.spot, Reject.OK, res.pairs_used,
-                     inverted, gap, summary)
+                     inverted, gap, summary,
+                     fit_funding_spread(summary, front))

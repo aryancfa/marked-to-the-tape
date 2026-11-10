@@ -10,12 +10,13 @@ this file only reads inputs, prints and draws.
     .venv/Scripts/python scripts/first_look.py RY 2026-11-02 flat
 
 The optional third word chooses the rate: "curve" (default) reads a rate for
-each expiry off the Bank of Canada curve; "flat" uses overnight CORRA for
+each expiry off the CORRA futures curve (Treasury bills on days the futures
+do not cover); "flat" uses overnight CORRA for
 every expiry and exists only to show what the curve changes.
 
 Inputs and where each comes from:
   options      data/raw/mx/            Montreal Exchange daily files (manual)
-  rate         data/raw/boc/           Bank of Canada CORRA and T-bill yields
+  rate         data/raw/mx/, data/raw/boc/   CORRA futures, CORRA fixings, T-bill yields
   dividends    data/reference/         ex-dates and cash, declared or projected
   share price  implied from the nearest monthly expiry's call-put pairs
 """
@@ -36,9 +37,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from loaders.mx import load_mx_options, load_mx_underlying
+from loaders.mx import load_mx_futures, load_mx_options, load_mx_underlying
 from loaders.reference import first_projected, load_dividends
-from rates import flat_curve, load_curve
+from rates import flat_curve, load_base_curve
 from surface import analyse_day, rejection_tally, vs_exchange
 
 
@@ -51,17 +52,23 @@ def main(underlying: str, day: date, rate_mode: str = "curve") -> None:
         raise SystemExit(f"no {underlying} rows on {day}")
     file_mid, file_last = float(u["mid"].iloc[0]), float(u["last"].iloc[0])
 
-    curve = load_curve(ROOT / "data/raw/boc", day)
+    fut = load_mx_futures(ROOT / "data/raw/mx")
+    fut = fut[fut["root"] == "CRA"]
+    cra = [(d.date(), e.date(), float(px))
+           for d, e, px in zip(fut["date"], fut["expiry"], fut["settle"])]
+    curve = load_base_curve(ROOT / "data/raw/boc", day, cra)
+    source = curve.source
     if rate_mode == "flat":
         curve = flat_curve(day, curve.rate(0.0))
     elif rate_mode != "curve":
         raise SystemExit('rate mode must be "curve" or "flat"')
     schedule = load_dividends(ROOT / "data/reference" / f"{underlying.lower()}_dividends.csv")
-    divs = [(d, c) for d, c, _ in schedule]
+    divs = [(x.ex_date, x.cash) for x in schedule]
 
     res = analyse_day(o, file_mid, curve, divs, first_projected(schedule, day))
     print(f"{underlying} {day}   rate mode: {rate_mode}   front expiry {res.front}, "
           f"{res.pairs_used} pairs")
+    print(f"rate source: {source}, no funding spread")
     print("rates by tenor (continuous, %): "
           + ", ".join(f"{t*365:.0f}d {x*100:.2f}" for t, x in curve.points))
     if curve.stale:
@@ -113,7 +120,7 @@ def main(underlying: str, day: date, rate_mode: str = "curve") -> None:
         "Quote bar = the two quotes' half-spreads added, not drawn. Share price "
         "implied from the calibrated expiry.\nRate: "
         + ("overnight CORRA for every expiry" if rate_mode == "flat"
-           else "Bank of Canada curve by expiry, flat beyond one year")
+           else f"{source} by expiry, no funding spread")
         + "; dividends after the last declared one are projected.", fontsize=9)
     fig.tight_layout(rect=(0, 0, 1, 0.91))
     tag = "" if rate_mode == "curve" else f"_{rate_mode}"
