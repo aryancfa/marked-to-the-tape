@@ -24,8 +24,22 @@ Design notes that matter for the desk story
    the difference between an error surface and a plot of garbage: you must be
    able to say how many quotes you dropped and why.
 
-4. Financing on Americans is a BAND, not a print. See finance_band_american.
-   The band is honest; a point estimate is not.
+4. Implied borrow is CUT from the product. finance_band_american stays only
+   because its tests document why: a one-sided band misses the truth on
+   hard-to-borrow names, and the honest two-sided band is too wide to use.
+
+Time convention (the caller's job, stated here so it is done one way)
+---------------------------------------------------------------------
+Valuation is at the close. Times are calendar days / 365 between dates:
+  T   = (expiry date - valuation date) / 365
+  t_k = (ex-dividend date - valuation date) / 365
+A dividend counts when 0 < t_k <= T. So an ex-date ON the expiry date counts
+(the share has already dropped when the option expires), and an ex-date ON
+the valuation date does not (today's close is already ex-dividend). Getting
+this one day wrong moves the call-put gap by several vol points.
+SXO is the exception to check: index options commonly settle on the OPENING
+level of expiry day, which shortens T by most of a day. Confirm against the
+contract specification before pricing SXO.
 """
 
 from __future__ import annotations
@@ -138,20 +152,23 @@ def crr_american(S: float, K: float, T: float, r: float, b: float,
         )
 
     # remaining-dividend PV at each time step, precomputed
-    rem_pv = np.array([pv_dividends(divs, r, i * dt, T) for i in range(n + 1)])
+    if divs:
+        rem_pv = np.array([pv_dividends(divs, r, i * dt, T) for i in range(n + 1)])
+    else:
+        rem_pv = np.zeros(n + 1)
 
-    j = np.arange(n + 1)
-    s_star = S_star * u ** (n - j) * d ** j
-    s_act = s_star + rem_pv[n]
-    V = np.maximum(s_act - K, 0.0) if is_call else np.maximum(K - s_act, 0.0)
+    # Node j at step i is S* u^(i-2j). Compute the grid once from the exponent
+    # (no accumulated rounding) and slice it: step i uses exponents
+    # i, i-2, ..., -i, which sit at grid[n-i : n+i+1 : 2].
+    grid = S_star * u ** np.arange(n, -n - 1, -1.0)
+    sign = 1.0 if is_call else -1.0
+    disc_p, disc_q = disc * p, disc * (1.0 - p)
 
+    V = np.maximum(sign * (grid[::2] + rem_pv[n] - K), 0.0)
     for i in range(n - 1, -1, -1):
-        V = disc * (p * V[:-1] + (1.0 - p) * V[1:])
-        j = np.arange(i + 1)
-        s_star = S_star * u ** (i - j) * d ** j
-        s_act = s_star + rem_pv[i]
-        ex = np.maximum(s_act - K, 0.0) if is_call else np.maximum(K - s_act, 0.0)
-        V = np.maximum(V, ex)
+        V = disc_p * V[:-1] + disc_q * V[1:]
+        ex = sign * (grid[n - i:n + i + 1:2] + (rem_pv[i] - K))
+        np.maximum(V, ex, out=V)
 
     return float(V[0])
 
@@ -159,6 +176,26 @@ def crr_american(S: float, K: float, T: float, r: float, b: float,
 # --------------------------------------------------------------------------
 # quote hygiene
 # --------------------------------------------------------------------------
+
+def mx_tick(price: float, penny_program: bool = False,
+            penny_all_levels: bool = False) -> float:
+    """
+    Minimum price increment for an MX equity or ETF option premium.
+
+    Outside the penny program: 1 cent below $0.50, 5 cents at $0.50 or more
+    (in force since February 2022; before that the cutoff was $0.10).
+    In the penny program: 1 cent below $3.00, 5 cents at $3.00 or more.
+    Some penny-program ETF options tick in 1 cent at every level; pass
+    `penny_all_levels=True` for those.
+
+    Which classes are in the program changes, so the caller supplies the flag.
+    Confirm the rule against the current MX rulebook before relying on it.
+    """
+    if penny_all_levels:
+        return 0.01
+    cutoff = 3.00 if penny_program else 0.50
+    return 0.01 if price < cutoff else 0.05
+
 
 class Reject:
     OK = "ok"
@@ -221,7 +258,7 @@ class IVResult:
 def implied_vol_american(price: float, S: float, K: float, T: float, r: float,
                          b: float, divs: Sequence[Dividend], is_call: bool,
                          n: int = 400, lo: float = 1e-4, hi: float = 5.0,
-                         tol: float = 1e-8, max_iter: int = 200,
+                         tol: float = 1e-6, max_iter: int = 200,
                          min_move_per_vol_pt: float = 0.01) -> IVResult:
     """
     Invert an American option price to implied vol by bisection.
@@ -238,8 +275,16 @@ def implied_vol_american(price: float, S: float, K: float, T: float, r: float,
     error raised. Those quotes must be rejected, not inverted.
 
     `min_move_per_vol_pt` is the tick-size argument: if one volatility point
-    moves the model price by less than a cent, no penny-quoted market can
-    resolve the vol and the answer is noise. Default 0.01 = one cent.
+    moves the model price by less than a cent, no market can resolve the vol
+    and the answer is noise. Default 0.01 = one cent, the smallest MX tick.
+    This is a FLOOR that catches the flat exercise region, not a statement of
+    how well the vol is known: many MX series tick in 5 cents (see mx_tick),
+    and the usable resolution is the quote's half-spread in vol points, which
+    the error surface reports. Do not raise this default to the 5-cent tick:
+    it would reject at-the-money options on low-priced ETFs.
+
+    `tol` is the bisection width in vol units. 1e-6 is 0.0001 vol points, far
+    inside the 0.04-point lattice floor; tighter only costs tree evaluations.
     """
     def f(sig: float) -> float:
         return crr_american(S, K, T, r, b, sig, divs, is_call, n) - price
@@ -271,9 +316,12 @@ def implied_vol_american(price: float, S: float, K: float, T: float, r: float,
 
     # local vega: is this solve actually identified?
     h = 1e-3
-    up = crr_american(S, K, T, r, b, min(iv + h, hi), divs, is_call, n)
-    dn = crr_american(S, K, T, r, b, max(iv - h, lo), divs, is_call, n)
-    vega = (up - dn) / (2.0 * h)          # price change per unit vol
+    sig_up, sig_dn = min(iv + h, hi), max(iv - h, lo)
+    up = crr_american(S, K, T, r, b, sig_up, divs, is_call, n)
+    dn = crr_american(S, K, T, r, b, sig_dn, divs, is_call, n)
+    # divide by the bump actually taken: at the edge of the bracket one side
+    # is clamped, and dividing by 2h there would halve the vega
+    vega = (up - dn) / (sig_up - sig_dn)  # price change per unit vol
     if abs(vega) * 0.01 < min_move_per_vol_pt:
         return IVResult(None, Reject.ILL_CONDITIONED, it)
 

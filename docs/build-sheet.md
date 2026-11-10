@@ -3,7 +3,7 @@
 The plan for this repo. Each item has a reason, a definition of done and its dependencies.
 Work roughly in phase order. Nothing outside this sheet gets built without a deliberate decision.
 
-**The product is two charts.** Front: implied vol on Montreal options against three references (call vs put at the same strike, a fitted smile, OptionMetrics), in vol points by expiry and moneyness, with a count of everything excluded and why. Closing: residual P&L after short SXF and ZEB, by name and by sector. The demo opens on the first and closes on the second.
+**The product is two charts.** Front: implied vol on Montreal options against three references (call vs put at the same strike, a fitted smile, OptionMetrics), in vol points by expiry and moneyness, with a count of everything excluded and why. Closing: residual P&L after short SXF and ZEB, then after a listed-option vega hedge, by name and by sector. The demo opens on the first and closes on the second.
 
 ## Data stack
 
@@ -55,7 +55,9 @@ Statistics are only as good as the series under them. A correlation or hedge rat
 
 TSX and NYSE close on different holidays: Family Day, Victoria Day, Canada Day, the Civic Holiday and Canadian Thanksgiving close Toronto while New York trades. A naive join on date inserts zero returns on one side, which pulls every correlation and hedge ratio toward zero.
 
-- **Done when:** A calendar module returning the shared trading days for any list of instruments; a test that the August Civic Holiday and February Family Day are excluded; a report of stale days per series.
+The same module owns the one rule for turning dates into the times the pricer uses. Valuation is at the close, and both time to expiry and time to each ex-dividend date are calendar days divided by 365. Doing this two ways in two places is how a one-day error gets in. Don't name the file `calendar.py`: with `src/` on the import path it would hide Python's own `calendar` module.
+
+- **Done when:** A calendar module (`src/tradingcal.py`) returning the shared trading days for any list of instruments; a test that the August Civic Holiday and February Family Day are excluded; a report of stale days per series. One year-fraction function used by every caller, with a test. The SXO final-settlement rule (opening or closing index level on expiry day, and the last trading day) read from the contract specification in a browser and written into the README, with SXO's time to expiry following it.
 - **Depends on:** –
 
 ### A2. Closing times and interlisted continuation
@@ -76,7 +78,7 @@ A format that only knows listed options fails the moment someone adds a futures 
 
 The early-exercise logic depends on ex-dividend dates and cash amounts. One date off by a day puts the call exercise point in the wrong place, which is exactly what you claim to handle correctly.
 
-- **Done when:** Ex-dividend dates and amounts covering every live expiry, checked against two sources (OptionMetrics' distribution table is one for the New York listings), with a test that a known past ex-date lands on the right trading day.
+- **Done when:** Ex-dividend dates and amounts covering every live expiry, checked against two sources (OptionMetrics' distribution table is one for the New York listings), with a test that a known past ex-date lands on the right trading day. Dividend times follow the engine's rule: an ex-date on the expiry date counts, an ex-date on the valuation date does not. ETF distributions (XIU quarterly, ZEB monthly) are included with the amounts actually paid, since they vary.
 - **Depends on:** A1
 
 ### A5. Offline snapshot, caching and a fixed random seed
@@ -92,7 +94,7 @@ This is where the project gets checked against the market. Everything here suppo
 
 ### B1. Wire in the pricer and inverter  _(already built)_
 
-Binomial pricing for American options with discrete cash dividends, Black-Scholes for SXO, implied volatility by bisection with the vega screen and the lattice floor, and quote screening with reason codes. Eighteen tests pass. Building your own matters here: the Montreal Exchange's own implied volatility uses Black-Scholes on American options, and its page says that overstates the result.
+Binomial pricing for American options with discrete cash dividends, Black-Scholes for SXO, implied volatility by bisection with the vega screen and the lattice floor, and quote screening with reason codes. Twenty-six tests pass. Building your own matters here: the Montreal Exchange's own implied volatility uses Black-Scholes on American options, and its page says that overstates the result.
 
 - **Done when:** voleng.py behind the app's pricing functions, with its tests running in CI on every push.
 - **Depends on:** A3, A4
@@ -108,14 +110,18 @@ Exchanges don't settle every option off a trade. Options that didn't trade get a
 
 A disagreement needs two numbers, and inverting a market price gives you only one. Use three references, strongest last: the call against the put at the same strike (B5), each strike against a smooth curve fitted through its neighbours, and your engine against OptionMetrics (B8).
 
-- **Done when:** Differences in vol points by expiry and moneyness for strikes that pass the screen. A smile fitted per expiry (a quadratic in log-moneyness is enough to start). The noise floor shown on the chart: 0.04 vol points at 400 steps, so anything smaller is your own rounding.
+A difference only means something if it is bigger than what the market itself can't resolve. That limit is the bid-ask spread, not the tree: a 5-cent-wide market on a one-month at-the-money option is about 0.4 vol points wide, ten times the solver's rounding. Input errors are the same size: spot stale by 10 basis points or a dividend amount off by 5% each move the call-put gap by 0.3 to 1 vol point.
+
+- **Done when:** Differences in vol points by expiry and moneyness for strikes that pass the screen, and the same differences divided by the quote's half-spread in vol points (invert the bid and the ask to get it). Two floors drawn on the chart: the half-spread, which is the one that decides signal, and the solver's 0.04 vol points at 400 steps beneath it. A table of how far a stated error in spot, rate and dividend moves the result. A smile fitted per expiry, weighted by vega, starting with a quadratic in log-moneyness; the fit's own error reported per expiry, and any expiry where the curve misses by more than the half-spread flagged as a poor fit instead of read as a disagreement.
 - **Depends on:** B1, B2, B5
 
 ### B4. Rejection tally
 
 A chart that hides how many quotes it dropped isn't a measurement. Deep in-the-money American options on the exercise boundary carry no volatility information, and a solver returns a confident wrong number for them unless you screen them out. Five of forty-two synthetic quotes hit this.
 
-- **Done when:** Counts by reason shown next to the surface: no activity, crossed market, spread too wide, below intrinsic value, no solution, vega too small.
+The vega screen is a floor set at one cent, the smallest tick. It removes quotes with no information; it doesn't say the rest are precise. Many series tick in five cents (one cent only below $0.50, or below $3.00 in the penny program), so one tick can be worth more than a vol point on a cheap option. That shows up in B3's half-spread, not here.
+
+- **Done when:** Counts by reason shown next to the surface: no activity, crossed market, spread too wide, below intrinsic value, no solution, vega too small. The tick rule and each class's penny-program status confirmed against the current exchange rules and recorded.
 - **Depends on:** B3
 
 ### B5. Call against put at the same strike
@@ -146,6 +152,13 @@ The last limitation on this sheet used to read “no independent model to check 
 - **Done when:** For the seven New York listings over at least one month: the distribution of your implied vol minus theirs in vol points, by moneyness and days to expiry, with the largest gaps explained. Statistics and charts published, never their rows. The IvyDB version recorded.
 - **Depends on:** B1, WRDS
 
+### B9. Realized against implied volatility  _(the trading view)_
+
+Implied vol is the price of an option quoted as a volatility. Realized vol is how much the share then actually moved. Implied above what followed means the option was expensive, and that is a view a trader can argue with. The comparison has to look forward: implied on day t against realized from t to expiry. Comparing with trailing realized is the usual mistake, because it matches a forecast with the past.
+
+- **Done when:** For the liquid names, at-the-money implied vol for the nearest monthly expiry against the realized vol over that same window (close to close, on the shared calendar, ex-dividend days adjusted). The gap's history and distribution, with the number of non-overlapping windows stated beside it, since six months gives about six. The 25-delta risk reversal and butterfly. The P&L of holding one at-the-money straddle to expiry with a daily delta hedge, entered at the quoted bid or ask and not the mid, shown per expiry as what happened and not as a strategy.
+- **Depends on:** B3, A1, A4
+
 ## Week 3: Risk, hedge, ship
 
 The closing chart and the limitations page. Ship at the end of this week in whatever state it's in, because a rough live link beats a polished one a month later.
@@ -166,24 +179,33 @@ One portfolio vega number adds one-month volatility on one name to one-year vola
 
 ### C3. Historical replay  _(label the marks)_
 
-Made-up shocks are numbers someone typed, so replay real dated moves applied together. Where Montreal history reaches a replay date, use real settlements. Before that, reprice the option leg with your model on historical share prices and label it as model-priced.
+Made-up shocks are numbers someone typed, so replay real dated moves applied together. Where Montreal history reaches a replay date, use real settlements. Before that, reprice the option leg with your model on historical share prices and label it as model-priced. The model needs a volatility for each of those days, and a volatility produced by the C1 rule is a number someone typed. For the names listed in New York, OptionMetrics has the implied vols the market actually showed on those dates, so use them, with the currency effect removed (the formula is in Deferred item 2). The C1 rule fills in only where no observed vol exists.
 
-- **Done when:** Joint moves for February to March 2020, April 2020 negative WTI, the 2022–23 Bank of Canada cycle and January 2015, plus the WCS–WTI spread as its own factor with at least one case of WTI flat and the spread widening. The page says which days use real settlements and which use model prices.
-- **Depends on:** A1, A2, B6, C1
+- **Done when:** Joint moves for February to March 2020, April 2020 negative WTI, the 2022–23 Bank of Canada cycle and January 2015, plus the WCS–WTI spread as its own factor with at least one case of WTI flat and the spread widening. Every replay day carries one of three labels: real settlement, model price on an observed New York vol, or model price on a rule-based vol. The page shows the count of each.
+- **Depends on:** A1, A2, B6, C1, WRDS
 
 ### C4. Hedge and residual  _(closing chart)_
 
 What's left after a hedge you could actually put on is the question a desk asks, so it's the last thing they see.
 
-- **Done when:** Short SXF, plus ZEB where the book is bank-heavy, applied to the historical book P&L. Residual shown against the TSX 60 and the sector ETF, by name and by sector, with minimum-variance and beta hedge ratios compared.
+Two things keep this chart honest. A hedge ratio fitted on the same days it is judged on always looks better than it would have been, so each day's ratio comes only from data before that day. And a futures hedge removes delta only, so on an options book most of what's left is gamma and vega, which would be misread as sector risk unless it is shown separately.
+
+- **Done when:** Short SXF, plus ZEB where the book is bank-heavy, applied to the historical book P&L. Hedge ratios estimated on a rolling window that ends the day before they are applied, with the in-sample result shown beside it so the gap is visible. Residual split into the delta part the hedge missed and the option part (gamma and vega) it could not reach, which C4b takes on. The delta part shown against the TSX 60 and the sector ETF, by name and by sector, with minimum-variance and beta hedge ratios compared.
 - **Depends on:** C2, C3
+
+### C4b. Vega hedge with listed options
+
+Futures can't hedge volatility. A book that is long options loses when implied vol falls even if the share price never moves, and the only thing that offsets that is another option. A desk sells or buys index or ETF options against it, then cleans up the delta those options bring with the future.
+
+- **Done when:** A fixed, stated rule and not a search: near-the-money XIU options (SXO as the alternative) in the maturity bucket where the book's vega sits, sized to bring that bucket's beta-weighted vega to zero, with SXF then re-sized for the delta the hedge adds. Hedge options marked at real settlements and charged half the quoted spread on entry and exit; any day marked from the model labelled. The closing chart shows three stages side by side: unhedged, delta-hedged, delta and vega hedged. What still remains (gamma, single-name vol moving differently from index vol) is named on the chart.
+- **Depends on:** C2, C4, B3
 
 ### C5. Component ES
 
 Which position drives the worst days is what a risk head asks. Euler allocation splits tail risk across positions so the pieces add up to the total.
 
 - **Done when:** Marginal and component ES per position, summing to the total, ranked, on the real universe.
-- **Depends on:** C4
+- **Depends on:** C4b
 
 ### C6. Interlisted volume panel  _(buy-side door)_
 
@@ -217,12 +239,11 @@ Nobody clones a repo. A reader spends a few seconds, and a live link is what tho
 
 These wait until both charts exist and the project is live.
 
-1. **Realized versus implied volatility, and skew summaries.** Implied above realized means options look expensive, and that's a view a trader can argue with. Add the 25-delta risk reversal and butterfly on the liquid names. OptionMetrics has realized volatility and surface tables for the New York listings; use your own data for Montreal. These numbers feed the monthly note.
-2. **Spot and volatility grid.** P&L across a grid of share-price and volatility moves. It's the standard daily desk view and costs almost nothing once full revaluation works.
-3. **Same company, two markets.** Your Montreal implied volatility against OptionMetrics' New York implied volatility for the same bank. The New York option is priced in US dollars, so remove the currency effect first: σ²(USD) = σ²(CAD) + σ²(FX) + 2ρ·σ(CAD)·σ(FX). Then explain what's left.
-4. **Reverse stress testing.** The smallest plausible joint move that costs a set amount, solved against full revaluation from several starting points. Show the count of similar historical days first and the Mahalanobis distance second, with a caveat.
-5. **Bootstrap intervals on VaR and ES.** A 99% VaR from 250 days rests on about two and a half bad days. Correct and cheap, but it changes nothing in the demo.
-6. **The morning note.** Top risks by component ES, overnight attribution, limit usage and what changed. It depends on C5, C7 and C8.
+1. **Spot and volatility grid.** P&L across a grid of share-price and volatility moves. It's the standard daily desk view and costs almost nothing once full revaluation works.
+2. **Same company, two markets.** Your Montreal implied volatility against OptionMetrics' New York implied volatility for the same bank. The New York option is priced in US dollars, so remove the currency effect first: σ²(USD) = σ²(CAD) + σ²(FX) + 2ρ·σ(CAD)·σ(FX). Then explain what's left.
+3. **Reverse stress testing.** The smallest plausible joint move that costs a set amount, solved against full revaluation from several starting points. Show the count of similar historical days first and the Mahalanobis distance second, with a caveat.
+4. **Bootstrap intervals on VaR and ES.** A 99% VaR from 250 days rests on about two and a half bad days. Correct and cheap, but it changes nothing in the demo.
+5. **The morning note.** Realized against implied (B9) feeds it. Top risks by component ES, overnight attribution, limit usage and what changed. It depends on C5, C7 and C8.
 
 **The gate:** nothing from the out-of-scope list comes back until the design or the data changes, meaning a second production system or prices you could actually trade at.
 
@@ -247,6 +268,11 @@ These wait until both charts exist and the project is live.
 - Last-trade implied vols are not mid-market
 - Deep in-the-money American options carry no recoverable implied vol, so screen on vega
 - The solver's noise floor is 0.04 vol points at 400 steps; smaller differences are rounding
+- The bid-ask spread is a far higher floor, often 0.4 to 2 vol points; a difference inside it is not a disagreement
+- A fitted quadratic smile misses short-dated skew, so wing residuals there are partly fit error
+- The vega hedge uses index or ETF options, so gamma and single-name vol that moves apart from index vol stay in the residual
+- Realized-against-implied rests on a handful of non-overlapping windows; it is a description, not a tested strategy
+- Time is calendar days over 365, so weekends carry the same variance as trading days
 - Borrow cost acts like a dividend yield and creates early-exercise value in calls, so one call-put pair can't separate financing from volatility
 - The exchange's website files are not its official end-of-day data
 - The exchange's own published implied vols use Black-Scholes on American options, which it says overstates them
@@ -264,7 +290,7 @@ These wait until both charts exist and the project is live.
 3. **Engine check:** your implied vols against OptionMetrics on the New York listings, in vol points
 4. **Call against put:** a flat gap across strikes means the carry assumptions hold
 5. **Shock RY through its dividend week:** full revaluation, a selectable volatility rule, carry over the horizon
-6. **Hedge with SXF and ZEB:** minimum-variance against beta ratio
+6. **Hedge with SXF and ZEB, then the vega hedge:** minimum-variance against beta ratio, out of sample
 7. **What's left:** the residual by name and by sector, and stop there
 
-If a week slips, cut in this order: the fund tab loses Kupiec, the replay loses scenarios, the vega grid becomes delta-only. Never cut the error surface, the hedge residual or the limitations page.
+If a week slips, cut in this order: the fund tab goes entirely, the interlisted volume panel goes, the replay loses scenarios, the vega grid becomes delta-only. Never cut the error surface, realized against implied, the hedge residual or the limitations page.

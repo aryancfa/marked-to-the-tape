@@ -20,7 +20,7 @@ import pytest
 
 from voleng import (Reject, bs_european, crr_american, finance_band_american,
                     implied_forward_european, implied_vol_american,
-                    implied_yield_from_forward, screen_quote)
+                    implied_yield_from_forward, mx_tick, screen_quote)
 
 S, r = 100.0, 0.0375
 
@@ -103,9 +103,11 @@ def test_recovers_sigma_on_every_invertible_quote():
 # 3. Cross-resolution round trip (the tolerance you can claim)
 # ---------------------------------------------------------------------------
 
-def test_production_tree_within_quarter_vol_point_of_fine_tree():
-    """The max error here is the noise floor on the real error surface.
-    Anything smaller is your own discretisation, not a model-vs-market signal."""
+def test_production_tree_within_noise_floor_of_fine_tree():
+    """The max error here is the solver's noise floor: about 0.04 vol points,
+    measured at 0.037 on this grid. The bound is 0.05 so the documented claim
+    is the thing being tested. Anything smaller is your own discretisation,
+    not a model-vs-market signal."""
     errs = []
     for T_ in EXPIRIES:
         for K in STRIKES:
@@ -117,7 +119,7 @@ def test_production_tree_within_quarter_vol_point_of_fine_tree():
                     errs.append(abs(res.iv - sig))
     errs = np.array(errs)
     assert len(errs) > 30
-    assert errs.max() < 0.0025
+    assert errs.max() < 0.0005
 
 
 # ---------------------------------------------------------------------------
@@ -196,3 +198,54 @@ def test_no_bracket_returns_reason_not_fabricated_vol():
 def test_pinned_deep_itm_put_rejected_not_inverted():
     res = implied_vol_american(30.0, S, 130.0, 0.08, r, 0.0, [], is_call=False, n=400)
     assert res.iv is None and res.reason == Reject.ILL_CONDITIONED
+
+
+# ---------------------------------------------------------------------------
+# 6. Time convention: which dividends count
+# ---------------------------------------------------------------------------
+
+def test_ex_date_on_expiry_counts():
+    """An ex-date on the expiry date has already knocked the share down when
+    the option expires, so the put is worth clearly more than with no
+    dividend. The call loses much less than the put gains, because its holder
+    exercises the day before and collects the dividend."""
+    T_ = 30 / 365
+    divs = [(T_, 1.0)]
+    put_gain = (crr_american(S, 100.0, T_, r, 0.0, 0.2, divs, False)
+                - crr_american(S, 100.0, T_, r, 0.0, 0.2, [], False))
+    call_loss = (crr_american(S, 100.0, T_, r, 0.0, 0.2, [], True)
+                 - crr_american(S, 100.0, T_, r, 0.0, 0.2, divs, True))
+    assert put_gain > 0.3
+    assert 0.0 < call_loss < 0.5 * put_gain
+
+
+def test_ex_date_on_valuation_date_or_after_expiry_is_ignored():
+    """Today's close is already ex-dividend, and a dividend after expiry never
+    touches the option. Both must price exactly like no dividend."""
+    T_ = 30 / 365
+    without = crr_american(S, 100.0, T_, r, 0.0, 0.2, [], False)
+    today = crr_american(S, 100.0, T_, r, 0.0, 0.2, [(0.0, 1.0)], False)
+    later = crr_american(S, 100.0, T_, r, 0.0, 0.2, [(T_ + 1 / 365, 1.0)], False)
+    assert today == without and later == without
+
+
+# ---------------------------------------------------------------------------
+# 7. Tick size and the vega screen at the edge of the bracket
+# ---------------------------------------------------------------------------
+
+def test_mx_tick_rules():
+    assert mx_tick(0.49) == 0.01 and mx_tick(0.50) == 0.05
+    assert mx_tick(2.99, penny_program=True) == 0.01
+    assert mx_tick(3.00, penny_program=True) == 0.05
+    assert mx_tick(12.0, penny_all_levels=True) == 0.01
+
+
+def test_vega_screen_uses_the_bump_actually_taken():
+    """With the solve pinned at the top of the bracket the up-bump is clamped.
+    Dividing by the full bump would halve the vega and reject a quote that is
+    in fact well identified."""
+    hi = 0.30
+    px = crr_american(S, 100.0, 0.25, r, 0.0, hi, [], True)
+    res = implied_vol_american(px, S, 100.0, 0.25, r, 0.0, [], True, hi=hi,
+                               min_move_per_vol_pt=0.15)
+    assert res.reason == Reject.OK and abs(res.iv - hi) < 1e-5
