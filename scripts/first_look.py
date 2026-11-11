@@ -17,7 +17,7 @@ every expiry and exists only to show what the curve changes.
 Inputs and where each comes from:
   options      data/raw/mx/            Montreal Exchange daily files (manual)
   rate         data/raw/mx/, data/raw/boc/   CORRA futures, CORRA fixings, T-bill yields
-  dividends    data/reference/         ex-dates and cash, declared or projected
+  dividends    reference/              ex-dates and cash, declared or projected
   share price  implied from the nearest monthly expiry's call-put pairs
 """
 
@@ -62,7 +62,7 @@ def main(underlying: str, day: date, rate_mode: str = "curve") -> None:
         curve = flat_curve(day, curve.rate(0.0))
     elif rate_mode != "curve":
         raise SystemExit('rate mode must be "curve" or "flat"')
-    schedule = load_dividends(ROOT / "data/reference" / f"{underlying.lower()}_dividends.csv")
+    schedule = load_dividends(ROOT / "reference" / f"{underlying.lower()}_dividends.csv")
     divs = [(x.ex_date, x.cash) for x in schedule]
 
     res = analyse_day(o, file_mid, curve, divs, first_projected(schedule, day))

@@ -68,7 +68,7 @@ def fingerprint(underlying: str) -> str:
     h = hashlib.sha1()
     files = sorted((ROOT / "src").rglob("*.py"))
     files += sorted(BOC.glob("*.csv"))
-    files.append(ROOT / "data/reference" / f"{underlying.lower()}_dividends.csv")
+    files.append(ROOT / "reference" / f"{underlying.lower()}_dividends.csv")
     for f in files:
         h.update(f.name.encode())
         h.update(f.read_bytes())
@@ -198,7 +198,7 @@ def main() -> None:
     opts, und = opts[opts["underlying"] == name], und[und["underlying"] == name]
     if opts.empty or und.empty:
         raise SystemExit(f"no {name} rows in data/raw/mx")
-    schedule = load_dividends(ROOT / "data/reference" / f"{name.lower()}_dividends.csv")
+    schedule = load_dividends(ROOT / "reference" / f"{name.lower()}_dividends.csv")
     und = und.set_index("date")
     cache = ROOT / "data/derived" / name.lower() / fingerprint(name)
     cache.mkdir(parents=True, exist_ok=True)

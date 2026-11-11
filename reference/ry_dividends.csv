@@ -1,0 +1,9 @@
+underlying,ex_date,cash,status,announced,source
+RY,2026-01-26,1.64,declared,2025-12-03,Date and amount: RBC release of 2025-12-03 (raised by 10 cents to 1.64; record date 2026-01-26). Not used by any pricing since data starts 2026-05-08
+RY,2026-04-23,1.64,declared,,Date: RBC share-information page (record date). Amount: implied by RBC release of 2026-05-28 (raised by 12 cents to 1.76). Announced before the data starts
+RY,2026-07-27,1.76,declared,2026-05-28,Date and amount: RBC release of 2026-05-28 (record date 2026-07-27; 1.76)
+RY,2026-10-26,1.76,declared,2026-08-27,Date and amount: RBC share-information page and release of 2026-08-27 (record date 2026-10-26; 1.76)
+RY,2027-01-26,1.86,projected,,RULE: RBC has published no 2027 dates. Same dates as 2026. A raise at the January and July ex-dates equal to the raise at the same point a year earlier (here +0.10 as announced 2025-12-03)
+RY,2027-04-23,1.86,projected,,RULE: same dates as 2026; no raise at this point of the year (none in April 2026)
+RY,2027-07-27,1.98,projected,,RULE: same dates as 2026; raise equal to the one a year earlier (+0.12 as announced 2026-05-28)
+RY,2027-10-26,1.98,projected,,RULE: same dates as 2026; no raise at this point of the year (none in October 2026)

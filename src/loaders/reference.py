@@ -1,5 +1,5 @@
 """
-reference.py — reads the dividend schedule kept under data/reference/.
+reference.py — reads the dividend schedule kept under reference/.
 
 Each row is one ex-dividend date with its cash amount and a status:
   declared   announced by the company
