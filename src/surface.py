@@ -24,14 +24,15 @@ ever filled in.
 
 from __future__ import annotations
 
+from bisect import bisect_left
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Callable, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
 
-from tradingcal import is_monthly_expiry, year_fraction
+from tradingcal import TSX, is_monthly_expiry, trading_days, year_fraction
 from voleng import (Reject, crr_american, implied_spot_american,
                     implied_vol_american, screen_quote)
 
@@ -40,37 +41,64 @@ NO_MARK = "no_price_to_invert"
 
 DatedDividend = tuple[date, float]      # (ex-dividend date, cash per share)
 
-# The share price drops at the OPEN of the ex-date. Measured in whole days from
-# a close, that is one day before the ex-date's own close.
+# Calendar fallback only: with no expiry to count sessions against, the drop
+# is placed this many days before the close of the ex-date.
 EX_SHIFT_DAYS = 1.0
 
 
 def dividend_times(valuation: date, divs: Sequence[DatedDividend],
-                   ex_shift_days: float = EX_SHIFT_DAYS) -> list[tuple[float, float]]:
+                   expiry: date | None = None,
+                   ex_shift_days: float | None = None,
+                   venue: str = TSX) -> list[tuple[float, float]]:
     """
-    Dated dividends -> (years from valuation, cash). The engine keeps only
-    those with 0 < t <= T, so passing the whole schedule is safe.
+    Dated dividends -> (years from valuation, cash), for an option that
+    expires on `expiry`. The engine keeps only those with 0 < t <= T, so
+    passing the whole schedule is safe.
 
-    The share price opens lower on the ex-date. Counting whole days from the
-    valuation close would put the drop at the CLOSE of the ex-date, one
-    trading session late. So a dividend still to come is placed
-    `ex_shift_days` earlier (1.0 = the previous day's close), but never
-    closer than a quarter of a day to the valuation close, so it still
-    counts. For an expiry a few days after the ex-date that session is a
-    large share of the time left, and it changes whether a call is worth
-    exercising early. `ex_shift_days=0` restores the close of the ex-date.
+    Where the drop goes
+    -------------------
+    A share price moves during trading sessions and hardly at all overnight
+    or over a weekend, and it opens lower on the ex-date. So what matters is
+    how many SESSIONS are over before that open, out of the sessions in the
+    option's life. With n sessions before the ex-date's open and N to expiry,
+    the drop is placed at T * n / N, where T is the option's ordinary time to
+    expiry in calendar days / 365.
 
-    This is a calendar-day stand-in for the open. It removed about half of
-    the gap seen on RY weeklies just after an ex-date; a day and a half
-    removed about two thirds, which suggests time should really be counted
-    in trading sessions. That larger change has not been made.
+    T itself is not changed, so implied vols stay on the calendar-day scale
+    the exchange and OptionMetrics use and remain comparable with theirs.
+    Only the split of the option's life into before and after the drop
+    changes. That split decides whether a call is worth exercising early,
+    and it matters most for an expiry a few days after the ex-date.
+
+    A dividend still to come never sits at zero: with no session before the
+    ex-date (valued Friday, ex-dividend Monday) it is placed a quarter of a
+    session in. An ex-date after `expiry` keeps its calendar time, which is
+    beyond T, so it does not count. One on or before the valuation date
+    keeps a time at or below zero.
+
+    `ex_shift_days` switches to the older calendar placement: that many days
+    before the close of the ex-date (0 = the close itself, 1 = a day
+    earlier), floored at a quarter of a day. It is also what is used when no
+    `expiry` is given.
     """
+    by_sessions = (ex_shift_days is None and expiry is not None
+                   and expiry > valuation)
+    sessions = (trading_days(venue, valuation + timedelta(days=1), expiry)
+                if by_sessions else [])
+    shift = EX_SHIFT_DAYS if ex_shift_days is None else ex_shift_days
     out = []
     for d, cash in divs:
         days = (d - valuation).days
-        if days > 0 and ex_shift_days:
-            days = max(days - ex_shift_days, 0.25)
-        out.append((days / 365.0, cash))
+        if days <= 0:
+            t = days / 365.0
+        elif sessions and d <= expiry:
+            before = bisect_left(sessions, d)       # sessions over before the open
+            t = year_fraction(valuation, expiry) * max(before, 0.25) / len(sessions)
+        elif sessions:
+            t = days / 365.0                        # after expiry: not this option's
+        else:
+            t = (max(days - shift, 0.25) if shift else days) / 365.0
+        out.append((t, cash))
     return out
 
 
@@ -82,7 +110,7 @@ def invert_chain(options: pd.DataFrame, spot: float,
                  r: float | Callable[[float], float],
                  divs: Sequence[DatedDividend], b: float = 0.0,
                  n: int = 400, exact_bars: bool = False,
-                 ex_shift_days: float = EX_SHIFT_DAYS) -> pd.DataFrame:
+                 ex_shift_days: float | None = None) -> pd.DataFrame:
     """
     Invert every row of ONE underlying on ONE date.
 
@@ -118,12 +146,16 @@ def invert_chain(options: pd.DataFrame, spot: float,
                           half_spread_vol=[])
     rate = r if callable(r) else (lambda T, _r=r: _r)
     valuation = _as_date(out["date"].iloc[0])
-    dts = dividend_times(valuation, divs, ex_shift_days)
+    dts_by_expiry: dict[date, list[tuple[float, float]]] = {}
 
     rows = []
     for o in out.itertuples(index=False):
-        T = year_fraction(valuation, _as_date(o.expiry))
+        expiry = _as_date(o.expiry)
+        T = year_fraction(valuation, expiry)
         is_call = o.call_put == "C"
+        if expiry not in dts_by_expiry:         # dividend times depend on the expiry
+            dts_by_expiry[expiry] = dividend_times(valuation, divs, expiry, ex_shift_days)
+        dts = dts_by_expiry[expiry]
         rT = rate(max(T, 0.0))
         rec = dict(T=T, r=rT, iv=np.nan, reason=Reject.OK, iv_bid=np.nan,
                    iv_ask=np.nan, half_spread_vol=np.nan)
@@ -386,7 +418,7 @@ def forward_sensitivity(S: float, K: float, T: float, r: float, sigma: float,
 def forward_errors(gap: pd.DataFrame, summary: pd.DataFrame, spot: float,
                    rate: Callable[[float], float],
                    divs: Sequence[DatedDividend], valuation: date,
-                   n: int = 400, ex_shift_days: float = EX_SHIFT_DAYS) -> list[float]:
+                   n: int = 400, ex_shift_days: float | None = None) -> list[float]:
     """
     For each expiry in `summary`: how far the market's forward sits above the
     model's, in basis points of the share price.
@@ -398,13 +430,13 @@ def forward_errors(gap: pd.DataFrame, summary: pd.DataFrame, spot: float,
     It is the expiry's weighted mean gap divided by forward_sensitivity at
     the strike nearest the share price.
     """
-    dts = dividend_times(valuation, divs, ex_shift_days)
     expiry = [_as_date(e) for e in gap["expiry"]]
     out = []
     for e, row in summary.iterrows():
         g = gap[[x == e for x in expiry]]
         atm = g.iloc[(g["strike"] - spot).abs().to_numpy().argmin()]
         T = year_fraction(valuation, e)
+        dts = dividend_times(valuation, divs, e, ex_shift_days)
         sens = forward_sensitivity(spot, float(atm["strike"]), T, rate(T),
                                    0.5 * (atm["iv_call"] + atm["iv_put"]), dts, n)
         out.append(row["weighted_gap"] / sens if sens and np.isfinite(sens) else np.nan)
@@ -472,7 +504,7 @@ def analyse_day(options: pd.DataFrame, approx_spot: float,
                 first_projected: date | None = None, moneyness: float = 0.12,
                 min_days: int = 7, max_days: int = 400, bracket: float = 0.015,
                 n: int = 400, exact_bars: bool = False,
-                ex_shift_days: float = EX_SHIFT_DAYS) -> DayResult:
+                ex_shift_days: float | None = None) -> DayResult:
     """
     One underlying on one date, start to finish:
 
@@ -493,7 +525,7 @@ def analyse_day(options: pd.DataFrame, approx_spot: float,
                          None, None, None)
     T_front = year_fraction(valuation, front)
     res = implied_spot_american(pairs, T_front, r(T_front), 0.0,
-                                dividend_times(valuation, divs, ex_shift_days),
+                                dividend_times(valuation, divs, front, ex_shift_days),
                                 approx_spot * (1.0 - bracket),
                                 approx_spot * (1.0 + bracket), n=n)
     if res.spot is None:

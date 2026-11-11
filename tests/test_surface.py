@@ -30,7 +30,7 @@ def chain(strikes=(47.5, 50.0, 52.5), expiries=(NEAR, FAR)):
         for K in strikes:
             for cp in "CP":
                 px = crr_american(S0, K, T, R, 0.0, SIG,
-                                  dividend_times(VAL, DIVS), cp == "C")
+                                  dividend_times(VAL, DIVS, e), cp == "C")
                 rows.append(dict(
                     date=pd.Timestamp(VAL), underlying="ZZZ",
                     expiry=pd.Timestamp(e), strike=K, call_put=cp,
@@ -344,45 +344,65 @@ def test_weighted_gap_falls_back_to_the_plain_mean_without_quote_bars():
 # When the share price drops on the ex-date
 # ---------------------------------------------------------------------------
 
-def test_dividend_drops_at_the_open_of_the_ex_date():
-    """The share price opens lower on the ex-date. Counted in whole days from
-    the valuation close, that is the PREVIOUS day's close, one day before the
-    ex-date's own close. It is never moved to or before the valuation close:
-    a dividend still to come must still count."""
-    divs = [(date(2026, 11, 3), 0.5), (date(2026, 11, 12), 0.5)]
-    t = dividend_times(VAL, divs)
-    assert t[0] == (pytest.approx(0.25 / 365), 0.5)      # ex-date tomorrow: floor
-    assert t[1] == (pytest.approx(9 / 365), 0.5)         # ten days out: nine
-    # the old convention, the close of the ex-date, is still available
-    assert dividend_times(VAL, divs, ex_shift_days=0.0) == [(1 / 365, 0.5), (10 / 365, 0.5)]
-    # a dividend already gone stays gone, and one on the valuation date too
-    past = dividend_times(VAL, [(date(2026, 10, 26), 0.5), (VAL, 0.5)])
-    assert past[0][0] < 0 and past[1][0] == 0.0
+EX, WEEKLY = date(2026, 11, 12), date(2026, 11, 16)     # a Thursday, the Monday after
 
 
-def test_an_ex_date_on_expiry_still_counts():
-    """The drop is at the open of expiry day, before the option expires."""
-    (t, _), = dividend_times(VAL, [(NEAR, 0.5)])
-    assert 0 < t < year_fraction(VAL, NEAR)
+def test_dividend_is_placed_by_trading_sessions():
+    """Share prices move during trading sessions and hardly at all over a
+    weekend. From Monday 2 November to the expiry on Monday 16 November there
+    are 10 sessions, and 7 of them are over before the share opens lower on
+    the 12th. So the drop sits 7/10 of the way through the option's life,
+    not 10/14 as a count of calendar days would have it."""
+    (t, cash), = dividend_times(VAL, [(EX, 0.5)], WEEKLY)
+    assert cash == 0.5
+    assert t == pytest.approx(year_fraction(VAL, WEEKLY) * 7 / 10)
 
 
-def test_a_drop_placed_at_the_close_shows_as_a_gap_just_after_the_ex_date():
-    """Prices are made with the drop at the open of the ex-date. Inverting
-    with the drop at the close leaves puts above calls on an expiry four days
-    later. The default timing leaves no gap."""
-    ex, weekly = date(2026, 11, 12), date(2026, 11, 16)
-    T = year_fraction(VAL, weekly)
+def test_an_ex_date_right_after_a_weekend_still_counts():
+    """Valued on a Friday, ex-dividend on the Monday: no session lies between,
+    but the dividend is still to come. It is placed a quarter of a session
+    in, never at zero."""
+    friday, monday, expiry = date(2026, 11, 6), date(2026, 11, 9), date(2026, 11, 13)
+    (t, _), = dividend_times(friday, [(monday, 0.5)], expiry)
+    assert t == pytest.approx(year_fraction(friday, expiry) * 0.25 / 5)
+
+
+def test_which_dividends_count_is_unchanged():
+    T = year_fraction(VAL, WEEKLY)
+    on_expiry, after, gone, today = (dividend_times(VAL, [(d, 0.5)], WEEKLY)[0][0] for d in (
+        WEEKLY, date(2026, 11, 17), date(2026, 10, 26), VAL))
+    assert 0 < on_expiry < T          # the share has dropped before the option expires
+    assert after > T                  # the next session after expiry: not this option's
+    assert gone < 0 and today == 0.0  # already ex-dividend at the valuation close
+
+
+def test_calendar_placement_is_still_available():
+    divs = [(date(2026, 11, 3), 0.5), (EX, 0.5)]
+    assert dividend_times(VAL, divs, WEEKLY, ex_shift_days=0.0) == [(1 / 365, 0.5), (10 / 365, 0.5)]
+    one = dividend_times(VAL, divs, WEEKLY, ex_shift_days=1.0)
+    assert one[0][0] == pytest.approx(0.25 / 365) and one[1][0] == pytest.approx(9 / 365)
+
+
+def _weekly_chain(times):
+    T = year_fraction(VAL, WEEKLY)
     rows = []
     for K in (49.0, 50.0, 51.0):
         for cp in "CP":
-            px = crr_american(S0, K, T, R, 0.0, SIG, [(9 / 365, 0.5)], cp == "C")
+            px = crr_american(S0, K, T, R, 0.0, SIG, times, cp == "C")
             rows.append(dict(
-                date=pd.Timestamp(VAL), underlying="ZZZ", expiry=pd.Timestamp(weekly),
+                date=pd.Timestamp(VAL), underlying="ZZZ", expiry=pd.Timestamp(WEEKLY),
                 strike=K, call_put=cp, bid=px - HALF, ask=px + HALF, settle=px,
                 volume=0, open_interest=0, traded=False, two_sided=True,
                 tier="quoted", mark=px, mark_source="mid"))
-    c = pd.DataFrame(rows)
-    at_close = call_put_gap(invert_chain(c, S0, R, [(ex, 0.5)], ex_shift_days=0.0))["gap"]
-    assert (at_close < -0.1).all()
-    at_open = call_put_gap(invert_chain(c, S0, R, [(ex, 0.5)]))["gap"]
-    assert at_open.abs().max() < 0.01
+    return pd.DataFrame(rows)
+
+
+def test_a_drop_placed_at_the_close_shows_as_a_gap_just_after_the_ex_date():
+    """Prices are made with the drop where the sessions put it. Inverting
+    with the drop at the close of the ex-date, by calendar days, leaves puts
+    above calls on an expiry four days later. The default leaves no gap."""
+    c = _weekly_chain(dividend_times(VAL, [(EX, 0.5)], WEEKLY))
+    at_close = call_put_gap(invert_chain(c, S0, R, [(EX, 0.5)], ex_shift_days=0.0))["gap"]
+    assert (at_close < -0.05).all()
+    by_sessions = call_put_gap(invert_chain(c, S0, R, [(EX, 0.5)]))["gap"]
+    assert by_sessions.abs().max() < 0.01

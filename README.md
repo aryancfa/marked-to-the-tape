@@ -72,16 +72,16 @@ The chart shows the mean gap for each expiry over 92 days (24 June to 4 November
 
 | Expiries | Futures only | Plus funding spread |
 |---|---|---|
-| Monthly, over 60 days, declared dividends | +0.15 | -0.02 |
-| Monthly, over 60 days, projected dividends | +0.39 | +0.08 |
-| Weekly, up to 30 days | -0.15 | -0.11 |
+| Monthly, over 60 days, declared dividends | +0.16 | -0.02 |
+| Monthly, over 60 days, projected dividends | +0.41 | +0.09 |
+| Weekly, up to 30 days | -0.06 | -0.02 |
 
 What it shows:
 
 1. **Nothing here is a trade.** Every gap is inside the quote bar.
 2. **The overnight rate is too low a funding rate.** The base curve is built from
    three-month CORRA futures, the market's forecast of the overnight rate. With it
-   alone, long monthly expiries show calls 0.15 vol points above puts, the same at
+   alone, long monthly expiries show calls 0.16 vol points above puts, the same at
    every strike. As a forward price the error grows with maturity at about 17 basis
    points a year. Treasury bills give the same picture (20 basis points).
 3. **A spread fitted from earlier days removes it.** Each day uses the mean spread
@@ -89,13 +89,14 @@ What it shows:
    rest on declared dividends the gap falls to -0.02, which is zero within error.
 4. **Dividend projections are tested, not fitted.** 2027 dividends are projected by
    a rule from RBC's own history (a raise twice a year, the size of last year's).
-   With no raise the gap was -0.19; with the rule it is +0.08. The rule overshoots
+   With no raise the gap was -0.19; with the rule it is +0.09. The rule overshoots
    a little at the longest expiry.
 5. **The time of day a dividend comes off matters.** Weekly expiries just after an
    ex-dividend date showed puts about 0.6 vol points above calls. The model was
    dropping the share price at the close of the ex-date; it really opens lower that
-   morning. Moving the drop to the open cut that gap to about 0.36. What remains
-   suggests time should be counted in trading sessions, which is not done yet.
+   morning, and prices move during trading sessions, not over weekends. Placing
+   the drop by the share of sessions that are over before the ex-date's open
+   removed the gap: all short weekly expiries now sit at -0.02.
 
 Limits. The spread is fitted from the same option market the check then tests, so
 on rates this check is not independent; it is labelled "fitted from options"

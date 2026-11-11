@@ -56,7 +56,7 @@ import pandas as pd
 from loaders.mx import load_mx_futures, load_mx_options, load_mx_underlying
 from loaders.reference import first_projected, load_dividends
 from rates import load_base_curve, load_curve
-from surface import (EX_SHIFT_DAYS, analyse_day, pool_across_days, rejection_tally,
+from surface import (analyse_day, pool_across_days, rejection_tally,
                      trailing_spread, vs_exchange)
 from tradingcal import is_monthly_expiry
 
@@ -182,9 +182,9 @@ def main() -> None:
                     help="earlier daily estimates needed before a spread is used")
     ap.add_argument("--compare-bills", action="store_true",
                     help="also run every day on Treasury bills alone")
-    ap.add_argument("--ex-shift", type=float, default=EX_SHIFT_DAYS,
-                    help="days before the ex-date's close at which the share price "
-                         "drops (default 1 = the open; 0 = the close)")
+    ap.add_argument("--ex-shift", type=float, default=None,
+                    help="place dividends by calendar days, this many days before the "
+                         "ex-date's close (0 = the close). Default: by trading sessions")
     ap.add_argument("--force", action="store_true", help="ignore the cache")
     a = ap.parse_args()
     name = a.underlying
@@ -207,9 +207,10 @@ def main() -> None:
         return (ts.date(), opts[opts["date"] == ts], float(und.loc[ts, "mid"]),
                 float(und.loc[ts, "last"]), schedule, spread, quotes, a.ex_shift)
 
-    tag = "" if a.ex_shift == EX_SHIFT_DAYS else f"_x{a.ex_shift:g}"
-    print(f"dividend drop placed {a.ex_shift:g} day(s) before the close of the ex-date"
-          + (" (default: the open)" if not tag else ""))
+    tag = "" if a.ex_shift is None else f"_x{a.ex_shift:g}"
+    print("dividend drop placed by trading sessions before the ex-date's open (default)"
+          if a.ex_shift is None else
+          f"dividend drop placed {a.ex_shift:g} calendar day(s) before the ex-date's close")
 
     days = sorted(set(opts["date"]) & set(und.index))[::a.every]
 

@@ -32,13 +32,15 @@ Time convention (the caller's job, stated here so it is done one way)
 ---------------------------------------------------------------------
 Valuation is at the close. Times are calendar days / 365 between dates:
   T   = (expiry date - valuation date) / 365
-  t_k = (ex-dividend date - valuation date - 1 day) / 365, at least 0.25 day
-The share opens lower on the ex-date, so the drop belongs at the OPEN of that
-day. In whole days from a close that is the previous day's close, hence the
-one day. Placing it at the ex-date's own close left puts above calls by about
-0.6 vol points on expiries a few days after an ex-date (RY, 2026). The floor
-keeps a dividend due tomorrow ahead of today's close. surface.dividend_times
-does this.
+  t_k = T * n / N
+where N is the number of trading sessions from the valuation close to expiry
+and n is how many of them are over before the share opens lower on the
+ex-date (at least a quarter of a session). Prices move in sessions, not over
+weekends, and the drop happens at the open. Placing it by calendar days at the
+ex-date's close left puts above calls by about 0.6 vol points on expiries a
+few days after an ex-date (RY, 2026); this placement removed it. T is left on
+the calendar scale so implied vols stay comparable with other sources.
+surface.dividend_times does this.
 A dividend counts when 0 < t_k <= T. So an ex-date ON the expiry date counts
 (the share has already dropped when the option expires), and an ex-date ON
 the valuation date does not (today's close is already ex-dividend). Getting
