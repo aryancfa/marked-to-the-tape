@@ -124,6 +124,7 @@ def invert_chain(options: pd.DataFrame, spot: float,
       iv              vol implied by the mark (empty if rejected)
       reason          Reject code, or "ok"
       half_spread_vol the quote bar: half the bid-ask spread, in vol units
+      vega            dollars one vol point is worth, as the solver measured it
       iv_bid, iv_ask  vols at the bid and the ask (two-sided rows)
 
     The quote bar is the half-spread in dollars divided by vega, the dollars
@@ -143,7 +144,7 @@ def invert_chain(options: pd.DataFrame, spot: float,
     out = options.copy()
     if out.empty:
         return out.assign(T=[], r=[], iv=[], reason=[], iv_bid=[], iv_ask=[],
-                          half_spread_vol=[])
+                          half_spread_vol=[], vega=[])
     rate = r if callable(r) else (lambda T, _r=r: _r)
     valuation = _as_date(out["date"].iloc[0])
     dts_by_expiry: dict[date, list[tuple[float, float]]] = {}
@@ -158,7 +159,7 @@ def invert_chain(options: pd.DataFrame, spot: float,
         dts = dts_by_expiry[expiry]
         rT = rate(max(T, 0.0))
         rec = dict(T=T, r=rT, iv=np.nan, reason=Reject.OK, iv_bid=np.nan,
-                   iv_ask=np.nan, half_spread_vol=np.nan)
+                   iv_ask=np.nan, half_spread_vol=np.nan, vega=np.nan)
         rows.append(rec)
         if T <= 0.0:
             rec["reason"] = EXPIRED
@@ -181,6 +182,7 @@ def invert_chain(options: pd.DataFrame, spot: float,
         if res.iv is None:
             continue
         rec["iv"] = res.iv
+        rec["vega"] = res.vega
         if not o.two_sided:
             continue
         if exact_bars:

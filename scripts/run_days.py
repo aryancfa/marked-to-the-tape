@@ -56,6 +56,7 @@ import pandas as pd
 from loaders.mx import load_mx_futures, load_mx_options, load_mx_underlying
 from loaders.reference import first_projected, load_dividends
 from rates import load_base_curve, load_curve
+from references import reference_differences
 from surface import (analyse_day, pool_across_days, rejection_tally,
                      trailing_spread, vs_exchange)
 from tradingcal import is_monthly_expiry
@@ -100,6 +101,8 @@ def one_day(task) -> dict:
         ok=True,
         spot=res.spot,
         gap=res.gap,                # per strike; stays in the gitignored cache
+        diffs=reference_differences(res.inverted, res.spot),   # for front_chart.py
+        tiers=res.inverted["tier"].value_counts().to_dict(),
         funding_spread=res.funding_spread,
         bp_vs_last=(res.spot / file_last - 1.0) * 1e4,
         bp_vs_mid=(res.spot / file_mid - 1.0) * 1e4,
