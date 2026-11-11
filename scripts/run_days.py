@@ -56,7 +56,7 @@ import pandas as pd
 from loaders.mx import load_mx_futures, load_mx_options, load_mx_underlying
 from loaders.reference import first_projected, load_dividends
 from rates import load_base_curve, load_curve
-from surface import (analyse_day, pool_across_days, rejection_tally,
+from surface import (EX_SHIFT_DAYS, analyse_day, pool_across_days, rejection_tally,
                      trailing_spread, vs_exchange)
 from tradingcal import is_monthly_expiry
 
@@ -79,7 +79,7 @@ def fingerprint(underlying: str) -> str:
 
 def one_day(task) -> dict:
     """Runs in a worker process. Returns derived numbers only."""
-    day, o, file_mid, file_last, schedule, spread, cra = task
+    day, o, file_mid, file_last, schedule, spread, cra, ex_shift = task
     t0 = time.time()
     out = dict(date=day, ok=False, spread_used=spread)
     try:
@@ -91,7 +91,8 @@ def one_day(task) -> dict:
     if spread is not None:
         curve = curve.plus(spread)
     divs = [(x.ex_date, x.cash) for x in schedule]
-    res = analyse_day(o, file_mid, curve, divs, first_projected(schedule, day))
+    res = analyse_day(o, file_mid, curve, divs, first_projected(schedule, day),
+                      ex_shift_days=ex_shift)
     out.update(front=res.front, reason=res.spot_reason, stale_rates=bool(curve.stale))
     if res.spot is None:
         return out
@@ -181,6 +182,9 @@ def main() -> None:
                     help="earlier daily estimates needed before a spread is used")
     ap.add_argument("--compare-bills", action="store_true",
                     help="also run every day on Treasury bills alone")
+    ap.add_argument("--ex-shift", type=float, default=EX_SHIFT_DAYS,
+                    help="days before the ex-date's close at which the share price "
+                         "drops (default 1 = the open; 0 = the close)")
     ap.add_argument("--force", action="store_true", help="ignore the cache")
     a = ap.parse_args()
     name = a.underlying
@@ -201,12 +205,16 @@ def main() -> None:
 
     def task(ts, spread, quotes):
         return (ts.date(), opts[opts["date"] == ts], float(und.loc[ts, "mid"]),
-                float(und.loc[ts, "last"]), schedule, spread, quotes)
+                float(und.loc[ts, "last"]), schedule, spread, quotes, a.ex_shift)
+
+    tag = "" if a.ex_shift == EX_SHIFT_DAYS else f"_x{a.ex_shift:g}"
+    print(f"dividend drop placed {a.ex_shift:g} day(s) before the close of the ex-date"
+          + (" (default: the open)" if not tag else ""))
 
     days = sorted(set(opts["date"]) & set(und.index))[::a.every]
 
     # ---- base: CORRA futures (bills where there are none), no spread ------
-    results = run({f"{ts:%Y%m%d}_base.pkl": task(ts, None, cra) for ts in days},
+    results = run({f"{ts:%Y%m%d}_base{tag}.pkl": task(ts, None, cra) for ts in days},
                   cache, a.workers, a.force, f"{name} base curve")
     good = [r for r in results if r["ok"]]
     print(f"\ndays with a result: {len(good)} of {len(results)}")
@@ -243,7 +251,7 @@ def main() -> None:
     u = pd.Series([used[ts] for ts in funded_days]) * 1e4
     print(f"spread applied (mean of earlier days): first {u.iloc[0]:+.1f}, "
           f"last {u.iloc[-1]:+.1f}, min {u.min():+.1f}, max {u.max():+.1f} bp a year\n")
-    funded = run({f"{ts:%Y%m%d}_base_s{round(used[ts] * 1e6):+d}.pkl": task(ts, used[ts], cra)
+    funded = run({f"{ts:%Y%m%d}_base{tag}_s{round(used[ts] * 1e6):+d}.pkl": task(ts, used[ts], cra)
                   for ts in funded_days},
                  cache, a.workers, a.force, f"{name} base curve plus trailing spread")
     funded = [r for r in funded if r["ok"]]
@@ -292,14 +300,14 @@ def main() -> None:
         "Blue: declared dividends only. Brown: rested on a projected dividend on most days. "
         "Pale band = ± the typical quote bar. Label: expiry (days observed).", fontsize=9)
     fig.tight_layout()
-    out = ROOT / "reports" / f"{name.lower()}_cp_gap_pooled.png"
+    out = ROOT / "reports" / f"{name.lower()}_cp_gap_pooled{tag.replace('.', 'p')}.png"
     fig.savefig(out, dpi=130)
     print(f"\nchart: {out.relative_to(ROOT)}")
 
     # ---- optional: Treasury bills alone, to compare base curves -----------
     if a.compare_bills:
         print()
-        bills = run({f"{ts:%Y%m%d}_bills.pkl": task(ts, None, None) for ts in days},
+        bills = run({f"{ts:%Y%m%d}_bills{tag}.pkl": task(ts, None, None) for ts in days},
                     cache, a.workers, a.force, f"{name} Treasury bills only")
         bills = [r for r in bills if r["ok"]]
         both = {r["date"] for r in bills} & {r["date"] for r in good}

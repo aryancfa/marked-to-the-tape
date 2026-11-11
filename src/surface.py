@@ -40,11 +40,38 @@ NO_MARK = "no_price_to_invert"
 
 DatedDividend = tuple[date, float]      # (ex-dividend date, cash per share)
 
+# The share price drops at the OPEN of the ex-date. Measured in whole days from
+# a close, that is one day before the ex-date's own close.
+EX_SHIFT_DAYS = 1.0
 
-def dividend_times(valuation: date, divs: Sequence[DatedDividend]) -> list[tuple[float, float]]:
-    """Dated dividends -> (years from valuation, cash). The engine keeps only
-    those with 0 < t <= T, so passing the whole schedule is safe."""
-    return [(year_fraction(valuation, d), cash) for d, cash in divs]
+
+def dividend_times(valuation: date, divs: Sequence[DatedDividend],
+                   ex_shift_days: float = EX_SHIFT_DAYS) -> list[tuple[float, float]]:
+    """
+    Dated dividends -> (years from valuation, cash). The engine keeps only
+    those with 0 < t <= T, so passing the whole schedule is safe.
+
+    The share price opens lower on the ex-date. Counting whole days from the
+    valuation close would put the drop at the CLOSE of the ex-date, one
+    trading session late. So a dividend still to come is placed
+    `ex_shift_days` earlier (1.0 = the previous day's close), but never
+    closer than a quarter of a day to the valuation close, so it still
+    counts. For an expiry a few days after the ex-date that session is a
+    large share of the time left, and it changes whether a call is worth
+    exercising early. `ex_shift_days=0` restores the close of the ex-date.
+
+    This is a calendar-day stand-in for the open. It removed about half of
+    the gap seen on RY weeklies just after an ex-date; a day and a half
+    removed about two thirds, which suggests time should really be counted
+    in trading sessions. That larger change has not been made.
+    """
+    out = []
+    for d, cash in divs:
+        days = (d - valuation).days
+        if days > 0 and ex_shift_days:
+            days = max(days - ex_shift_days, 0.25)
+        out.append((days / 365.0, cash))
+    return out
 
 
 def _as_date(x) -> date:
@@ -54,7 +81,8 @@ def _as_date(x) -> date:
 def invert_chain(options: pd.DataFrame, spot: float,
                  r: float | Callable[[float], float],
                  divs: Sequence[DatedDividend], b: float = 0.0,
-                 n: int = 400, exact_bars: bool = False) -> pd.DataFrame:
+                 n: int = 400, exact_bars: bool = False,
+                 ex_shift_days: float = EX_SHIFT_DAYS) -> pd.DataFrame:
     """
     Invert every row of ONE underlying on ONE date.
 
@@ -90,7 +118,7 @@ def invert_chain(options: pd.DataFrame, spot: float,
                           half_spread_vol=[])
     rate = r if callable(r) else (lambda T, _r=r: _r)
     valuation = _as_date(out["date"].iloc[0])
-    dts = dividend_times(valuation, divs)
+    dts = dividend_times(valuation, divs, ex_shift_days)
 
     rows = []
     for o in out.itertuples(index=False):
@@ -358,7 +386,7 @@ def forward_sensitivity(S: float, K: float, T: float, r: float, sigma: float,
 def forward_errors(gap: pd.DataFrame, summary: pd.DataFrame, spot: float,
                    rate: Callable[[float], float],
                    divs: Sequence[DatedDividend], valuation: date,
-                   n: int = 400) -> list[float]:
+                   n: int = 400, ex_shift_days: float = EX_SHIFT_DAYS) -> list[float]:
     """
     For each expiry in `summary`: how far the market's forward sits above the
     model's, in basis points of the share price.
@@ -370,7 +398,7 @@ def forward_errors(gap: pd.DataFrame, summary: pd.DataFrame, spot: float,
     It is the expiry's weighted mean gap divided by forward_sensitivity at
     the strike nearest the share price.
     """
-    dts = dividend_times(valuation, divs)
+    dts = dividend_times(valuation, divs, ex_shift_days)
     expiry = [_as_date(e) for e in gap["expiry"]]
     out = []
     for e, row in summary.iterrows():
@@ -443,7 +471,8 @@ def analyse_day(options: pd.DataFrame, approx_spot: float,
                 divs: Sequence[DatedDividend],
                 first_projected: date | None = None, moneyness: float = 0.12,
                 min_days: int = 7, max_days: int = 400, bracket: float = 0.015,
-                n: int = 400, exact_bars: bool = False) -> DayResult:
+                n: int = 400, exact_bars: bool = False,
+                ex_shift_days: float = EX_SHIFT_DAYS) -> DayResult:
     """
     One underlying on one date, start to finish:
 
@@ -464,18 +493,19 @@ def analyse_day(options: pd.DataFrame, approx_spot: float,
                          None, None, None)
     T_front = year_fraction(valuation, front)
     res = implied_spot_american(pairs, T_front, r(T_front), 0.0,
-                                dividend_times(valuation, divs),
+                                dividend_times(valuation, divs, ex_shift_days),
                                 approx_spot * (1.0 - bracket),
                                 approx_spot * (1.0 + bracket), n=n)
     if res.spot is None:
         return DayResult(valuation, front, None, res.reason, res.pairs_used,
                          None, None, None)
     near = near_the_money(options, res.spot, moneyness, min_days, max_days)
-    inverted = invert_chain(near, res.spot, r, divs, n=n, exact_bars=exact_bars)
+    inverted = invert_chain(near, res.spot, r, divs, n=n, exact_bars=exact_bars,
+                            ex_shift_days=ex_shift_days)
     gap = call_put_gap(inverted)
     summary = gap_summary(gap, valuation, front, first_projected)
     summary["fwd_error_bp"] = forward_errors(gap, summary, res.spot, r, divs,
-                                             valuation, n)
+                                             valuation, n, ex_shift_days)
     return DayResult(valuation, front, res.spot, Reject.OK, res.pairs_used,
                      inverted, gap, summary,
                      fit_funding_spread(summary, front))

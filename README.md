@@ -72,9 +72,9 @@ The chart shows the mean gap for each expiry over 92 days (24 June to 4 November
 
 | Expiries | Futures only | Plus funding spread |
 |---|---|---|
-| Monthly, over 60 days, declared dividends | +0.15 | -0.01 |
-| Monthly, over 60 days, projected dividends | +0.37 | +0.07 |
-| Weekly, up to 30 days | -0.20 | -0.16 |
+| Monthly, over 60 days, declared dividends | +0.15 | -0.02 |
+| Monthly, over 60 days, projected dividends | +0.39 | +0.08 |
+| Weekly, up to 30 days | -0.15 | -0.11 |
 
 What it shows:
 
@@ -86,15 +86,16 @@ What it shows:
    points a year. Treasury bills give the same picture (20 basis points).
 3. **A spread fitted from earlier days removes it.** Each day uses the mean spread
    implied by the options on previous days only, never its own. On expiries that
-   rest on declared dividends the gap falls to -0.01, which is zero within error.
+   rest on declared dividends the gap falls to -0.02, which is zero within error.
 4. **Dividend projections are tested, not fitted.** 2027 dividends are projected by
    a rule from RBC's own history (a raise twice a year, the size of last year's).
-   With no raise the gap was -0.19; with the rule it is +0.07. The rule overshoots
+   With no raise the gap was -0.19; with the rule it is +0.08. The rule overshoots
    a little at the longest expiry.
-5. **One effect is unexplained.** Weekly expiries just after an ex-dividend date
-   show puts about 0.6 vol points above calls, fading over the following two weeks.
-   The likely cause is how the pricing tree treats early exercise of calls around
-   the ex-date. It has not been investigated yet.
+5. **The time of day a dividend comes off matters.** Weekly expiries just after an
+   ex-dividend date showed puts about 0.6 vol points above calls. The model was
+   dropping the share price at the close of the ex-date; it really opens lower that
+   morning. Moving the drop to the open cut that gap to about 0.36. What remains
+   suggests time should be counted in trading sessions, which is not done yet.
 
 Limits. The spread is fitted from the same option market the check then tests, so
 on rates this check is not independent; it is labelled "fitted from options"

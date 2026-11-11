@@ -338,3 +338,51 @@ def test_weighted_gap_falls_back_to_the_plain_mean_without_quote_bars():
     g = _gap_frame(FAR, [0.1, 0.3, 0.5], bar=np.nan)
     row = gap_summary(g, VAL).loc[FAR]
     assert row["weighted_gap"] == pytest.approx(0.3)
+
+
+# ---------------------------------------------------------------------------
+# When the share price drops on the ex-date
+# ---------------------------------------------------------------------------
+
+def test_dividend_drops_at_the_open_of_the_ex_date():
+    """The share price opens lower on the ex-date. Counted in whole days from
+    the valuation close, that is the PREVIOUS day's close, one day before the
+    ex-date's own close. It is never moved to or before the valuation close:
+    a dividend still to come must still count."""
+    divs = [(date(2026, 11, 3), 0.5), (date(2026, 11, 12), 0.5)]
+    t = dividend_times(VAL, divs)
+    assert t[0] == (pytest.approx(0.25 / 365), 0.5)      # ex-date tomorrow: floor
+    assert t[1] == (pytest.approx(9 / 365), 0.5)         # ten days out: nine
+    # the old convention, the close of the ex-date, is still available
+    assert dividend_times(VAL, divs, ex_shift_days=0.0) == [(1 / 365, 0.5), (10 / 365, 0.5)]
+    # a dividend already gone stays gone, and one on the valuation date too
+    past = dividend_times(VAL, [(date(2026, 10, 26), 0.5), (VAL, 0.5)])
+    assert past[0][0] < 0 and past[1][0] == 0.0
+
+
+def test_an_ex_date_on_expiry_still_counts():
+    """The drop is at the open of expiry day, before the option expires."""
+    (t, _), = dividend_times(VAL, [(NEAR, 0.5)])
+    assert 0 < t < year_fraction(VAL, NEAR)
+
+
+def test_a_drop_placed_at_the_close_shows_as_a_gap_just_after_the_ex_date():
+    """Prices are made with the drop at the open of the ex-date. Inverting
+    with the drop at the close leaves puts above calls on an expiry four days
+    later. The default timing leaves no gap."""
+    ex, weekly = date(2026, 11, 12), date(2026, 11, 16)
+    T = year_fraction(VAL, weekly)
+    rows = []
+    for K in (49.0, 50.0, 51.0):
+        for cp in "CP":
+            px = crr_american(S0, K, T, R, 0.0, SIG, [(9 / 365, 0.5)], cp == "C")
+            rows.append(dict(
+                date=pd.Timestamp(VAL), underlying="ZZZ", expiry=pd.Timestamp(weekly),
+                strike=K, call_put=cp, bid=px - HALF, ask=px + HALF, settle=px,
+                volume=0, open_interest=0, traded=False, two_sided=True,
+                tier="quoted", mark=px, mark_source="mid"))
+    c = pd.DataFrame(rows)
+    at_close = call_put_gap(invert_chain(c, S0, R, [(ex, 0.5)], ex_shift_days=0.0))["gap"]
+    assert (at_close < -0.1).all()
+    at_open = call_put_gap(invert_chain(c, S0, R, [(ex, 0.5)]))["gap"]
+    assert at_open.abs().max() < 0.01
