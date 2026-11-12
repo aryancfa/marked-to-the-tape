@@ -13,11 +13,11 @@ ENB: 104 days, 2026-06-08 to 2026-11-04.
 3. DIVIDENDS the options imply, against the schedule, for each dividend that was
    not yet known on the day (projected, or announced later):
    ex_date    status  days  schedule  implied  std_error  implied minus schedule       t  expiries apart (days)
-2026-08-14  declared    35     0.970    0.970      0.012                  -0.000  -0.025                   14.0
-2026-11-13  declared   101     0.970    0.941      0.009                  -0.029  -3.377                   35.0
-2027-02-17 projected   104     0.998    0.970      0.004                  -0.027  -6.703                   35.0
-2027-05-14 projected    97     0.998    0.929      0.005                  -0.068 -12.902                   91.0
-2027-08-13 projected    35     0.998    0.944      0.010                  -0.054  -5.615                   91.0
+2026-08-14  declared    35     0.970    0.970      0.012                  -0.000  -0.037                   14.0
+2026-11-13  declared   101     0.970    0.941      0.009                  -0.029  -3.379                   35.0
+2027-02-17 projected   104     0.998    0.970      0.004                  -0.028  -6.773                   35.0
+2027-05-14 projected    97     0.998    0.929      0.005                  -0.068 -12.828                   91.0
+2027-08-13 projected    35     0.998    0.944      0.010                  -0.053  -5.585                   91.0
    Projected dividends seen on 20+ days: schedule total 2.993, implied total 2.843 (-5.0%).
    Read with the limit in mind: one basis point a year of funding left out is
    one basis point of share price per year of maturity, and lands in these.

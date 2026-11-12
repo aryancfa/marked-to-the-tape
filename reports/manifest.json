@@ -1,6 +1,6 @@
 {
- "started": "2026-11-12T08:44:56",
- "commit": "b9cfdc7983827c550b237aa6ddc004db846a7806",
+ "started": "2026-11-12T09:57:22",
+ "commit": "4ff8be73c41aacf7cdee7dbc8d5c59cdae0cf1f1",
  "uncommitted_changes": false,
  "versions": {
   "python": "3.13.17",
@@ -395,271 +395,271 @@
   {
    "step": "base_RY",
    "command": "scripts/run_days.py RY --base-only",
-   "seconds": 1.3,
+   "seconds": 352.8,
    "exit_code": 0
   },
   {
    "step": "base_TD",
    "command": "scripts/run_days.py TD --base-only",
-   "seconds": 1.3,
+   "seconds": 394.0,
    "exit_code": 0
   },
   {
    "step": "base_BNS",
    "command": "scripts/run_days.py BNS --base-only",
-   "seconds": 1.3,
+   "seconds": 338.1,
    "exit_code": 0
   },
   {
    "step": "base_BMO",
    "command": "scripts/run_days.py BMO --base-only",
-   "seconds": 1.3,
+   "seconds": 419.8,
    "exit_code": 0
   },
   {
    "step": "base_SHOP",
    "command": "scripts/run_days.py SHOP --base-only",
-   "seconds": 1.4,
+   "seconds": 393.8,
    "exit_code": 0
   },
   {
    "step": "base_SU",
    "command": "scripts/run_days.py SU --base-only",
-   "seconds": 1.4,
+   "seconds": 439.6,
    "exit_code": 0
   },
   {
    "step": "base_BCE",
    "command": "scripts/run_days.py BCE --base-only",
-   "seconds": 1.3,
+   "seconds": 350.5,
    "exit_code": 0
   },
   {
    "step": "base_ABX",
    "command": "scripts/run_days.py ABX --base-only",
-   "seconds": 1.4,
+   "seconds": 381.3,
    "exit_code": 0
   },
   {
    "step": "base_CNR",
    "command": "scripts/run_days.py CNR --base-only",
-   "seconds": 1.2,
+   "seconds": 372.6,
    "exit_code": 0
   },
   {
    "step": "base_XIU",
    "command": "scripts/run_days.py XIU --base-only",
-   "seconds": 1.9,
+   "seconds": 796.1,
    "exit_code": 0
   },
   {
    "step": "base_CNQ",
    "command": "scripts/run_days.py CNQ --base-only",
-   "seconds": 1.3,
+   "seconds": 378.7,
    "exit_code": 0
   },
   {
    "step": "base_MFC",
    "command": "scripts/run_days.py MFC --base-only",
-   "seconds": 1.3,
+   "seconds": 347.7,
    "exit_code": 0
   },
   {
    "step": "base_ENB",
    "command": "scripts/run_days.py ENB --base-only",
-   "seconds": 1.2,
+   "seconds": 382.0,
    "exit_code": 0
   },
   {
    "step": "base_ZEB",
    "command": "scripts/run_days.py ZEB --base-only",
-   "seconds": 2.1,
+   "seconds": 874.2,
    "exit_code": 0
   },
   {
    "step": "base_XEG",
    "command": "scripts/run_days.py XEG --base-only",
-   "seconds": 1.5,
+   "seconds": 532.3,
    "exit_code": 0
   },
   {
    "step": "days_RY",
    "command": "scripts/reproduce.py RY",
-   "seconds": 42.6,
+   "seconds": 733.8,
    "exit_code": 0
   },
   {
    "step": "days_TD",
    "command": "scripts/run_days.py TD",
-   "seconds": 2.5,
+   "seconds": 341.9,
    "exit_code": 0
   },
   {
    "step": "chart_TD",
    "command": "scripts/front_chart.py TD",
-   "seconds": 46.6,
+   "seconds": 99.3,
    "exit_code": 0
   },
   {
    "step": "days_BNS",
    "command": "scripts/run_days.py BNS",
-   "seconds": 2.5,
+   "seconds": 279.2,
    "exit_code": 0
   },
   {
    "step": "chart_BNS",
    "command": "scripts/front_chart.py BNS",
-   "seconds": 32.7,
+   "seconds": 66.6,
    "exit_code": 0
   },
   {
    "step": "days_BMO",
    "command": "scripts/run_days.py BMO",
-   "seconds": 2.5,
+   "seconds": 345.8,
    "exit_code": 0
   },
   {
    "step": "chart_BMO",
    "command": "scripts/front_chart.py BMO",
-   "seconds": 48.8,
+   "seconds": 104.6,
    "exit_code": 0
   },
   {
    "step": "days_SHOP",
    "command": "scripts/run_days.py SHOP",
-   "seconds": 2.7,
+   "seconds": 346.3,
    "exit_code": 0
   },
   {
    "step": "chart_SHOP",
    "command": "scripts/front_chart.py SHOP",
-   "seconds": 43.5,
+   "seconds": 329.5,
    "exit_code": 0
   },
   {
    "step": "days_SU",
    "command": "scripts/run_days.py SU",
-   "seconds": 2.6,
+   "seconds": 369.3,
    "exit_code": 0
   },
   {
    "step": "chart_SU",
    "command": "scripts/front_chart.py SU",
-   "seconds": 50.4,
+   "seconds": 112.5,
    "exit_code": 0
   },
   {
    "step": "days_BCE",
    "command": "scripts/run_days.py BCE",
-   "seconds": 2.5,
+   "seconds": 286.9,
    "exit_code": 0
   },
   {
    "step": "chart_BCE",
    "command": "scripts/front_chart.py BCE",
-   "seconds": 36.6,
+   "seconds": 77.4,
    "exit_code": 0
   },
   {
    "step": "days_ABX",
    "command": "scripts/run_days.py ABX",
-   "seconds": 2.6,
+   "seconds": 340.1,
    "exit_code": 0
   },
   {
    "step": "chart_ABX",
    "command": "scripts/front_chart.py ABX",
-   "seconds": 42.3,
+   "seconds": 125.3,
    "exit_code": 0
   },
   {
    "step": "days_CNR",
    "command": "scripts/run_days.py CNR",
-   "seconds": 2.3,
+   "seconds": 311.4,
    "exit_code": 0
   },
   {
    "step": "chart_CNR",
    "command": "scripts/front_chart.py CNR",
-   "seconds": 44.0,
+   "seconds": 107.7,
    "exit_code": 0
   },
   {
    "step": "days_XIU",
    "command": "scripts/run_days.py XIU",
-   "seconds": 3.1,
+   "seconds": 686.3,
    "exit_code": 0
   },
   {
    "step": "chart_XIU",
    "command": "scripts/front_chart.py XIU",
-   "seconds": 94.0,
+   "seconds": 308.7,
    "exit_code": 0
   },
   {
    "step": "days_CNQ",
    "command": "scripts/run_days.py CNQ",
-   "seconds": 2.6,
+   "seconds": 315.9,
    "exit_code": 0
   },
   {
    "step": "chart_CNQ",
    "command": "scripts/front_chart.py CNQ",
-   "seconds": 44.1,
+   "seconds": 100.4,
    "exit_code": 0
   },
   {
    "step": "days_MFC",
    "command": "scripts/run_days.py MFC",
-   "seconds": 2.5,
+   "seconds": 290.4,
    "exit_code": 0
   },
   {
    "step": "chart_MFC",
    "command": "scripts/front_chart.py MFC",
-   "seconds": 39.9,
+   "seconds": 87.6,
    "exit_code": 0
   },
   {
    "step": "days_ENB",
    "command": "scripts/run_days.py ENB",
-   "seconds": 2.4,
+   "seconds": 317.6,
    "exit_code": 0
   },
   {
    "step": "chart_ENB",
    "command": "scripts/front_chart.py ENB",
-   "seconds": 44.0,
+   "seconds": 98.8,
    "exit_code": 0
   },
   {
    "step": "days_ZEB",
    "command": "scripts/run_days.py ZEB",
-   "seconds": 3.4,
+   "seconds": 751.2,
    "exit_code": 0
   },
   {
    "step": "chart_ZEB",
    "command": "scripts/front_chart.py ZEB",
-   "seconds": 108.6,
+   "seconds": 488.0,
    "exit_code": 0
   },
   {
    "step": "days_XEG",
    "command": "scripts/run_days.py XEG",
-   "seconds": 2.8,
+   "seconds": 451.3,
    "exit_code": 0
   },
   {
    "step": "chart_XEG",
    "command": "scripts/front_chart.py XEG",
-   "seconds": 59.1,
+   "seconds": 284.9,
    "exit_code": 0
   },
   {
    "step": "summary",
    "command": "scripts/summary_names.py",
-   "seconds": 2.8,
+   "seconds": 7.2,
    "exit_code": 0
   },
   {
@@ -743,7 +743,7 @@
   {
    "step": "dividends",
    "command": "scripts/dividend_three_way.py",
-   "seconds": 1.5,
+   "seconds": 1.6,
    "exit_code": 0
   },
   {
@@ -755,99 +755,99 @@
   {
    "step": "hedge",
    "command": "scripts/hedge_shares.py",
-   "seconds": 2.5,
+   "seconds": 2.7,
    "exit_code": 0
   },
   {
    "step": "robustness",
    "command": "scripts/robustness.py RY",
-   "seconds": 16.9,
+   "seconds": 2099.4,
    "exit_code": 0
   },
   {
    "step": "engine_RY",
    "command": "scripts/engine_check.py RY",
-   "seconds": 54.8,
+   "seconds": 55.2,
    "exit_code": 0
   },
   {
    "step": "engine_TD",
    "command": "scripts/engine_check.py TD",
-   "seconds": 65.6,
+   "seconds": 65.3,
    "exit_code": 0
   },
   {
    "step": "engine_BNS",
    "command": "scripts/engine_check.py BNS",
-   "seconds": 55.1,
+   "seconds": 55.3,
    "exit_code": 0
   },
   {
    "step": "engine_BMO",
    "command": "scripts/engine_check.py BMO",
-   "seconds": 89.5,
+   "seconds": 88.1,
    "exit_code": 0
   },
   {
    "step": "engine_CM",
    "command": "scripts/engine_check.py CM",
-   "seconds": 46.3,
+   "seconds": 46.8,
    "exit_code": 0
   },
   {
    "step": "engine_CNQ",
    "command": "scripts/engine_check.py CNQ",
-   "seconds": 161.0,
+   "seconds": 167.7,
    "exit_code": 0
   },
   {
    "step": "engine_SU",
    "command": "scripts/engine_check.py SU",
-   "seconds": 289.2,
+   "seconds": 318.6,
    "exit_code": 0
   },
   {
    "step": "demo",
    "command": "scripts/demo_synthetic.py",
-   "seconds": 201.4,
+   "seconds": 199.3,
    "exit_code": 0
   },
   {
    "step": "book_bank_heavy",
    "command": "scripts/book_report.py books/bank_heavy.csv",
-   "seconds": 43.7,
+   "seconds": 47.2,
    "exit_code": 0
   },
   {
    "step": "book_diversified",
    "command": "scripts/book_report.py books/diversified.csv",
-   "seconds": 38.2,
+   "seconds": 63.1,
    "exit_code": 0
   },
   {
    "step": "benchmark",
    "command": "scripts/mark_benchmark.py",
-   "seconds": 183.0,
+   "seconds": 188.4,
    "exit_code": 0
   }
  ],
- "finished": "2026-11-12T09:19:55",
+ "finished": "2026-11-12T15:09:35",
  "status": "ok",
  "cache_fingerprints": {
-  "RY": "b8fd5d4829f4",
-  "TD": "22c3fb88eb83",
-  "BNS": "7541139e6f50",
-  "BMO": "ed4af11969f3",
-  "SHOP": "4b21377e567e",
-  "SU": "23066813a425",
-  "BCE": "68ae4ee90660",
-  "ABX": "681a6fab2d45",
-  "CNR": "8bf6eda05782",
-  "XIU": "a1b195e14da1",
-  "CNQ": "0b06a8ce8a4f",
-  "MFC": "7dc5cde3fbae",
-  "ENB": "f7e2612d8fac",
-  "ZEB": "108d2d059020",
-  "XEG": "63de5ef9bc72"
+  "RY": "4bad3cb2df89",
+  "TD": "df98b892beb5",
+  "BNS": "d9d69dee5448",
+  "BMO": "38067096faa5",
+  "SHOP": "a4b781d2ad61",
+  "SU": "26d4b43fc906",
+  "BCE": "aef98ef369af",
+  "ABX": "50e119e28505",
+  "CNR": "9faf0a9123b2",
+  "XIU": "191116f9d0bd",
+  "CNQ": "4cb0484b11e2",
+  "MFC": "4001378d93d2",
+  "ENB": "0412930668fa",
+  "ZEB": "69e038de6fe5",
+  "XEG": "536c6e83a29e"
  }
 }

@@ -13,9 +13,9 @@ TD: 104 days, 2026-06-08 to 2026-11-04.
 3. DIVIDENDS the options imply, against the schedule, for each dividend that was
    not yet known on the day (projected, or announced later):
    ex_date    status  days  schedule  implied  std_error  implied minus schedule      t  expiries apart (days)
-2026-10-09  declared    56      1.12    1.125      0.009                   0.005  0.551                   28.0
-2027-01-08 projected   104      1.15    1.213      0.006                   0.063 11.061                   28.0
-2027-04-09 projected    97      1.15    1.163      0.006                   0.013  2.112                   91.0
+2026-10-09  declared    56      1.12    1.125      0.009                   0.005  0.546                   28.0
+2027-01-08 projected   104      1.15    1.213      0.006                   0.063 11.107                   28.0
+2027-04-09 projected    97      1.15    1.163      0.006                   0.013  2.115                   91.0
 2027-07-09 projected    35      1.19    1.180      0.010                  -0.010 -0.974                   91.0
    Projected dividends seen on 20+ days: schedule total 3.490, implied total 3.556 (+1.9%).
    Read with the limit in mind: one basis point a year of funding left out is

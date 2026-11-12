@@ -389,11 +389,12 @@ input at a time, so the parts sum to the change in the marks exactly.
 - Once the share move is taken out, the dollars resting on marks that fail a check
   (vega times the disagreement with the call or put partner, or with the smile)
   exceed half of the day's remaining P&L on 24 of 127 days in the bank-heavy book
-  and 39 in the diversified one, and exceed all of it on 15 and 30.
-- The series flagged most in the diversified book are ABX and MFC, through the
-  call-put check. Both have a dividend input already known to be wrong. A failed
-  pair check is a wrong carry input as often as a wrong quote, and the report does
-  not yet say which.
+  and 22 in the diversified one, and exceed all of it on 15 and 17. (Before the
+  MFC fix in Finding 18 the diversified figures were 39 and 30.)
+- The series flagged most in the diversified book was ABX, then MFC, through the
+  call-put check. Both had a dividend input known to be wrong; fixing MFC's took
+  its flags from 17 days to 3. A failed pair check is a wrong carry input as
+  often as a wrong quote, and the report does not yet say which.
 - Dividend exposure is small on these books: 5% on every dividend is about $1,400
   against $3,400 a vol point, and the two errors found earlier move them by under
   $100. Reported as small, not dressed up.
@@ -401,13 +402,69 @@ input at a time, so the parts sum to the change in the marks exactly.
   check catches 81% of 1-point errors at 10 false alarms per 1,000 clean quotes; a
   day-on-day rule net of the market's move catches 35% at the same rate, or all of
   them at 49. A raw day-on-day rule flags 280 per 1,000 when vol moves.
-- **Found by the benchmark, not fixed:** the smile fit is least squares. A second
-  bad quote in the same expiry drags the curve, and the check then misses even a
-  4-point error (one in six). The call-put check caught every one. The known fix is
-  a robust fit (down-weight large residuals and refit); it would change every
-  smile panel, so it is a decision, not a patch.
+- **Found by the benchmark, then fixed:** the smile fit was least squares. A second
+  bad quote in the same expiry dragged the curve, and the check then missed even a
+  4-point error (one in six). The fit is now iteratively reweighted
+  (`references._svi_robust`: Tukey weights on the median absolute deviation, so
+  far-out points get no say). 4-point errors caught went from 83% to 100%, 1-point
+  from 81% to 85%, false alarms from 10 to 3 per 1,000 clean quotes. On a clean
+  smile the two fits are identical, and on ordinary scatter they agree to well
+  inside it (both tested).
 - The two sample books had to be re-struck: written before the option files were
   on disk, most strikes were 20 to 40% from the money and two were never listed.
+
+## Finding 18: MFC and CNR, the two names still unexplained, traced
+
+**MFC: a dividend on the wrong side of an expiry, twice over.** Until its
+announcement on 4 November the rule placed Manulife's November dividend on the
+26th, a year on from 2025's. It went ex on the 20th, the day of the monthly expiry.
+
+- The 20 November expiry was priced without a dividend the market had in it: calls
+  1.24 vol points below puts on 87 days. It was labelled "declared only", because
+  the projected date fell after it, so it was the whole of MFC's -0.97.
+- From mid-October the share price was implied from that same expiry, so it came
+  out about 27 basis points low, and every other expiry then showed calls 1 to 3
+  points above puts. MFC's own "funding" estimates were negative for this reason.
+
+This is the XIU lesson again (19 against 25 November). The rule now (hard rule 5
+unchanged; `surface.date_uncertain`): an expiry with an unannounced ex-date within
+five sessions either side is not used to imply the share price, and counts as
+resting on a projected dividend. The model still does not take the date from the
+options. The gap on that one expiry stays, and it is the signal: check the date.
+
+**CNR: its spread drifts and the estimate lags.** CNR's own implied spread falls
+from 45 basis points in May to about 14 by September; no other name shows the same
+fall (the median across names stays at 30 to 38). The applied spread is the mean of
+ALL earlier days, so late in the sample it is 31 against a current 15 to 25, and
+CNR is over-funded: -0.11. Using only the latest 20 estimates halves it to -0.06;
+the same window leaves RY where it was. Not adopted as the default: choosing a
+window on the six months it is judged on would be fitting the rule to the sample.
+What it does establish is that one constant spread per name is an approximation,
+and CNR is where it shows.
+
+**What the full re-run under the expiry rule showed** (every name re-priced;
+`reports/all_names_summary.txt`):
+
+- **MFC: -0.97 to -0.12 (t -0.6).** Its implied share price went from 3.4 basis
+  points below the tape (standard deviation 15) to 2.3 above (6). Only 9 days of
+  declared-dividend expiries remain to judge it on. In the diversified sample
+  book, MFC's option was flagged by the call-put check on 17 days before and 3
+  after, and the book's failed marks fell from 55 to 32: fourteen days of flags
+  had been the model's input, not the exchange's mark.
+- **The cost, on funds.** XIU pays within a few sessions of each quarter's monthly
+  expiry and announces a week ahead. Its only long expiry on a declared
+  distribution is therefore the one beside an unannounced date, which the rule now
+  treats as projected. XIU lost its own spread (13 basis points; 42 days of estimates
+  before, one after) and takes the pooled 31 to 49; calls went from +0.2 to +0.5 above puts
+  to -0.1 to -0.3 below. Its funding is bracketed between the two, not measured.
+  ABX lost its own spread the same way.
+- **XEG is open again: +0.24 to +0.69 (t 6.7) on 23 days.** Its own options ask for
+  about 85 basis points (standard error 9, 17 days: too few to use) and the pool
+  gives it 31 to 49.
+- **Unchanged:** RY (-0.06, 17.6 bp), the banks, SU, BCE, SHOP, ENB, CNQ, CNR.
+- **Judgement.** The rule removes a known failure and exposes how little the fund
+  results rested on. It was written after seeing MFC, with XIU's earlier wrong
+  date as the second case, so this sample does not test it.
 
 ## What a third outside review found (12 November 2026)
 
@@ -557,8 +614,9 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
 
 - **Fifteen names, six months.** Nothing here has seen a crisis, a dividend cut or
   a hard-to-borrow share.
-- **Five names with an unexplained gap on declared dividends:** CNQ, CNR, ENB, MFC
-  and XEG (Finding 13). Their charts should not be read until the cause is found.
+- **Three names with a gap on declared dividends:** CNQ (-0.18, a date), CNR
+  (-0.11, a drifting spread, diagnosed) and XEG (+0.69, under-funded by the pool).
+  MFC and ENB are explained (Findings 16 and 18); MFC on 9 days only.
 - **The funding spread differs by name, 18 to 49 basis points.** It is one number
   standing for funding, expected dividends and borrow together.
 - **ABX's projected dividends.** It declares in US dollars; the schedule repeats last
@@ -582,14 +640,18 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
   it (Finding 9). They still take neighbouring days in the series as neighbouring
   days, and dependence that lasts longer than a week is not captured.
 - **The smile across time.** Each expiry's curve is free of arbitrage across
-  strikes, but the curves are fitted one expiry at a time: 4% of neighbouring pairs
-  on RY and 7% on XIU cross. The surface that ties expiries together is used only
+  strikes, but the curves are fitted one expiry at a time: 5% of neighbouring pairs
+  on RY and 6% on XIU cross. The surface that ties expiries together is used only
   for thin expiries, and it shares one tilt across all maturities, which leaves a
   slope of about 0.1 vol points across strikes on the longest RY expiries.
-- **The smile under 30 days.** Misses of 0.1 to 0.3 vol points alternate in sign
+- **The smile under 30 days.** Misses of 0.1 to 0.6 vol points alternate in sign
   across strike bands, the same way every day: the curve's shape, not the quotes.
-- **XIU's funding spread.** Thirteen basis points from 42 days of estimates. The
-  index future is the proper source and has not been used yet.
+- **XIU's funding spread.** Not measurable from its own options once expiries
+  beside an unannounced distribution are set aside. It takes the pooled 31 to 49
+  basis points and calls sit below puts; with its old 13 they sat above. The
+  index future is the proper source and gives only a range so far.
+- **The expiry rule's window.** Five sessions either side, set from two cases
+  (XIU and MFC). It has not been tested on data it was not chosen on.
 - **The index option file.** The exchange's SXO file carries settlements only: no
   bids, asks, volume or open interest. Parity on it shows the exchange's model.
 - **The exchange's method.** Its published vol behaves like a European formula, but

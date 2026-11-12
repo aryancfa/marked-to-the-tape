@@ -7,20 +7,20 @@ that allows a day to resemble the days before it.
 
       days  spot vs last, mean bp     sd  funding bp     se  est. days  rejected %  declared gap  declared t  declared days  projected gap  projected t  projected days                rates
 name                                                                                                                                                                                        
-RY     124                  -0.91  10.53       17.69   2.02        104        5.57         -0.06       -2.22           96.0           0.01         0.26           104.0  own + pooled spread
-TD     124                  -0.44   7.89       31.53   2.14         62        5.30          0.01        0.25           64.0          -0.16        -5.75           104.0  own + pooled spread
-BNS    124                   2.04   5.63       34.70   2.10         65        7.77         -0.03       -1.53           66.0          -0.22       -10.38           104.0  own + pooled spread
-BMO    124                   1.30   5.73       28.86   2.34        107        5.20         -0.04       -1.92           98.0          -0.08        -3.17           104.0  own + pooled spread
-MFC    124                  -3.37  15.38      -41.03  10.67         28       12.08         -0.97       -5.42           33.0           0.29         2.08           104.0        pooled spread
-CNQ    124                   0.06   7.46       36.76  11.91         51        3.89         -0.18       -2.93           41.0          -0.30        -5.57           104.0        pooled spread
+RY     124                  -0.91  10.53       17.62   2.02        103        5.57         -0.06       -2.23           96.0           0.01         0.23           104.0  own + pooled spread
+TD     124                  -0.44   7.89       31.53   2.14         62        5.30          0.01        0.26           64.0          -0.16        -5.77           104.0  own + pooled spread
+BNS    124                   2.04   5.63       34.70   2.10         65        7.77         -0.03       -1.51           66.0          -0.22       -10.36           104.0  own + pooled spread
+BMO    124                   1.30   5.73       28.86   2.34        107        5.20         -0.04       -1.92           98.0          -0.08        -3.18           104.0  own + pooled spread
+MFC    124                   2.29   5.87       14.58  21.99          9       11.67         -0.12       -0.61            9.0          -0.07        -2.60           104.0        pooled spread
+CNQ    124                   0.06   7.46       36.76  11.91         51        3.89         -0.18       -2.90           41.0          -0.30        -5.56           104.0        pooled spread
 SU     128                   2.03   6.72       48.95   3.08         59        2.02          0.02        0.38           49.0           0.03         0.79           108.0           own spread
-ENB    124                   2.22   5.46       23.09   2.69         15        8.96         -0.04       -1.74           14.0           0.33         7.26           104.0        pooled spread
+ENB    124                   2.36   5.40       23.09   2.69         15        8.95         -0.04       -1.74           14.0           0.34         7.93           104.0        pooled spread
 CNR    124                  -0.12   5.06       30.13   2.85         63        7.37         -0.11       -6.10           53.0          -0.14       -10.55           104.0           own spread
 BCE    121                   3.25   6.60       45.70   2.49         48       14.73          0.01        0.27           38.0           0.22         2.83           101.0           own spread
-ABX    128                   1.36   7.44       51.40   3.36         34        1.77         -0.08       -1.84           25.0          -1.17       -21.69           108.0  own + pooled spread
+ABX    128                   0.94   7.49         NaN    NaN          0        1.76           NaN         NaN            NaN          -0.83       -13.77           108.0        pooled spread
 SHOP   128                   1.61  16.58       30.25   3.01        128       11.83         -0.02       -0.33          108.0            NaN          NaN             NaN  own + pooled spread
-XIU    126                   0.97   5.16       13.11   4.24         42       12.49          0.05        0.80           32.0           0.24         6.86           106.0  own + pooled spread
-ZEB    128                   0.64   6.05         NaN    NaN          0       13.98           NaN         NaN            NaN          -0.43        -7.23           108.0        pooled spread
-XEG    128                   4.56  13.12       44.59  16.15         33       14.89          0.24        1.39           42.0           0.21         2.05           108.0        pooled spread
+XIU    126                   1.85   5.75      -20.99    NaN          1       12.55           NaN         NaN            NaN          -0.14        -3.97           106.0        pooled spread
+ZEB    128                   0.37   5.89         NaN    NaN          0       13.94           NaN         NaN            NaN          -0.37        -6.51           108.0        pooled spread
+XEG    128                   7.19  14.04       84.65   9.25         17       15.02          0.69        6.74           23.0           0.11         1.22           108.0        pooled spread
 
-Funding spread across 14 names: median 30.9 bp a year, range -41.0 to 51.4, precision-weighted mean 31.3.
+Funding spread across 13 names: median 30.2 bp a year, range -21.0 to 84.7, precision-weighted mean 31.6.

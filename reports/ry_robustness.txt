@@ -4,14 +4,14 @@ RY: one choice changed at a time. Call minus put implied vol in vol points,
 with the funding spread applied; t = mean / standard error across days.
 
                                             choice  days  spread bp   se  long, declared  long, declared t  long, projected  long, projected t  short weekly  short weekly t
-                                          baseline    46      18.78 2.16           -0.02             -0.89             0.06               1.64         -0.02           -1.11
-                     dividends: no raise projected    46      18.78 2.16           -0.02             -0.89            -0.05              -1.91         -0.02           -1.11
-                 funding: latest 10 estimates only    36      18.78 2.16           -0.01             -0.52             0.08               1.74         -0.01           -0.56
-                 funding: latest 20 estimates only    46      18.78 2.16           -0.01             -0.60             0.08               1.87         -0.02           -1.05
-                       share price: 3 strike pairs    44      17.28 2.00            0.01              0.35             0.12               3.36         -0.02           -0.86
-share price: file's last trade (NO spread applied)    62       2.62 7.45            0.05              0.49             0.33               4.88         -0.38           -1.54
-                          baseline (every 4th day)    23      18.75 2.53           -0.01             -0.33             0.08               1.65         -0.04           -1.13
-                   tree: 800 steps (every 4th day)    23      18.66 2.52           -0.01             -0.33             0.08               1.65         -0.04           -1.11
+                                          baseline    45      18.67 2.18           -0.02             -0.71             0.07               1.78         -0.02           -1.10
+                     dividends: no raise projected    45      18.67 2.18           -0.02             -0.71            -0.05              -1.73         -0.02           -1.10
+                 funding: latest 10 estimates only    35      18.67 2.18           -0.01             -0.38             0.08               1.83         -0.01           -0.53
+                 funding: latest 20 estimates only    45      18.67 2.18           -0.01             -0.47             0.08               1.98         -0.02           -1.04
+                       share price: 3 strike pairs    44      17.23 2.03            0.01              0.40             0.12               3.42         -0.02           -0.83
+share price: file's last trade (NO spread applied)    62       2.30 8.16            0.05              0.48             0.32               4.86         -0.38           -1.54
+                          baseline (every 4th day)    22      18.51 2.59           -0.00             -0.02             0.10               1.96         -0.04           -1.06
+                   tree: 800 steps (every 4th day)    22      18.42 2.57           -0.00             -0.04             0.10               1.95         -0.04           -1.08
 
 spread bp = funding spread the options imply over the futures curve, a year.
 NO spread applied = the spread fitted under that choice was too poorly measured to

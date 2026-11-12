@@ -13,8 +13,8 @@ BMO: 104 days, 2026-06-08 to 2026-11-04.
 3. DIVIDENDS the options imply, against the schedule, for each dividend that was
    not yet known on the day (projected, or announced later):
    ex_date    status  days  schedule  implied  std_error  implied minus schedule      t  expiries apart (days)
-2026-10-30  declared    54      1.71    1.717      0.010                   0.007  0.720                   35.0
-2027-01-29 projected   104      1.75    1.775      0.014                   0.025  1.763                   35.0
+2026-10-30  declared    54      1.71    1.717      0.009                   0.007  0.712                   35.0
+2027-01-29 projected   104      1.75    1.775      0.014                   0.025  1.760                   35.0
 2027-04-29 projected    97      1.75    1.775      0.012                   0.025  2.071                   91.0
 2027-07-30 projected    35      1.79    1.720      0.024                  -0.070 -2.967                   91.0
    Projected dividends seen on 20+ days: schedule total 5.290, implied total 5.269 (-0.4%).
