@@ -1,0 +1,13 @@
+underlying,ex_date,cash,status,announced,source
+ABX,2025-02-28,0.1447,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ABX,2025-05-30,0.1374,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ABX,2025-08-29,0.2063,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ABX,2025-11-28,0.2446,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ABX,2026-02-27,0.5731,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ABX,2026-05-29,0.2414,declared,2026-05-11,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: Barrick release of 2026-05-11 (US$0.175; record date 2026-05-29). Declared in US dollars; the amount on file is Compustat's Canadian-dollar figure; found by web search 2026-11-12
+ABX,2026-08-31,0.2425,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. No announcement date found: on days before it was announced the amount is hindsight
+ABX,2026-11-27,0.2446,projected,,RULE: same date and amount as a year earlier
+ABX,2027-02-26,0.5731,projected,,RULE: same date and amount as a year earlier
+ABX,2027-05-28,0.2414,projected,,RULE: same date and amount as a year earlier
+ABX,2027-08-31,0.2425,projected,,RULE: same date and amount as a year earlier
+ABX,2027-11-26,0.2446,projected,,RULE: same date and amount as a year earlier
