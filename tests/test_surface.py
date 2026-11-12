@@ -551,3 +551,43 @@ def test_only_earlier_days_count_for_own_and_pooled():
     assert s is None
     own, _ = choose_spread({**STEADY, **late}, DAY, OTHERS)
     assert own == pytest.approx(0.0018, abs=1e-5)                      # later days ignored
+
+
+# ---------------------------------------------------------------------------
+# An unannounced ex-date next to an expiry
+# ---------------------------------------------------------------------------
+
+from surface import DATE_WINDOW, date_uncertain, sessions_between
+
+
+def test_sessions_between_counts_trading_days_and_is_signed():
+    fri, mon = date(2026, 11, 20), date(2026, 11, 23)
+    assert sessions_between(fri, fri) == 0
+    assert sessions_between(fri, mon) == 1                  # the weekend is no session
+    assert sessions_between(mon, fri) == -1
+    assert sessions_between(fri, date(2026, 11, 26)) == 4
+
+
+def test_an_unannounced_ex_date_near_an_expiry_makes_its_date_uncertain():
+    expiry = date(2026, 11, 20)
+    assert date_uncertain(expiry, [date(2026, 11, 26)])     # four sessions after
+    assert date_uncertain(expiry, [date(2026, 11, 16)])     # four sessions before
+    assert not date_uncertain(expiry, [date(2026, 12, 9)])
+    assert not date_uncertain(expiry, [])
+    assert DATE_WINDOW == 5
+
+
+def test_the_share_price_is_not_implied_from_an_expiry_next_to_an_unannounced_ex_date():
+    c = chain(strikes=(45.0, 47.5, 50.0, 52.5, 55.0))
+    assert front_pairs(c, 50.0, k=3)[0] == NEAR
+    near_ex = date(2026, 12, 22)                            # two sessions after NEAR
+    assert front_pairs(c, 50.0, k=3, uncertain_ex_dates=[near_ex])[0] == FAR
+    far_off = date(2027, 1, 25)
+    assert front_pairs(c, 50.0, k=3, uncertain_ex_dates=[far_off])[0] == NEAR
+
+
+def test_an_expiry_just_before_a_projected_ex_date_is_labelled_projected():
+    projected = date(2026, 11, 26)
+    assert carry_label(date(2026, 11, 20), None, projected) == "projected dividend"
+    assert carry_label(date(2026, 11, 13), None, projected) == "declared only"
+    assert carry_label(date(2026, 12, 18), None, projected) == "projected dividend"

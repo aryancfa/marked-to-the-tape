@@ -211,8 +211,62 @@ def _svi_slice(k, w, wt, start=None):
     return best
 
 
+ROBUST_C = 4.685            # Tukey's constant: 95% as efficient as least squares on clean data
+ROBUST_FLOOR = 0.0015       # vol: the scatter is never taken as tighter than 0.15 vol points
+
+
+def _svi_vol(coef, k, T):
+    return np.sqrt(np.maximum(svi_total_variance(coef, k), 0.0) / T)
+
+
+def _svi_robust(k, tv, wt, iv, T, start=None, min_points: int = 5):
+    """An SVI curve that a few bad quotes cannot pull (or None).
+
+    Least squares gives every point a say in proportion to the SQUARE of its
+    miss, so one quote 4 vol points out drags the curve toward itself and
+    every other strike is then judged against a bent curve. The standard
+    remedy is to fit, look at the misses, give the far-out points less
+    weight, and fit again (iteratively reweighted least squares). The
+    weights are Tukey's: full weight near the curve, falling to NOTHING
+    beyond ROBUST_C times the typical miss. The typical miss is measured by
+    the median absolute deviation, which outliers do not inflate.
+
+    If no arbitrage-free curve fits at all, which is what one gross outlier
+    can do, each point is left out in turn and the best of those fits is the
+    starting curve."""
+    fit = _svi_slice(k, tv, wt, start=start)
+    if fit is None and len(k) > min_points:
+        best = None
+        for i in range(len(k)):
+            keep = np.arange(len(k)) != i
+            f = _svi_slice(k[keep], tv[keep], wt[keep])
+            if f is None:
+                continue
+            sse = float(np.sum(wt[keep] * (tv[keep] - svi_total_variance(f, k[keep])) ** 2))
+            if best is None or sse < best[0]:
+                best = (sse, f)
+        fit = best[1] if best else None
+    if fit is None:
+        return None
+    for _ in range(2):
+        r = iv - _svi_vol(fit, k, T)
+        scale = max(1.4826 * float(np.median(np.abs(r - np.median(r)))), ROBUST_FLOOR)
+        u = r / (ROBUST_C * scale)
+        f = np.where(np.abs(u) < 1.0, (1.0 - u * u) ** 2, 0.0)
+        keep = f > 0.0
+        if keep.all() and float(f.min()) > 0.9:
+            break                                   # nothing far out: least squares stands
+        if len(np.unique(np.round(k[keep], 10))) < min_points:
+            break
+        new = _svi_slice(k[keep], tv[keep], (wt * f)[keep], start=(fit[3], fit[4]))
+        if new is None:
+            break
+        fit = new
+    return fit
+
+
 def fit_svi(k: Sequence[float], iv: Sequence[float], w: Sequence[float], T: float,
-            min_strikes: int = SVI_MIN_STRIKES) -> SmileFit | None:
+            min_strikes: int = SVI_MIN_STRIKES, robust: bool = True) -> SmileFit | None:
     """
     Fit an SVI smile to one expiry. `k` is ln(strike / FORWARD), `iv` the
     implied vols, `w` the weights (vega), `T` years to expiry. Returns None
@@ -240,6 +294,10 @@ def fit_svi(k: Sequence[float], iv: Sequence[float], w: Sequence[float], T: floa
     `residual` is, as before, each point's vol minus the curve fitted
     WITHOUT any point at its strike.
 
+    `robust` (the default) fits with weights that ignore far-out points
+    (_svi_robust), so a second bad quote in the same expiry cannot hide the
+    first. `robust=False` is plain least squares, kept for comparison.
+
     One expiry at a time. Each curve is free of arbitrage ACROSS STRIKES.
     Nothing here ties expiries together, so this is a set of slices, not a
     surface: it does not check that total variance never falls with time.
@@ -250,7 +308,12 @@ def fit_svi(k: Sequence[float], iv: Sequence[float], w: Sequence[float], T: floa
         return None
     tv = iv * iv * T
     wt = w / np.maximum(2.0 * iv * T, 1e-12) ** 2
-    full = _svi_slice(k, tv, wt)
+    def fit(kk, tt, ww, vv, start=None):
+        if robust:
+            return _svi_robust(kk, tt, ww, vv, T, start=start)
+        return _svi_slice(kk, tt, ww, start=start)
+
+    full = fit(k, tv, wt, iv)
     if full is None:
         return None
     residual = np.full(len(k), np.nan)
@@ -258,7 +321,7 @@ def fit_svi(k: Sequence[float], iv: Sequence[float], w: Sequence[float], T: floa
         here = np.isclose(k, s_, atol=1e-10)
         if len(np.unique(np.round(k[~here], 10))) < min_strikes - 1:
             continue
-        loo = _svi_slice(k[~here], tv[~here], wt[~here], start=(full[3], full[4]))
+        loo = fit(k[~here], tv[~here], wt[~here], iv[~here], start=(full[3], full[4]))
         if loo is None:
             continue
         residual[here] = iv[here] - np.sqrt(np.maximum(svi_total_variance(loo, k[here]), 0.0) / T)

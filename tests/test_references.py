@@ -376,3 +376,50 @@ def test_the_fitted_surface_passes_the_real_conditions():
     k = np.linspace(-0.1, 0.1, 9)
     fit = fit_ssvi([ssvi_slice(T, th, k) for T, th in zip(SS_T, SS_THETA)])
     assert ssvi_butterfly_free(max(fit.theta), fit.rho, fit.eta, fit.gamma)
+
+
+# ---------------------------------------------------------------------------
+# 9. A second bad quote in the same expiry must not hide the first
+# ---------------------------------------------------------------------------
+
+def two_bad_quotes():
+    iv = svi_vol(SVI_K)
+    iv[3] -= 0.04           # 4 vol points low
+    iv[6] += 0.02           # 2 vol points high, three strikes away
+    return iv
+
+
+def test_two_bad_quotes_are_each_reported_at_their_own_size():
+    fit = fit_svi(SVI_K, two_bad_quotes(), np.ones_like(SVI_K), SVI_T)
+    assert fit is not None
+    assert fit.residual[3] == pytest.approx(-0.04, abs=4e-3)
+    assert fit.residual[6] == pytest.approx(0.02, abs=4e-3)
+    clean = np.delete(fit.residual, [3, 6])
+    assert np.abs(clean).max() < 7e-3          # good strikes stay well under either error
+
+
+def test_plain_least_squares_lets_one_bad_quote_hide_the_other():
+    """Why the robust fit exists: this is what the benchmark found."""
+    fit = fit_svi(SVI_K, two_bad_quotes(), np.ones_like(SVI_K), SVI_T, robust=False)
+    off = (fit is None or not np.isfinite(fit.residual[3])
+           or abs(fit.residual[3] + 0.04) > 4e-3 or abs(fit.residual[6] - 0.02) > 4e-3
+           or np.abs(np.delete(fit.residual, [3, 6])).max() > 4e-3)
+    assert off
+
+
+def test_the_robust_fit_leaves_a_clean_smile_alone():
+    k = SVI_K
+    plain = fit_svi(k, svi_vol(k), np.ones_like(k), SVI_T, robust=False)
+    robust = fit_svi(k, svi_vol(k), np.ones_like(k), SVI_T)
+    assert robust.coef == pytest.approx(plain.coef, abs=1e-9)
+    assert robust.residual == pytest.approx(plain.residual, abs=1e-9)
+
+
+def test_ordinary_scatter_is_not_treated_as_bad_quotes():
+    """Noise of 0.1 vol points on every strike: the two fits must agree to
+    well inside that noise, or the robust fit is throwing good quotes away."""
+    rng = np.random.default_rng(3)
+    iv = svi_vol(SVI_K) + rng.normal(0.0, 0.001, len(SVI_K))
+    plain = fit_svi(SVI_K, iv, np.ones_like(SVI_K), SVI_T, robust=False)
+    robust = fit_svi(SVI_K, iv, np.ones_like(SVI_K), SVI_T)
+    assert np.abs(robust.residual - plain.residual).max() < 5e-4

@@ -143,7 +143,12 @@ def one_day(task) -> dict:
     if spread is not None:
         curve = curve.plus(spread)
     divs = [(x.ex_date, x.cash) for x in schedule]
+    # ex-dates not announced by this day: after as_known_on these are exactly
+    # the projected rows. The share price is not implied from an expiry that
+    # sits within a few sessions of one.
+    uncertain = [x.ex_date for x in schedule if x.ex_date > day and x.status == "projected"]
     res = analyse_day(o, file_mid, curve, divs, first_projected(schedule, day),
+                      uncertain_ex_dates=uncertain,
                       ex_shift_days=opt["ex_shift"], n=opt["steps"],
                       spot_pairs=opt["spot_pairs"],
                       spot=file_last if opt["spot_last"] else None)

@@ -32,7 +32,8 @@ from typing import Callable, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
-from tradingcal import TSX, is_monthly_expiry, trading_days, year_fraction
+from tradingcal import (TSX, is_monthly_expiry, is_trading_day, trading_days,
+                        year_fraction)
 from voleng import (Reject, crr_american, implied_spot_american,
                     implied_vol_american, screen_quote)
 
@@ -239,8 +240,35 @@ def call_put_gap(inverted: pd.DataFrame) -> pd.DataFrame:
     return m[cols].sort_values(["expiry", "strike"]).reset_index(drop=True)
 
 
+DATE_WINDOW = 5     # sessions: how close an unannounced ex-date may sit to an expiry
+
+
+def sessions_between(a: date, b: date, venue: str = TSX) -> int:
+    """Trading sessions from a to b, signed: 1 if b is the session after a,
+    0 if they are the same day, negative if b is before a."""
+    if b >= a:
+        return len(trading_days(venue, a, b)) - (1 if is_trading_day(venue, a) else 0)
+    return -sessions_between(b, a, venue)
+
+
+def date_uncertain(expiry: date, uncertain_ex_dates: Sequence[date],
+                   window: int = DATE_WINDOW) -> bool:
+    """True if a dividend whose date has NOT been announced is expected
+    within `window` sessions either side of this expiry.
+
+    An announced ex-date is a fact. A projected one is last year's date
+    carried forward, and companies move record dates by a few days. If the
+    projection falls just after an expiry and the real date falls just
+    before it (or the reverse), the model prices that expiry with the
+    dividend on the wrong side: the full dividend, as a forward error, on
+    that one expiry. Seen twice: XIU's November 2026 distribution (projected
+    19 November, paid 25) and Manulife's (projected 26 November, ex 20)."""
+    return any(abs(sessions_between(expiry, d)) <= window for d in uncertain_ex_dates)
+
+
 def front_pairs(options: pd.DataFrame, approx_spot: float, min_days: int = 7,
                 k: int = 5, monthly_only: bool = True,
+                uncertain_ex_dates: Sequence[date] = (),
                 ) -> tuple[date | None, list[tuple[float, float, float]]]:
     """
     Pick the strikes used to imply the share price: the nearest MONTHLY expiry
@@ -253,6 +281,12 @@ def front_pairs(options: pd.DataFrame, approx_spot: float, min_days: int = 7,
     uncertain. Five strikes, not three, so one bad quote moves the answer
     less. `monthly_only=False` restores the nearest expiry of any kind.
 
+    An expiry with an unannounced ex-date within DATE_WINDOW sessions of it
+    is passed over (date_uncertain): if the dividend is on the wrong side of
+    the expiry the share price implied from it is off by the dividend, and
+    every other expiry then shows a gap that is not there. The next monthly
+    holds the dividend whichever day it falls.
+
     Returns (expiry, [(strike, call_mid, put_mid), ...]); (None, []) if no
     expiry qualifies. `approx_spot` only chooses which strikes are near the
     money; its exact value does not enter the result.
@@ -263,6 +297,8 @@ def front_pairs(options: pd.DataFrame, approx_spot: float, min_days: int = 7,
     q = q[days >= min_days]
     for expiry in sorted(q["expiry"].unique()):
         if monthly_only and not is_monthly_expiry(_as_date(pd.Timestamp(expiry))):
+            continue
+        if date_uncertain(_as_date(pd.Timestamp(expiry)), uncertain_ex_dates):
             continue
         e = q[q["expiry"] == expiry]
         wide = e.pivot_table(index="strike", columns="call_put", values="mark")
@@ -300,11 +336,17 @@ def carry_label(expiry: date, front: date | None,
       calibrated          the share price was implied from this expiry, so
                           its call-put gap is zero by construction
       declared only       every dividend before it has been declared
-      projected dividend  at least one dividend before it is our projection
+      projected dividend  at least one dividend before it is our projection,
+                          or the first projected ex-date falls within
+                          DATE_WINDOW sessions AFTER it: a projected date
+                          can be a few days out, and then this expiry holds
+                          a dividend the model left outside it
     """
     if front is not None and expiry == front:
         return "calibrated"
-    if first_projected is not None and expiry >= first_projected:
+    if first_projected is not None and (
+            expiry >= first_projected
+            or sessions_between(expiry, first_projected) <= DATE_WINDOW):
         return "projected dividend"
     return "declared only"
 
@@ -606,7 +648,8 @@ def analyse_day(options: pd.DataFrame, approx_spot: float,
                 min_days: int = 7, max_days: int = 400, bracket: float = 0.015,
                 n: int = 400, exact_bars: bool = False,
                 ex_shift_days: float | None = None, spot_pairs: int = 5,
-                spot: float | None = None) -> DayResult:
+                spot: float | None = None,
+                uncertain_ex_dates: Sequence[date] = ()) -> DayResult:
     """
     One underlying on one date, start to finish:
 
@@ -623,13 +666,18 @@ def analyse_day(options: pd.DataFrame, approx_spot: float,
     `spot`, if given, is used as it is and nothing is implied; then no
     expiry is calibrated, and the funding fit is anchored at the valuation
     date. Both exist for the robustness table (B10).
+
+    `uncertain_ex_dates` are the ex-dates not yet announced on this day; the
+    share price is not implied from an expiry that sits next to one
+    (front_pairs).
     """
     valuation = _as_date(options["date"].iloc[0])
     r = rate if callable(rate) else (lambda T, _r=rate: _r)
     if spot is not None:
         front, used, anchor = None, 0, valuation
     else:
-        front, pairs = front_pairs(options, approx_spot, min_days=min_days, k=spot_pairs)
+        front, pairs = front_pairs(options, approx_spot, min_days=min_days, k=spot_pairs,
+                                   uncertain_ex_dates=uncertain_ex_dates)
         if front is None:
             return DayResult(valuation, None, None, Reject.TOO_FEW_PAIRS, 0,
                              None, None, None)
