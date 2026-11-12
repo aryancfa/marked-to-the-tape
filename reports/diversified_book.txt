@@ -1,0 +1,106 @@
+Derived statistics only: dollars summed over a made-up book, and counts.
+No price, quote or per-position value appears in this file.
+
+Book diversified.csv: 14 positions on 13 underlyings (12 options), a made-up book.
+Days: 08 May 2026 to 10 Nov 2026, 128 with at least one position valued.
+All figures are dollars summed over positions, or counts. Marks are the exchange's
+(quote midpoint where two-sided, settlement otherwise): real, not model prices.
+
+1. COULD EVERY POSITION BE MARKED?
+   option position-days: 1503; valued 1503 (100.0%); not valued 0
+   evidence behind the marks used: {'quoted': 1233, 'traded': 270}
+   days priced with no funding spread (none fitted yet): 240 position-days, on ABX, BCE, CNQ, CNR, ENB, MFC, RY, SHOP, SU, TD, XIU
+
+2. WHERE THE GREEKS SIT, latest day (10 Nov 2026), dollars:
+   delta = dollars of share held; gamma = dollars of delta gained per 1% share move;
+   vega = per vol point; theta = per calendar day.
+   options only; share, fund and future positions are left out of this table
+                   delta   gamma  vega  theta  not_valued
+   name bucket                                           
+   RY   31-90d   361,773  11,567   502   -101           0
+   TD   31-90d    37,584  -5,572  -265     43           0
+   MFC  91-180d  185,399   6,666   514    -54           0
+   CNQ  91-180d  138,667   3,950   451    -63           0
+   SU   91-180d  109,094   4,280   441    -64           0
+   ENB  31-90d   162,746 -12,043  -365     35           0
+   CNR  91-180d  157,992   6,296   425    -41           0
+   BCE  31-90d  -104,934   5,095   217    -27           0
+   ABX  91-180d   75,285   2,890   387    -68           0
+   SHOP 31-90d   139,694     923    60    -24           0
+   XIU  91-180d -182,928  23,175 1,180    -51           0
+   by maturity, all names (vega on different names added dollar for dollar, which
+   treats one name's vol point as another's; no beta weighting yet):
+             delta  gamma  vega  theta
+   bucket                             
+   31-90d  596,862    -29   149    -74
+   91-180d 483,509 47,257 3,399   -341
+
+3. WHY THE BOOK'S VALUE CHANGED, day by day
+   127 days explained; position-days with no explanation because a mark was missing on that day or the day before: 0
+              sum over the period  daily st. dev.  worst day  best day  share of daily variance %
+   carry                  -54,073             324     -1,508       736                         -0
+   dividends                 -388              23       -182        30                         -0
+   delta                   99,322           7,600    -21,074    24,918                         99
+   gamma                   47,024             417       -436     3,714                         -1
+   vol                      6,968             887     -1,900     2,604                          2
+   total                   98,852           7,596    -19,124    26,555                        100
+   carry = a day passing (decay, funding, rates); dividends = a change in the
+   schedule; delta and gamma = the share moving; vol = implied vol moving. The five
+   add up to the change in the marks exactly. 'share of daily variance' is each
+   part's covariance with the total, so the column adds to 100.
+   five worst days:
+               carry  dividends   delta  gamma  vol   total
+   day                                                     
+   2026-06-05   -208          0 -21,074  1,416  743 -19,124
+   2026-10-22   -484          0 -19,109    998  669 -17,927
+   2026-11-02 -1,167          0 -16,032  1,110 -946 -17,034
+   2026-09-08 -1,317          0 -16,592    470  863 -16,576
+   2026-10-07   -394          0 -16,070    712 -461 -16,213
+
+4. WHICH MARKS ARE IN DISPUTE (a check fails beyond 1 quote bar(s) and the
+   solver's noise floor of 0.04 vol points)
+   valued option position-days: 1503; with at least one reference: 1246 (82.9%); failed a check: 55 (4.4% of those checked)
+   failed, by check: {'pair': 46, 'smile': 10}
+   not checkable: 257 position-days, {'outside the strikes the references cover': 257}
+   marks resting on a settlement alone: 0
+   days with at least one failed mark: 46 of 128
+   dollars in dispute per day (position vega x disagreement): mean 386, median 0, largest 2,391
+   against the day's P&L (absolute): the dispute is more than 10% of it on 32 days and more than 50% on 8 of 127
+   against the day's P&L with the share move taken out (carry, gamma, vol and dividends;
+   daily st. dev. 955): the dispute is more than 10% of it on 44 days, more than 50% on 39 and larger than it on 30 of 127
+   P&L booked on marks that failed a check that day: 92,710 of 2,184,919 (sum of absolute daily option P&L)
+   series flagged most often (vol points; dollars per flagged day):
+                      days  mean_abs_pair  mean_abs_smile  mean_dispute
+   series                                                              
+   ABX Mar 2027 60 C    21           2.14            0.92       1097.15
+   MFC Mar 2027 60 C    17           1.71             NaN        993.03
+   TD Jan 2027 160 P     9           0.73            0.42        438.52
+   RY Jan 2027 270 C     3           0.65            0.32        740.73
+   XIU Mar 2027 52 P     2           0.79            0.40        631.62
+   BCE Jan 2027 31 P     1           0.18            0.43        137.67
+   ENB Jan 2027 70 P     1           1.44             NaN        988.37
+   SU Mar 2027 95 C      1           1.52             NaN        883.40
+   of the P&L on failed marks, the vol step is 11,517: a mark that is
+   off shows up as a vol move today and its reversal later.
+
+5. WHAT A WRONG DIVIDEND WOULD COST, dollars (vol and share price held): every
+   dividend in each option's life 5% larger, and every ex-date one session later, on
+   the first day each position was valued and on the latest
+         5% larger, first day  one session later, first day  5% larger, latest day  one session later, latest day
+   name                                                                                                          
+   RY                     -71                             1                      0                              0
+   TD                    -181                            13                    -12                              1
+   MFC                   -100                            11                    -89                             34
+   CNQ                   -129                           254                    -72                            228
+   SU                     -85                            13                    -50                             19
+   ENB                   -210                             4                   -117                              0
+   CNR                    -55                             9                    -48                             24
+   BCE                    121                            -3                     78                             -4
+   ABX                    -74                            16                    -37                             13
+   SHOP                     0                             0                      0                              0
+   XIU                    309                           -23                     99                             -7
+   XEG                      0                             0                      0                              0
+   BOOK                  -474                           297                   -249                            308
+   for scale: one vol point on the whole book is 3,548; one day's decay is -416
+   found by this project: RY's 2027 dividends 5 cents a quarter lower, as its options imply: +0
+   found by this project: XIU's distribution on 19 November, not 25 (valued 2026-11-06): +0

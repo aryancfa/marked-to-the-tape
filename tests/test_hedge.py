@@ -136,8 +136,10 @@ def test_rows_dated_in_the_future_and_bad_prices_are_dropped(tmp_path):
                                 ("2026-01-07", 0.0, "", 1.0), ("2026-01-08", 102.01, "", 1.0),
                                 ("2031-01-01", 500.0, "", 1.0)])
     r = load_total_returns(p, today=date(2026, 11, 11))
-    assert list(r.index) == [pd.Timestamp("2026-01-06"), pd.Timestamp("2026-01-08")]
-    assert r.iloc[1] == pytest.approx(0.01)               # 101 -> 102.01 across the gap
+    # 8 January's previous row is the 6th: its move covers two sessions, so it
+    # is dropped and counted, not reported as one day's return
+    assert list(r.index) == [pd.Timestamp("2026-01-06")]
+    assert r.attrs["dropped"] == 1 and r.attrs["dropped_dates"] == [date(2026, 1, 8)]
 
 
 def test_index_returns(tmp_path):
@@ -146,3 +148,109 @@ def test_index_returns(tmp_path):
                   "prccd": [1000.0, 1010.0, 5.0]}).to_csv(p, index=False)
     r = load_index_returns(p, today=date(2026, 11, 11))
     assert len(r) == 1 and r.iloc[0] == pytest.approx(0.01)
+
+
+def test_a_return_over_a_missing_day_is_never_set_beside_a_one_day_return(tmp_path):
+    """The failure this guards against. The share has no row on Wednesday, so
+    its Thursday move covers two sessions (+21%). The index has every day and
+    moved +10% on Thursday alone. Joined by end date, the two would be paired
+    as if both were Thursday's. The share's Thursday return must not exist."""
+    share = write_prices(tmp_path, [("2026-01-05", 100.0, "", 1.0), ("2026-01-06", 100.0, "", 1.0),
+                                    ("2026-01-08", 121.0, "", 1.0), ("2026-01-09", 121.0, "", 1.0)])
+    ip = tmp_path / "index_X.csv"
+    pd.DataFrame({"datadate": ["2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08",
+                               "2026-01-09"],
+                  "prccd": [1000.0, 1000.0, 1100.0, 1210.0, 1210.0]}).to_csv(ip, index=False)
+    y, x = load_total_returns(share), load_index_returns(ip)
+    both = pd.concat([y, x], axis=1).dropna()
+    assert pd.Timestamp("2026-01-08") not in y.index
+    assert list(both.index) == [pd.Timestamp("2026-01-06"), pd.Timestamp("2026-01-09")]
+    assert (both.abs() < 1e-12).all().all()               # only true one-day pairs remain
+    assert y.attrs["dropped"] == 1 and x.attrs["dropped"] == 0
+
+
+def test_a_gap_in_the_index_drops_the_index_return_too(tmp_path):
+    ip = tmp_path / "index_X.csv"
+    pd.DataFrame({"datadate": ["2026-01-05", "2026-01-07", "2026-01-08"],
+                  "prccd": [1000.0, 1100.0, 1111.0]}).to_csv(ip, index=False)
+    r = load_index_returns(ip)
+    assert list(r.index) == [pd.Timestamp("2026-01-08")] and r.iloc[0] == pytest.approx(0.01)
+
+
+def test_a_weekend_is_not_a_gap(tmp_path):
+    """Friday 9 to Monday 12 January 2026 is one session."""
+    p = write_prices(tmp_path, [("2026-01-09", 100.0, "", 1.0), ("2026-01-12", 101.0, "", 1.0)])
+    r = load_total_returns(p)
+    assert len(r) == 1 and r.iloc[0] == pytest.approx(0.01) and r.attrs["dropped"] == 0
+
+
+# ---------------------------------------------------------------------------
+# 4. Is what is left noise? Tails, regimes, and how well the answer is known
+# ---------------------------------------------------------------------------
+
+from hedge import (by_regime, compounded, expected_shortfall, ljung_box,
+                   variance_removed_error)
+
+
+def test_ljung_box_passes_noise_and_catches_a_pattern_one_lag_would_miss():
+    """Noise stays under the 5% point. A series that echoes itself THREE days
+    later has no one-day autocorrelation to speak of, and is still caught."""
+    rng = np.random.default_rng(3)
+    noise = pd.Series(rng.normal(0, 0.01, 2000))
+    e = rng.normal(0, 0.01, 2000)
+    echo = pd.Series(e)
+    echo.iloc[3:] = e[3:] + 0.4 * e[:-3]
+    assert not ljung_box(noise)[1]
+    assert abs(echo.autocorr(1)) < 0.05 and ljung_box(echo)[1]
+    with pytest.raises(ValueError):
+        ljung_box(noise, lags=7)
+
+
+def test_expected_shortfall_is_the_mean_of_the_worst_days():
+    x = pd.Series([-0.10, -0.06] + [0.001] * 78)          # 80 days: worst 2.5% is 2 days
+    assert expected_shortfall(x) == pytest.approx(0.08)
+    assert np.isnan(expected_shortfall(x.iloc[:30]))      # too few days to say
+
+
+def test_a_hedge_can_remove_variance_and_leave_the_tail():
+    """The hedge is perfect on ordinary days and absent on the crash days.
+    Most variance goes; the worst days are untouched."""
+    rng = np.random.default_rng(5)
+    y = pd.Series(rng.normal(0, 0.01, 400))
+    y.iloc[[100, 300]] = -0.05
+    resid = y * 0.1
+    resid.iloc[[100, 300]] = -0.05
+    assert variance_removed(y, resid) > 0.8
+    assert expected_shortfall(resid) > 0.3 * expected_shortfall(y)
+
+
+def test_variance_removed_comes_with_an_error_that_shrinks_with_more_days():
+    rng = np.random.default_rng(9)
+
+    def one(n):
+        m = rng.normal(0, 0.01, n)
+        y = pd.Series(m + rng.normal(0, 0.01, n))
+        return variance_removed_error(y, y - pd.Series(m))
+    short, long = one(250), one(4000)
+    assert 0.0 < long < short < 0.2
+    assert np.isnan(variance_removed_error(pd.Series([0.01] * 30), pd.Series([0.0] * 30)))
+
+
+def test_regimes_separate_a_hedge_that_fails_when_the_market_is_wild():
+    """Calm first, wild after. The hedge works only in the calm."""
+    rng = np.random.default_rng(11)
+    market = pd.Series(np.r_[rng.normal(0, 0.005, 650), rng.normal(0, 0.03, 150)])
+    y = market + pd.Series(rng.normal(0, 0.002, 800))
+    resid = y - market
+    resid.iloc[670:] = y.iloc[670:]                      # hedge off in the wild stretch
+    got = by_regime(y, resid, market)
+    assert got["calm"] > 0.7 and got["stressed"] < 0.3
+    assert got["calm days"] + got["stressed days"] == 800 - 20
+
+
+def test_compounding_is_not_adding_and_a_gap_is_not_a_flat_day():
+    falls = pd.Series([-0.5, -0.5, -0.5])
+    assert falls.sum() == pytest.approx(-1.5)             # "down 150%": impossible
+    assert compounded(falls) == pytest.approx(-0.875)
+    assert np.isnan(compounded(pd.Series([0.01, np.nan])))
+    assert np.isnan(compounded(pd.Series([], dtype=float)))

@@ -7,7 +7,7 @@ TD,2026-01-09,1.08,declared,,Compustat daily file (cash dividend on its ex-date)
 TD,2026-04-09,1.08,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
 TD,2026-07-10,1.12,declared,2026-05-28,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: TD release of 2026-05-28 (1.12; record date 2026-07-10); found by web search 2026-11-12
 TD,2026-10-09,1.12,declared,2026-08-27,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: TD release of 2026-08-27 (1.12; record date 2026-10-09); found by web search 2026-11-12
-TD,2027-01-08,1.15,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0.03)
-TD,2027-04-09,1.15,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
-TD,2027-07-09,1.19,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0.04)
-TD,2027-10-08,1.19,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+TD,2027-01-08,1.15,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+TD,2027-04-09,1.15,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+TD,2027-07-09,1.19,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+TD,2027-10-08,1.19,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier

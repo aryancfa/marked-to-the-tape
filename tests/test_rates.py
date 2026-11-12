@@ -185,6 +185,18 @@ def test_missing_overnight_fixings_raise():
         futures_curve(DAY, quotes, fixings(0.025, first=date(2026, 10, 1)))
 
 
+def test_a_hole_inside_the_fixings_raises_and_is_not_filled_in():
+    """The fixings start before the quarter and run up to the day, so the old
+    checks at the two ends pass. But two weeks in October are missing, and
+    the last rate before the hole would have been carried across it."""
+    quotes = [(DAY, Q1, price(grow(0.025, Q0, Q1), Q0, Q1))]
+    fix = {d: v for d, v in fixings(0.025).items()
+           if not date(2026, 10, 5) <= d <= date(2026, 10, 16)}
+    with pytest.raises(ValueError, match="jump from 2026-10-02 to 2026-10-19"):
+        futures_curve(DAY, quotes, fix)
+    futures_curve(DAY, quotes, fixings(0.025))      # a long weekend is not a hole
+
+
 def test_a_spread_keeps_the_source_and_the_way_of_interpolating():
     quotes = [(DAY, Q1, price(grow(0.03, Q0, Q1), Q0, Q1)),
               (DAY, Q2, price(grow(0.04, Q1, Q2), Q1, Q2))]

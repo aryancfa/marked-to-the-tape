@@ -76,12 +76,15 @@ def main(name: str) -> None:
         res = run(name, flags, every, start.get(every))
         if not flags:
             start[every] = res["first"]
-        row = {"choice": label, "days": res["days"],
+        funded = res.get("funded", True)
+        row = {"choice": label if funded else label + " (NO spread applied)",
+               "days": res["days"],
                "spread bp": res["spread_mean_bp"], "se": res["spread_se_bp"]}
+        which = "funded" if funded else "base"
         for key, short in GROUPS:
             g = res["groups"].get(key, {})
-            row[short] = g.get("gap_funded")
-            row[short + " t"] = g.get("t_funded")
+            row[short] = g.get("gap_" + which)
+            row[short + " t"] = g.get("t_" + which)
         rows.append(row)
         print(f"  done: {label} ({time.time() - t0:.0f} s)", flush=True)
 
@@ -91,6 +94,8 @@ def main(name: str) -> None:
     say(table.round(2).to_string(index=False))
     say()
     say("spread bp = funding spread the options imply over the futures curve, a year.")
+    say("NO spread applied = the spread fitted under that choice was too poorly measured to")
+    say("use (standard error above 5 bp a year), so its gaps are shown with none applied.")
     say("long, declared   = monthly expiries over 60 days resting on declared dividends")
     say("long, projected  = the same resting on a projected dividend")
     say("short weekly     = weekly expiries up to 30 days")

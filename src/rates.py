@@ -253,6 +253,13 @@ def futures_curve(day: date, quotes: Iterable[tuple[date, date, float]],
     if start < day:
         if not fix or fix[0] > start or (day - fix[-1]).days > max_stale_days:
             raise ValueError(f"CORRA fixing missing between {start} and {day}")
+    # A hole INSIDE the run of fixings would otherwise be filled by carrying
+    # the last rate across it, silently, for however long the hole is.
+    inside = [d for d in fix if d >= start]
+    for d0, d1 in zip(inside, inside[1:]):
+        if (d1 - d0).days > max_stale_days:
+            raise ValueError(f"CORRA fixings jump from {d0} to {d1}; "
+                             f"a gap of more than {max_stale_days} days is not filled in")
     paid = 1.0
     for d0, d1 in zip(fix, fix[1:] + [day]):
         lo, hi = max(d0, start), min(d1, day)

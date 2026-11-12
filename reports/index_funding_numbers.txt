@@ -1,0 +1,30 @@
+Derived statistics only. No prices appear in this file.
+
+Index funding from the exchange's SXF and SXO files, 2026-05-08 to 2026-11-04.
+Stand-in for the index's dividend yield: XIU's distributions over the twelve months to 2026-11-04, 2.26% a year.
+
+1. SXF basis: ln(future / index) / T minus the CORRA futures rate, in basis points a
+   year. This is the funding spread MINUS the dividend yield. The standard error
+   allows a day to resemble the days before it.
+  contract  days days to expiry  spread minus yield  std_error   sd  spread at the stand-in yield
+2026-06-19     7          31-42              -202.4       10.2 36.5                          23.6
+2026-09-18    46          31-98              -154.1        8.4 39.6                          71.8
+2026-12-18    38          44-98              -190.2        5.6 28.0                          35.8
+       all    91                             -172.9        6.3 39.6                          53.1
+   Read as a range: +23 to +83 bp a year, taking the stand-in yield as good to 30 bp. The statistical error (6 bp) is small beside that.
+   For comparison: RY's options imply 17.7 bp (standard error 2.0) and XIU's own
+   13.1 (4.2), both over the same CORRA futures curve.
+
+2. SXO parity: the forward implied by the exchange's SETTLEMENTS for calls and puts
+   within 3% of the index, against the SXF settlement for the same expiry, and
+   against the index grown at the rate with NO dividends, in basis points:
+            expiry_days  above_future  above_no_dividend_forward  dividends_at_stand_in_yield
+expiry                                                                                       
+2026-06-19            2          24.5                        0.5                         22.3
+2026-09-18            5          98.4                       16.9                         79.1
+2026-12-18           94          61.8                        1.2                         69.5
+2027-03-19           33          98.2                       -3.5                         97.9
+   All 134 expiry-days: the parity forward sits +71.6 bp above the future (sd 27.0) and +0.6 from a forward with no dividends (sd 8.5).
+   If the parity forward matches the no-dividend forward and sits above the future by
+   about the dividends due, the SXO settlements were struck without the index's
+   dividends. They are the exchange's model, and are not used for funding here.

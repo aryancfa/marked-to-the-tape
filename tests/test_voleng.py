@@ -360,3 +360,34 @@ def test_implied_vol_reports_the_vega_it_measured():
     assert res.vega == pytest.approx(g.vega, rel=0.02)      # per vol point
     # a rejected quote carries no vega
     assert implied_vol_american(1e-9, *args, [], True).vega is None
+
+
+# ---------------------------------------------------------------------------
+# The solver refuses inputs it cannot answer for
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("bad", [dict(price=float("nan")), dict(price=float("inf")),
+                                 dict(S=float("nan")), dict(K=0.0), dict(T=-0.1),
+                                 dict(r=float("inf"))])
+def test_a_price_or_input_that_is_not_a_finite_number_gets_no_vol(bad):
+    """nan compares False with everything, so an unchecked nan price walks
+    through every bracket test and comes out as a confident 500% vol."""
+    args = dict(price=5.0, S=100.0, K=100.0, T=0.5, r=0.03)
+    args.update(bad)
+    res = implied_vol_american(args["price"], args["S"], args["K"], args["T"], args["r"],
+                               0.0, [], True)
+    assert res.iv is None and res.reason == Reject.BAD_INPUT
+
+
+def test_a_non_positive_price_keeps_its_own_reason():
+    res = implied_vol_american(0.0, 100.0, 100.0, 0.5, 0.03, 0.0, [], True)
+    assert res.iv is None and res.reason == Reject.NON_POSITIVE
+
+
+def test_running_out_of_iterations_is_reported_and_no_vol_is_returned():
+    none = implied_vol_american(5.0, 100.0, 100.0, 0.5, 0.03, 0.0, [], True, max_iter=0)
+    few = implied_vol_american(5.0, 100.0, 100.0, 0.5, 0.03, 0.0, [], True, max_iter=5)
+    full = implied_vol_american(5.0, 100.0, 100.0, 0.5, 0.03, 0.0, [], True)
+    assert none.iv is None and none.reason == Reject.NOT_CONVERGED
+    assert few.iv is None and few.reason == Reject.NOT_CONVERGED and few.iterations == 5
+    assert full.reason == Reject.OK and full.iv == pytest.approx(0.1569, abs=0.01)

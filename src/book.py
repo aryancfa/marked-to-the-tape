@@ -25,6 +25,7 @@ a position the system misread is worse than one it refused.
 
 from __future__ import annotations
 
+import math
 import csv
 from dataclasses import dataclass
 from datetime import date
@@ -57,10 +58,16 @@ class Position:
 
 def _number(text: str, what: str, problems: list[str]) -> float | None:
     try:
-        return float(text)
+        value = float(text)
     except ValueError:
         problems.append(f"{what} '{text}' is not a number")
         return None
+    # float() accepts "nan" and "inf". Neither is a position size, a contract
+    # multiplier or a strike, and either would spread through every total.
+    if not math.isfinite(value):
+        problems.append(f"{what} '{text}' is not a finite number")
+        return None
+    return value
 
 
 def _row(row: dict[str, str]) -> tuple[Position | None, list[str]]:

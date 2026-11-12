@@ -49,7 +49,7 @@ import pandas as pd
 
 from references import (EXCHANGE, PAIR, SMILE, add_buckets, pool_buckets,
                         reference_differences, sensitivity_table, smile_counts, tightest)
-from run_days import fingerprint            # the cache this script reads
+from run_days import fingerprint, one_per_day   # the cache this script reads
 
 PANELS = [(PAIR, "pair", "Call minus put"),
           (SMILE, "all", "Strike minus smile"),
@@ -68,7 +68,7 @@ def load(name: str) -> list[dict]:
         out = [pickle.loads(f.read_bytes()) for f in files]
         out = [r for r in out if r.get("ok") and "inverted" in r]
         if out:
-            return out
+            return one_per_day(out, f"{name} front chart")
     raise SystemExit(f"no cached results for {name}; run scripts/run_days.py {name} first")
 
 
@@ -102,13 +102,25 @@ def main(name: str) -> None:
     # runner cached, so changing the smile never means re-pricing
     daily = [reference_differences(r["inverted"], r["spot"], divs=r["divs"]) for r in results]
     fits = smile_counts(daily)
+    # The share price is implied from one expiry's call-put pairs, so on that
+    # expiry calls and puts agree BY CONSTRUCTION. Its pairs are not evidence
+    # and are left out of the call-minus-put panel (the carry tables in
+    # run_days.py leave it out too).
+    fitted = 0
+    for i, (r, d) in enumerate(zip(results, daily)):
+        own = (d["reference"] == PAIR) & (d["expiry"] == r.get("front"))
+        fitted += int(own.sum())
+        daily[i] = d[~own]
     diffs = pd.concat(daily, ignore_index=True)
     smile = diffs[diffs["reference"] == SMILE]
     diffs.loc[diffs["reference"] == SMILE, "side"] = "all"      # calls and puts on one curve
     first, last = results[0]["date"], results[-1]["date"]
     spreads = [r["spread_used"] * 1e4 for r in results if r["spread_used"] is not None]
-    rates = (f"CORRA futures plus a funding spread FITTED FROM OPTIONS on earlier days "
-             f"({min(spreads):.0f} to {max(spreads):.0f} bp a year)" if spreads else
+    sources = sorted({r.get("spread_source") or "own options, earlier days"
+                      for r in results if r["spread_used"] is not None})
+    rates = (f"CORRA futures plus a funding spread FITTED FROM OPTIONS "
+             f"({'; '.join(sources)}; {min(spreads):.0f} to {max(spreads):.0f} bp a year)"
+             if spreads else
              "CORRA futures, NO funding spread (none could be fitted for this name)")
 
     print(f"{name}: {len(results)} days, {first} to {last}. Rates: {rates}.")
@@ -124,6 +136,8 @@ def main(name: str) -> None:
     by_exp = smile.groupby(["date", "expiry"])["poor_fit"].first()
     print(f"smile fits: {len(by_exp)} expiry-days, {int(by_exp.sum())} flagged as poor fits "
           f"({by_exp.mean():.0%}) and left out of the smile panel")
+    print(f"call-put pairs left out because their expiry was used to imply the share "
+          f"price: {fitted}")
     print(f"smile coverage: {fits['expiries']} expiry-days; {fits['slice']} fitted by their own "
           f"curve, {fits['surface']} by the day's surface (too few strikes for a curve of "
           f"their own), {fits['unfitted']} not fitted")
@@ -173,7 +187,9 @@ def main(name: str) -> None:
             + ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in tally.items() if k != "ok")
             + ").   Evidence: " + ", ".join(f"{k.replace('_', ' ')} {v / tiers.sum():.0%}"
                                             for k, v in tiers.items())
-            + f".   Smile (SVI against the forward): {fits['slice']} expiry-days on their own "
+            + f".   Call-put pairs on the expiry the share price was implied from "
+            f"({fitted}) are left out: they agree by construction."
+            + f"   Smile (SVI against the forward): {fits['slice']} expiry-days on their own "
             f"curve, {fits['surface']} on the day's surface, {fits['unfitted']} not fitted; "
             f"{by_exp.mean():.0%} flagged as poor fits and left out; calendar check failed on "
             f"{fits['calendar_violations']} of {fits['calendar_pairs']} neighbouring pairs."

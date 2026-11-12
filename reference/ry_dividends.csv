@@ -1,4 +1,9 @@
 underlying,ex_date,cash,status,announced,source
+RY,2024-10-24,1.42,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-12. History for the projection rule; before the option data starts
+RY,2025-01-27,1.48,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-12. History for the projection rule; before the option data starts
+RY,2025-04-24,1.48,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-12. History for the projection rule; before the option data starts
+RY,2025-07-24,1.54,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-12. History for the projection rule; before the option data starts
+RY,2025-10-27,1.54,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-12. History for the projection rule; before the option data starts
 RY,2026-01-26,1.64,declared,2025-12-03,Date and amount: RBC release of 2025-12-03 (raised by 10 cents to 1.64; record date 2026-01-26). Not used by any pricing since data starts 2026-05-08
 RY,2026-04-23,1.64,declared,,Date: RBC share-information page (record date). Amount: implied by RBC release of 2026-05-28 (raised by 12 cents to 1.76). Announced before the data starts
 RY,2026-07-27,1.76,declared,2026-05-28,Date and amount: RBC release of 2026-05-28 (record date 2026-07-27; 1.76)

@@ -41,8 +41,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from hedge import (autocorrelation, full_sample_ratio, hedge_residual, rolling_ratio,
-                   variance_removed)
+from hedge import (autocorrelation, by_regime, compounded, expected_shortfall,
+                   full_sample_ratio, hedge_residual, ljung_box, rolling_ratio,
+                   variance_removed, variance_removed_error)
 from loaders.compustat import load_index_returns, load_total_returns
 
 WRDS = ROOT / "data/raw/wrds"
@@ -63,7 +64,15 @@ def analyse(name: str, y: pd.Series, index: pd.Series, etf: dict[str, pd.Series]
     X1 = index.to_frame()
     b1 = rolling_ratio(y, X1, WINDOW)
     r1 = hedge_residual(y, X1, b1)
-    days = r1.dropna().index                         # the days every hedge is judged on
+    days = r1.dropna().index
+    if sector:
+        # Every stage is judged on the SAME days: those on which both the index
+        # hedge and the index-plus-sector hedge exist. Otherwise a difference
+        # between two stages could be a difference between two samples.
+        X2 = pd.concat([index, etf[sector].rename("sector")], axis=1)
+        b2 = rolling_ratio(y, X2, WINDOW)
+        r2 = hedge_residual(y, X2, b2)
+        days = days.intersection(r2.dropna().index)
     yv = y.reindex(days)
     naive = hedge_residual(y, X1, {"index": 1.0}).reindex(days)
     hind1 = hedge_residual(y, X1, full_sample_ratio(yv, X1.reindex(days))).reindex(days)
@@ -73,21 +82,27 @@ def analyse(name: str, y: pd.Series, index: pd.Series, etf: dict[str, pd.Series]
            "index": variance_removed(yv, r1.reindex(days)),
            "index, hindsight": variance_removed(yv, hind1),
            "ratio": b1["index"].mean(), "ratio sd": b1["index"].std()}
-    final = r1
+    final = r1.reindex(days)
     if sector:
-        X2 = pd.concat([index, etf[sector].rename("sector")], axis=1)
-        b2 = rolling_ratio(y, X2, WINDOW)
-        r2 = hedge_residual(y, X2, b2)
-        d2 = r2.dropna().index.intersection(days)
-        hind2 = hedge_residual(y, X2, full_sample_ratio(y.reindex(d2), X2.reindex(d2)))
-        row["index+sector"] = variance_removed(y.reindex(d2), r2.reindex(d2))
-        row["index+sector, hindsight"] = variance_removed(y.reindex(d2), hind2.reindex(d2))
+        hind2 = hedge_residual(y, X2, full_sample_ratio(yv, X2.reindex(days)))
+        row["index+sector"] = variance_removed(yv, r2.reindex(days))
+        row["index+sector, hindsight"] = variance_removed(yv, hind2.reindex(days))
         row["sector"] = sector
-        final = r2
+        final = r2.reindex(days)
     f = final.dropna()
     row["left vol %"] = f.std() * ANN * 100
     row["left, $ a day per $1m"] = f.std() * 1e6
     row["autocorr"] = autocorrelation(f)
+    # how well the answer is known, where the hedge is weakest, and the tail
+    row["removed"] = variance_removed(yv, f)
+    row["removed se"] = variance_removed_error(yv, f)
+    q, pattern = ljung_box(f, 10)
+    row["Ljung-Box Q(10)"], row["pattern"] = q, "yes" if pattern else "no"
+    row.update({f"removed, {k}": v for k, v in by_regime(yv, f, index).items()})
+    row["worst days, unhedged %"] = expected_shortfall(yv) * 100
+    row["worst days, hedged %"] = expected_shortfall(f) * 100
+    by_year = b1["index"].reindex(days).groupby(days.year).mean()
+    row["ratio, lowest year"], row["ratio, highest year"] = by_year.min(), by_year.max()
     for other in ("ZEB", "XEG"):
         if other != sector:
             row[f"corr with {other}"] = float(f.corr(etf[other].reindex(f.index)))
@@ -107,6 +122,10 @@ def main() -> None:
     say(f"Daily returns {index.index[0].date()} to {index.index[-1].date()}, "
         f"{len(index)} days. Hedge ratios from the {WINDOW} days before each day.")
     say("The TSX 60 index stands in for the SXF future. Shares only: no gamma or vega here.")
+    gaps = {t: [str(d) for d in r.attrs.get("dropped_dates", [])]
+            for t, r in {"index": index, **etf, **rets}.items() if r.attrs.get("dropped")}
+    say("returns that would have covered more than one session (a missing row before "
+        f"them), dropped so no two-day move is set beside a one-day move: {gaps or 'none'}")
     big = {t: int((r.abs() > 0.25).sum()) for t, r in rets.items() if (r.abs() > 0.25).any()}
     say(f"daily moves beyond 25% (kept, listed so they can be checked): {big or 'none'}")
     say(f"XIU against the index, as a check on the stand-in: correlation "
@@ -139,17 +158,34 @@ def main() -> None:
            "corr with ZEB", "corr with XEG"]].round(2).fillna("-").to_string())
 
     say()
-    say("Stress periods: daily returns added up over the period, unhedged and after the best hedge used (%).")
-    say("(A sum of daily returns, so a long fall can add to more than 100.)")
+    say("How well that is known, where it is weakest, and the tail. 'removed' is the share of")
+    say("daily variance taken away by the best hedge used; 'se' is its standard error from")
+    say("resampling 20-day blocks; calm and stressed split the days by the index's volatility")
+    say("over the 20 days before (top fifth = stressed); 'worst days' is the average loss on")
+    say("the worst 1 day in 40 (%); 'pattern' is yes if the Ljung-Box test over ten lags finds")
+    say("structure in what is left; the last two columns are the index ratio's lowest and")
+    say("highest yearly average.")
+    d = t[["removed", "removed se", "removed, calm", "removed, stressed",
+           "worst days, unhedged %", "worst days, hedged %", "Ljung-Box Q(10)", "pattern",
+           "ratio, lowest year", "ratio, highest year"]].copy()
+    for c in ("removed", "removed se", "removed, calm", "removed, stressed"):
+        d[c] = (d[c] * 100).round(1)
+    say(d.round(2).to_string())
+
+    say()
+    say("Stress periods: total return over the period, COMPOUNDED from daily returns, unhedged")
+    say("and after the best hedge used (%). NA where the hedge did not exist for the whole")
+    say("period (a name with too little history then), never zero. The hedged figure compounds")
+    say("daily residuals: it is what a daily re-hedged position earned, before costs.")
     srows = []
     for name, (y, final) in series.items():
         row = {"name": name}
         for label, a_, b_ in STRESS:
-            row[f"{label}: unhedged"] = y.loc[a_:b_].sum() * 100
-            f = final.loc[a_:b_]
-            row[f"{label}: hedged"] = f.sum() * 100 if f.notna().all() and len(f) else np.nan
+            span = index.loc[a_:b_].index
+            row[f"{label}: unhedged"] = compounded(y.reindex(span)) * 100
+            row[f"{label}: hedged"] = compounded(final.reindex(span)) * 100
         srows.append(row)
-    say(pd.DataFrame(srows).set_index("name").round(1).to_string())
+    say(pd.DataFrame(srows).set_index("name").round(1).fillna("NA").to_string())
 
     fig, ax = plt.subplots(figsize=(11, 6.2))
     names = list(t.index)

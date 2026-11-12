@@ -5,3 +5,5 @@ pandas==2.2.3
 matplotlib==3.11.2
 pytest==9.2.0
 wrds==3.5.0
+# Only needed by scripts/capture_ibkr.py (Interactive Brokers capture).
+ib_async==2.1.0

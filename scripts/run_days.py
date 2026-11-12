@@ -56,10 +56,11 @@ import numpy as np
 import pandas as pd
 
 from loaders.mx import load_mx_futures, load_mx_options, load_mx_underlying
-from loaders.reference import first_projected, load_dividends
+from loaders.reference import (as_known_on, first_projected, has_history, load_dividends,
+                               rule_for)
 from rates import load_base_curve, load_curve
-from surface import (analyse_day, mean_std_error, pool_across_days, rejection_tally,
-                     trailing_spread, vs_exchange)
+from surface import (OWN, POOLED, analyse_day, choose_spread, mean_std_error,
+                     pool_across_days, rejection_tally, vs_exchange)
 from tradingcal import is_monthly_expiry
 
 BOC = ROOT / "data/raw/boc"
@@ -77,8 +78,8 @@ def mx_files(underlying: str) -> list[Path]:
 
 def fingerprint(underlying: str) -> str:
     """Short hash of everything a day's result depends on: the modules that
-    price, the dividend file, the rate files, and THIS underlying's option
-    files plus the CORRA futures files. Modules that do not touch a day's
+    price, the dividend file, the rate files, and the contents of THIS
+    underlying's option files and of the CORRA futures files. Modules that do not touch a day's
     pricing (the position format, the OptionMetrics reader) and other names'
     files are left out, so adding to them does not throw the cache away."""
     h = hashlib.sha1()
@@ -88,16 +89,51 @@ def fingerprint(underlying: str) -> str:
     for f in files:
         h.update(f.name.encode())
         h.update(f.read_bytes().replace(b"\r\n", b"\n"))
-    for f in mx_files(underlying) + mx_files("CRA"):          # large: name and size
-        h.update(f"{f.name}:{f.stat().st_size}".encode())
+    # The exchange files are hashed by CONTENT, in pieces (they run to tens of
+    # megabytes). Name and size would miss a corrected quote that leaves the
+    # file the same length.
+    for f in mx_files(underlying) + mx_files("CRA"):
+        h.update(f.name.encode())
+        with open(f, "rb") as fh:
+            for block in iter(lambda: fh.read(1 << 20), b""):
+                h.update(block)
     return h.hexdigest()[:12]
+
+
+def one_per_day(results: list[dict], what: str) -> list[dict]:
+    """The results in date order, or stop if two of them are for the same day.
+
+    A cache folder can hold more than one run of a day (a different funding
+    spread, a robustness variant). Read together they would count that day
+    twice and mix two set-ups in one average. Nothing downstream should ever
+    have to wonder which run it is looking at."""
+    seen: dict = {}
+    for r in results:
+        seen[r["date"]] = seen.get(r["date"], 0) + 1
+    twice = sorted(d for d, c in seen.items() if c > 1)
+    if twice:
+        raise SystemExit(f"{what}: {len(twice)} days have more than one cached result "
+                         f"(first {twice[0]}). Two runs are mixed in this folder; clear it "
+                         "or re-run with --force.")
+    return sorted(results, key=lambda r: r["date"])
 
 
 def one_day(task) -> dict:
     """Runs in a worker process. Returns derived numbers only."""
     day, o, file_mid, file_last, schedule, spread, cra, opt = task
     t0 = time.time()
-    out = dict(date=day, ok=False, spread_used=spread)
+    out = dict(date=day, ok=False, spread_used=spread,
+               spread_source=opt.get("spread_source"))
+    # Point-in-time: price the day with the dividends as they could have been
+    # known that day, not with amounts and dates declared later.
+    rule = rule_for(opt["name"])
+    out["dividend_history"] = has_history(schedule, day, rule)
+    schedule = as_known_on(schedule, day, rule)
+    if opt["flat"]:
+        declared = [x.cash for x in schedule if x.status == "declared"]
+        if declared:
+            schedule = [x._replace(cash=declared[-1]) if x.status == "projected" else x
+                        for x in schedule]
     try:
         curve = load_curve(BOC, day) if cra is None else load_base_curve(BOC, day, cra)
     except Exception as exc:                       # no rate for this day
@@ -188,6 +224,26 @@ def groups(daily: pd.DataFrame) -> pd.DataFrame:
     return out[["days", "gap", "se", "se_iid", "t", "plain", "fwd_bp"]]
 
 
+def other_names_estimates(name: str) -> dict[str, dict]:
+    """Each OTHER name's daily funding estimates, from its cached base pass:
+    {name: {date: spread or None}}. Names with nothing cached are left out.
+    The files are this project's own cache, never anyone else's pickles."""
+    out: dict[str, dict] = {}
+    for other in sorted({f.name.split("_")[1] for f in MX.glob("quote_*.csv")}):
+        if other == name.upper() or not (
+                ROOT / "reference" / f"{other.lower()}_dividends.csv").exists():
+            continue
+        folder = ROOT / "data/derived" / other.lower() / fingerprint(other)
+        est = {}
+        for f in sorted(folder.glob("*_base.pkl")) if folder.exists() else []:
+            r = pickle.loads(f.read_bytes())
+            if r.get("ok"):
+                est[r["date"]] = r["funding_spread"]
+        if est:
+            out[other] = est
+    return out
+
+
 def spread_line(label: str, results: list[dict]) -> None:
     e = pd.Series([r["funding_spread"] for r in sorted(results, key=lambda r: r["date"])
                    if r["funding_spread"] is not None]) * 1e4
@@ -223,6 +279,9 @@ def main() -> None:
                     help="report the comparison only from this date (YYYY-MM-DD)")
     ap.add_argument("--summary-json", type=str, default=None,
                     help="also write the comparison table to this file")
+    ap.add_argument("--base-only", action="store_true",
+                    help="stop after the pass with no funding spread (run this for every "
+                         "name first, so each has the others' estimates to pool)")
     ap.add_argument("--force", action="store_true", help="ignore the cache")
     a = ap.parse_args()
     name = a.underlying
@@ -239,24 +298,23 @@ def main() -> None:
     if opts.empty or und.empty:
         raise SystemExit(f"no {name} rows in data/raw/mx")
     schedule = load_dividends(ROOT / "reference" / f"{name.lower()}_dividends.csv")
-    if a.flat_dividends:
-        declared = [x.cash for x in schedule if x.status == "declared"]
-        schedule = [x._replace(cash=declared[-1]) if x.status == "projected" else x
-                    for x in schedule]
     und = und.set_index("date")
     cache = ROOT / "data/derived" / name.lower() / fingerprint(name)
     cache.mkdir(parents=True, exist_ok=True)
 
-    def task(ts, spread, quotes):
+    def task(ts, spread, quotes, source=None):
         return (ts.date(), opts[opts["date"] == ts], float(und.loc[ts, "mid"]),
-                float(und.loc[ts, "last"]), schedule, spread, quotes, opt)
+                float(und.loc[ts, "last"]), schedule, spread, quotes,
+                dict(opt, spread_source=source))
 
     opt = dict(ex_shift=a.ex_shift, steps=a.steps, spot_pairs=a.spot_pairs,
-               spot_last=a.spot_last)
+               spot_last=a.spot_last, name=name, flat=a.flat_dividends)
     tag = ("" if a.ex_shift is None else f"_x{a.ex_shift:g}") \
         + ("" if a.steps == 400 else f"_n{a.steps}") \
         + ("" if a.spot_pairs == 5 else f"_k{a.spot_pairs}") \
-        + ("_last" if a.spot_last else "") + ("_flat" if a.flat_dividends else "")
+        + ("_last" if a.spot_last else "") + ("_flat" if a.flat_dividends else "")         + ("" if a.window is None else f"_w{a.window}")         + ("" if a.every == 1 else f"_e{a.every}")
+    # Every-Nth-day and short-lookback runs are variants too: untagged, they
+    # shared file names with the main run and deleted its funded days.
     if tag:
         print(f"variant: {tag.strip('_').replace('_', ', ')}")
     print("dividend drop placed by trading sessions before the ex-date's open (default)"
@@ -287,25 +345,55 @@ def main() -> None:
           f"calls {ex['calls_mean'].mean():+.2f}, puts {ex['puts_mean'].mean():+.2f}")
     print("median quote half-spread, median day: "
           f"{pd.Series([r['median_half_spread'] for r in good]).median():.2f} vol points")
+    blind = sum(not r.get("dividend_history", True) for r in good)
+    if blind:
+        print(f"days with too little dividend history to project from, priced with the "
+              f"file's amounts (hindsight): {blind}")
     print()
     spread_line("the base curve", good)
+    if a.base_only:
+        print("base pass only (--base-only); no spread applied")
+        return
 
     # ---- funded: base plus the mean of EARLIER days' estimates ------------
+    # The name's own trailing spread where it is well measured, otherwise the
+    # median across the other names that are (surface.choose_spread).
     estimates = {r["date"]: r["funding_spread"] for r in good}
-    used = {ts: trailing_spread(estimates, ts.date(), a.min_history, a.window)
-            for ts in days if ts.date() in estimates}
+    others = {} if tag else other_names_estimates(name)
+    picked = {ts: choose_spread(estimates, ts.date(), others, a.min_history,
+                                window=a.window)
+              for ts in days if ts.date() in estimates}
+    used = {ts: s for ts, (s, _) in picked.items()}
     funded_days = [ts for ts, s in used.items() if s is not None]
-    print(f"days with at least {a.min_history} earlier estimates: {len(funded_days)} "
-          f"of {len(days)}")
+    by_source = pd.Series([picked[ts][1] for ts in funded_days]).value_counts().to_dict()
+    print(f"days with a spread to apply: {len(funded_days)} of {len(days)}, by source: "
+          f"{by_source} (other names with cached estimates: {len(others)})")
     if not funded_days:
-        print("not enough history to apply a spread; funded pass skipped")
+        print("no well-measured spread, own or pooled; funded pass skipped")
+        if a.summary_json:
+            # the robustness table still needs this variant: its finding IS that
+            # the spread cannot be measured, so report the gaps with none applied
+            est = pd.Series([s for s in estimates.values() if s is not None]) * 1e4
+            base = groups(tested_rows(good)).add_suffix("_base")
+            Path(a.summary_json).write_text(json.dumps({
+                "variant": tag.strip("_") or "base", "days": len(good), "funded": False,
+                "first": str(min(estimates)), "last": str(max(estimates)),
+                "spread_mean_bp": float(est.mean()),
+                "spread_se_bp": float(mean_std_error(est)),
+                "groups": {g: {k: (None if pd.isna(v) else float(v)) for k, v in row.items()}
+                           for g, row in base.to_dict(orient="index").items()}}, indent=1),
+                encoding="utf-8")
         return
     u = pd.Series([used[ts] for ts in funded_days]) * 1e4
-    print(f"spread applied (mean of earlier days): first {u.iloc[0]:+.1f}, "
+    print(f"spread applied (earlier days only): first {u.iloc[0]:+.1f}, "
           f"last {u.iloc[-1]:+.1f}, min {u.min():+.1f}, max {u.max():+.1f} bp a year\n")
-    funded = run({f"{ts:%Y%m%d}_base{tag}_s{round(used[ts] * 1e6):+d}.pkl": task(ts, used[ts], cra)
-                  for ts in funded_days},
-                 cache, a.workers, a.force, f"{name} base curve plus trailing spread")
+    tasks = {f"{ts:%Y%m%d}_base{tag}_s{round(used[ts] * 1e6):+d}.pkl":
+             task(ts, used[ts], cra, picked[ts][1]) for ts in funded_days}
+    # a day run earlier under a different spread must not sit beside this one
+    for stale in cache.glob(f"*_base{tag}_s*.pkl"):
+        if stale.name not in tasks and (tag or stale.name.count("_") == 2):
+            stale.unlink()
+    funded = run(tasks, cache, a.workers, a.force, f"{name} base curve plus spread")
     funded = [r for r in funded if r["ok"]]
     same = {r["date"] for r in funded}
     if a.from_date:

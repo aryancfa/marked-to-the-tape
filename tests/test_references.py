@@ -12,8 +12,8 @@ import pytest
 from surface import mean_std_error
 from references import (PAIR, SMILE, EXCHANGE, fit_smile, fit_svi, forward_price,
                         pool_buckets, svi_butterfly_free, svi_total_variance,
-                        atm_total_variance, calendar_violations, fit_ssvi,
-                        smile_counts, ssvi_total_variance,
+                        atm_total_variance, calendar_violations, fit_level, fit_ssvi,
+                        smile_counts, ssvi_butterfly_free, ssvi_total_variance,
                         reference_differences, sensitivity_table, tightest)
 from surface import dividend_times, invert_chain
 from tradingcal import year_fraction
@@ -344,3 +344,35 @@ def test_every_expiry_is_counted_as_fitted_one_way_or_not_at_all(diffs):
     assert c["surface"] == 0 and c["unfitted"] == 0
     assert (diffs.loc[diffs["reference"] == SMILE, "smile_model"] == "slice").all()
     assert smile_counts([diffs, diffs])["slice"] == 2
+
+
+def test_a_level_is_fitted_and_not_read_off_a_line_across_the_smile():
+    """Three strikes far apart on a curved smile. A straight line between the
+    two around the forward sits ABOVE the curve at the forward; the fitted
+    level lands on the true one."""
+    theta, T = 0.02, 0.5
+    k = np.array([-0.10, 0.08, 0.12])
+    iv = np.sqrt(ssvi_total_variance(theta, k, **SS) / T)
+    line = atm_total_variance(k, iv, np.ones(3), T)
+    fitted = fit_level(k, iv, np.ones(3), T, **SS)
+    assert line > theta * 1.02
+    assert fitted == pytest.approx(theta, rel=0.01)
+    assert fit_level(k, iv, np.ones(3), T, floor=0.03, **SS) == pytest.approx(0.03)
+
+
+def test_the_shortcut_is_not_a_guarantee_once_total_variance_is_large():
+    """eta * (1 + |rho|) <= 2 was the documented condition. It implies the
+    real ones only while at-the-money total variance stays at or below 1. A
+    surface with theta of 4 (200% vol for a year) passes the shortcut and
+    fails the real test, so the fitter must go by the real test."""
+    rho, eta, gamma = 0.0, 2.0, 0.1
+    assert eta * (1 + abs(rho)) <= 2.0
+    assert ssvi_butterfly_free(0.04, rho, eta, gamma)          # an ordinary equity level
+    assert not ssvi_butterfly_free(4.0, rho, eta, gamma)       # the stress case
+    assert not ssvi_butterfly_free(0.04, rho, eta, 0.7)        # gamma above one half
+
+
+def test_the_fitted_surface_passes_the_real_conditions():
+    k = np.linspace(-0.1, 0.1, 9)
+    fit = fit_ssvi([ssvi_slice(T, th, k) for T, th in zip(SS_T, SS_THETA)])
+    assert ssvi_butterfly_free(max(fit.theta), fit.rho, fit.eta, fit.gamma)

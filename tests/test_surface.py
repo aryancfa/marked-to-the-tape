@@ -5,7 +5,7 @@ Prices are produced by the engine from a made-up share price, rate, dividend
 and vol. Nothing here is market data.
 """
 
-from datetime import date
+from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
@@ -503,3 +503,51 @@ def test_standard_error_needs_two_days_and_ignores_missing_ones():
 
 def test_lag_rule():
     assert [newey_west_lags(n) for n in (1, 50, 100, 250)] == [0, 3, 4, 4]
+
+
+# ---------------------------------------------------------------------------
+# Which funding spread to use: the name's own, or the pooled one
+# ---------------------------------------------------------------------------
+
+from surface import OWN, POOLED, choose_spread
+
+
+def _est(values, start=date(2026, 6, 1)):
+    return {start + timedelta(days=i): v for i, v in enumerate(values)}
+
+
+DAY = date(2026, 8, 1)
+STEADY = _est([0.0018 + 0.0001 * (i % 3 - 1) for i in range(40)])      # 18 bp, tight
+WILD = _est([0.0040 * (-1) ** i + 0.0030 for i in range(40)])          # swings by 80 bp
+OTHERS = {"A": _est([0.0030] * 40), "B": _est([0.0032 + 0.00005 * (i % 2) for i in range(40)]),
+          "C": _est([0.0028 - 0.00005 * (i % 2) for i in range(40)]), "D": WILD}
+
+
+def test_a_well_measured_name_uses_its_own_spread():
+    s, source = choose_spread(STEADY, DAY, OTHERS)
+    assert source == OWN and s == pytest.approx(0.0018, abs=1e-5)
+
+
+def test_a_badly_measured_name_takes_the_median_of_the_well_measured_ones():
+    """Its own estimates swing by 80 basis points. The pooled figure is the
+    median of A, B and C; D is as wild as the name itself and is left out."""
+    s, source = choose_spread(WILD, DAY, OTHERS)
+    assert source == POOLED and s == pytest.approx(0.0030, abs=5e-5)
+
+
+def test_a_name_with_too_few_estimates_also_takes_the_pooled_spread():
+    s, source = choose_spread(_est([0.0020] * 5), DAY, OTHERS)
+    assert source == POOLED
+
+
+def test_no_spread_when_too_few_names_are_well_measured():
+    s, source = choose_spread(WILD, DAY, {"A": OTHERS["A"], "D": WILD})
+    assert s is None and source == "none"
+
+
+def test_only_earlier_days_count_for_own_and_pooled():
+    late = {DAY + timedelta(days=i): 0.0100 for i in range(40)}       # all after the day
+    s, source = choose_spread(late, DAY, {k: late for k in "ABC"})
+    assert s is None
+    own, _ = choose_spread({**STEADY, **late}, DAY, OTHERS)
+    assert own == pytest.approx(0.0018, abs=1e-5)                      # later days ignored

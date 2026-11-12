@@ -318,6 +318,8 @@ class Reject:
     CROSSED = "crossed_or_locked_market"
     STALE_WIDE = "spread_wider_than_limit"
     ILL_CONDITIONED = "vega_too_small_to_invert"
+    BAD_INPUT = "input_not_a_finite_positive_number"
+    NOT_CONVERGED = "solver_did_not_converge"
     TOO_FEW_PAIRS = "too_few_call_put_pairs"
     NO_SPOT_BRACKET = "call_put_gap_does_not_cross_zero_in_bracket"
 
@@ -399,6 +401,15 @@ def implied_vol_american(price: float, S: float, K: float, T: float, r: float,
     `tol` is the bisection width in vol units. 1e-6 is 0.0001 vol points, far
     inside the 0.04-point lattice floor; tighter only costs tree evaluations.
     """
+    # A price of nan compares False with everything, so every test below
+    # would pass it along and the search would end at the top of the bracket
+    # with reason "ok". The chain screen catches such rows first, but this
+    # function is called directly too, so it checks for itself.
+    if not all(math.isfinite(x) for x in (price, S, K, T, r, b)) or min(S, K, T) <= 0.0:
+        return IVResult(None, Reject.BAD_INPUT)
+    if price <= 0.0:
+        return IVResult(None, Reject.NON_POSITIVE)
+
     def f(sig: float) -> float:
         return crr_american(S, K, T, r, b, sig, divs, is_call, n) - price
 
@@ -425,6 +436,10 @@ def implied_vol_american(price: float, S: float, K: float, T: float, r: float,
             a, fa = m, fm
         it += 1
 
+    if (b_ - a) > tol:
+        # out of iterations with the bracket still wider than asked for: the
+        # midpoint is not an answer, so it is not returned as one
+        return IVResult(None, Reject.NOT_CONVERGED, it)
     iv = 0.5 * (a + b_)
 
     # local vega: is this solve actually identified?

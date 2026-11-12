@@ -7,7 +7,7 @@ MFC,2026-02-25,0.485,declared,,Compustat daily file (cash dividend on its ex-dat
 MFC,2026-05-29,0.485,declared,2026-05-13,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: Manulife release of 2026-05-13 (0.485; record date 2026-05-29); found by web search 2026-11-12
 MFC,2026-08-21,0.485,declared,2026-08-05,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: Manulife release of 2026-08-05 (0.485; record date 2026-08-21); found by web search 2026-11-12
 MFC,2026-11-20,0.485,declared,2026-11-04,Manulife release of 2026-11-04 (0.485; record date 2026-11-20); found by web search 2026-11-12. Ex-date taken as the record date
-MFC,2027-02-25,0.53,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0.045)
-MFC,2027-05-28,0.53,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
-MFC,2027-08-20,0.53,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
-MFC,2027-11-19,0.53,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+MFC,2027-02-25,0.53,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+MFC,2027-05-28,0.53,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+MFC,2027-08-20,0.53,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+MFC,2027-11-19,0.53,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier

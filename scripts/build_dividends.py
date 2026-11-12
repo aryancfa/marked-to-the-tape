@@ -48,23 +48,15 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import pandas as pd
 
-from tradingcal import TSX, trading_days
+from loaders.reference import project, rule_for
 
-RULES = {"TD": "raise", "BNS": "raise", "BMO": "raise", "CNQ": "raise", "SU": "raise",
-         "MFC": "raise", "ENB": "raise", "CNR": "raise", "BCE": "raise",
-         "ABX": "repeat", "ZEB": "repeat", "XEG": "repeat", "SHOP": "none"}
+NAMES = ["TD", "BNS", "BMO", "CNQ", "SU", "MFC", "ENB", "CNR", "BCE", "ABX", "ZEB", "XEG",
+         "SHOP"]
+RULES = {n: ("none" if n == "SHOP" else rule_for(n)) for n in NAMES}
 FIRST = date(2025, 1, 1)            # well over a year before the option files start
 DATA_START = date(2026, 5, 8)       # first day of the exchange option files
 HORIZON = date(2027, 12, 31)        # the longest expiry used is about 400 days out
 READ = "2026-11-11"
-
-
-def a_year_on(d: date) -> date:
-    try:
-        target = d.replace(year=d.year + 1)
-    except ValueError:                              # 29 February
-        target = d.replace(year=d.year + 1, day=28)
-    return trading_days(TSX, target - timedelta(days=7), target)[-1]
 
 
 def build(name: str) -> pd.DataFrame:
@@ -86,12 +78,14 @@ def build(name: str) -> pd.DataFrame:
     for d, c in known:
         a = told.pop(d, None)
         if a is None and d >= DATA_START:
-            note = (" No announcement date found: on days before it was announced the "
-                    "amount is hindsight")
+            note = (" Announcement date NOT FOUND: the ex-date is entered, so the dividend "
+                    "counts as unknown until it goes ex")
+            when = d
         else:
             note = "" if a is None else f" Announced: {a.source}"
+            when = "" if a is None else a.announced.date()
         rows.append(dict(underlying=name, ex_date=d, cash=c, status="declared",
-                         announced="" if a is None else a.announced.date(),
+                         announced=when,
                          source=f"Compustat daily file (cash dividend on its ex-date); "
                                 f"read {READ}.{note}"))
     for d, a in sorted(told.items()):               # declared, ex-date still to come
@@ -100,28 +94,14 @@ def build(name: str) -> pd.DataFrame:
         known.append((d, float(a.cash)))
         rows.append(dict(underlying=name, ex_date=d, cash=float(a.cash), status="declared",
                          announced=a.announced.date(), source=a.source))
-    series = list(known)                            # grows as projections are added
-    # payments a year: how many fell in the 350 days up to the latest one
-    freq = sum(1 for d, _ in known if (known[-1][0] - d).days < 350)
-    if len(known) <= freq:
+    future = project(known, rule, HORIZON)
+    if future is None:
         raise SystemExit(f"{name}: under two years of dividends on file; cannot project")
-    while True:
-        # the next payment's counterpart is the one `freq` payments back
-        src_date, src_cash = series[-freq]
-        nxt = a_year_on(src_date)
-        if nxt > HORIZON:
-            break
-        if nxt <= series[-1][0]:
-            raise SystemExit(f"{name}: projected {nxt} is not after {series[-1][0]}")
-        if rule == "repeat":
-            cash, why = src_cash, "RULE: same date and amount as a year earlier"
-        else:
-            raise_then = round(src_cash - series[-freq - 1][1], 6)
-            cash = round(series[-1][1] + raise_then, 6)
-            why = ("RULE: same date as a year earlier; previous amount plus the raise at the "
-                   f"same point a year earlier ({raise_then:+g})")
-        series.append((nxt, cash))
-        rows.append(dict(underlying=name, ex_date=nxt, cash=cash, status="projected",
+    for d, cash in future:
+        why = ("RULE: same date and amount as a year earlier" if rule == "repeat" else
+               "RULE: same date as a year earlier; previous amount plus the raise at the "
+               "same point a year earlier")
+        rows.append(dict(underlying=name, ex_date=d, cash=cash, status="projected",
                          announced="", source=why))
     return pd.DataFrame(rows, columns=cols)
 

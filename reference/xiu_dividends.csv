@@ -1,4 +1,8 @@
 underlying,ex_date,cash,status,announced,source
+XIU,2024-11-21,0.315,declared,,Compustat daily file; read 2026-11-12. History for the projection rule; before the option data starts
+XIU,2025-02-25,0.275,declared,,Compustat daily file; read 2026-11-12. History for the projection rule; before the option data starts
+XIU,2025-05-22,0.272,declared,,Compustat daily file; read 2026-11-12. History for the projection rule; before the option data starts
+XIU,2025-08-26,0.278,declared,,Compustat daily file; read 2026-11-12. History for the projection rule; before the option data starts
 XIU,2025-11-19,0.300,declared,,Compustat daily file (cash distribution on its ex-date); read 2026-11-11. Not yet checked against the fund's own page
 XIU,2026-02-24,0.277,declared,,Compustat daily file; read 2026-11-11. Not yet checked against the fund's own page
 XIU,2026-05-21,0.272,declared,,Compustat daily file; read 2026-11-11. Not yet checked against the fund's own page

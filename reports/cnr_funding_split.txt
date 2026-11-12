@@ -1,0 +1,24 @@
+Derived statistics only. Dividend amounts are per share; the schedule's are
+public or projected by rule, and the implied ones are computed from option prices.
+
+CNR: 104 days, 2026-06-08 to 2026-11-04.
+
+1. FUNDING (fitted on expiries with declared dividends, earlier days only):
+   applied: 30.7 to 45.0 bp a year, last 30.8.
+   left over on the same days after applying it: -12.1 bp a year (standard error 2.0). Near zero means the spread did its job.
+
+2. BORROW: assumed zero. It cannot be told from funding in option prices, so any
+   borrow cost is inside the funding number above.
+
+3. DIVIDENDS the options imply, against the schedule, for each dividend that was
+   not yet known on the day (projected, or announced later):
+   ex_date    status  days  schedule  implied  std_error  implied minus schedule      t  expiries apart (days)
+2026-09-08  declared    33     0.915    0.916      0.007                   0.001  0.139                   28.0
+2026-12-09  declared   100     0.915    0.934      0.005                   0.019  3.683                   28.0
+2027-03-10 projected   104     0.942    0.936      0.009                  -0.007 -0.744                   28.0
+2027-06-09 projected    97     0.942    0.960      0.012                   0.018  1.454                   91.0
+2027-09-08 projected    35     0.942    0.959      0.013                   0.017  1.269                   91.0
+   Projected dividends seen on 20+ days: schedule total 2.828, implied total 2.855 (+1.0%).
+   Read with the limit in mind: one basis point a year of funding left out is
+   one basis point of share price per year of maturity, and lands in these.
+   For scale, on this name one basis point of the share price is 0.017 a share.

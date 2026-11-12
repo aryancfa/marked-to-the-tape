@@ -7,7 +7,7 @@ BMO,2026-01-30,1.67,declared,,Compustat daily file (cash dividend on its ex-date
 BMO,2026-04-29,1.67,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
 BMO,2026-07-30,1.71,declared,2026-05-27,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: BMO release of 2026-05-27 (raised 4 cents to 1.71; record date 2026-07-30); found by web search 2026-11-12
 BMO,2026-10-30,1.71,declared,2026-08-25,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: BMO release of 2026-08-25 (1.71; record date 2026-10-30); found by web search 2026-11-12
-BMO,2027-01-29,1.75,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0.04)
-BMO,2027-04-29,1.75,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
-BMO,2027-07-30,1.79,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0.04)
-BMO,2027-10-29,1.79,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+BMO,2027-01-29,1.75,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+BMO,2027-04-29,1.75,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+BMO,2027-07-30,1.79,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+BMO,2027-10-29,1.79,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier

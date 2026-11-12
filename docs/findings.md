@@ -180,7 +180,7 @@ spread is needed.
 
 ## Finding 8: the method caught a wrong date on a second name
 
-XIU was run with no funding spread, on two months of data. The next distribution had
+XIU was first run with no funding spread, on two months of data. The next distribution had
 been projected for 19 November 2026, the date of the year before. One expiry, 20
 November, then showed a gap of 34 basis points of forward price while the expiries on
 either side showed 1 or 2, and the share price implied from that expiry sat 17 basis
@@ -190,10 +190,325 @@ ex-date, says the market does not expect the payout before it.
 The fund's published schedule for 2026 lists 25 November. With that date the implied
 share price is 2 basis points from the file's, as it is on RY.
 
-XIU's calls also sit above its puts by an amount that grows with maturity, 0.3 to 0.7
-vol points, which is what RY showed before a funding spread was added. No spread was
-applied to XIU, and RY's was not borrowed, so this is a second name pointing at the
-same funding cost independently.
+That was on two months of XIU. On six months (126 days) the implied share price sits
+1.0 basis points from the file's last trade, with a standard deviation of 5.2.
+
+XIU's calls sit above its puts by an amount that grows with maturity, which is what
+RY showed before a funding spread was added. RY's spread was not borrowed. With six
+months XIU has enough expiries on a declared distribution to fit its own: 13 basis
+points a year (standard error 4.2), against RY's 17.7 (2.0). Two names, fitted
+separately, land within about one standard error of each other. After XIU's own
+spread its long expiries still show +0.3 to +0.55 vol points. All of them rest on
+projected distributions, so that remainder is either more funding cost or
+distributions projected too high, and XIU's options alone cannot say which.
+
+## Finding 9: the error bars were too narrow, and most conclusions survived
+
+Every mean across days was judged against scatter / sqrt(days), which assumes each
+day is a fresh measurement. It is not: a slightly wrong dividend or a slow quote
+pushes today's gap the same way as yesterday's. The standard correction (Newey-West)
+adds the co-movement between each day and the three or four before it.
+
+| | Plain | Allowing for dependence |
+|---|---|---|
+| Funding spread, standard error (bp) | 1.2 | 2.0 |
+| Long monthlies, declared dividends: t | -1.6 | -1.0 |
+| Long monthlies, projected dividends: t | 5.7 | 3.2 |
+| Short weeklies: t | -0.9 | -0.8 |
+
+The funding spread is still about nine standard errors from zero. Every group on
+declared dividends is still indistinguishable from zero. The one result that
+weakened is the projected-dividend gap, from overwhelming to merely clear. The plain
+figure is printed beside the corrected one everywhere.
+
+## Finding 10: a yardstick has to be checked like anything else
+
+The smile each strike is judged against went through four forms. A quadratic left a
+mirror-image pattern of misses. A cubic removed it but is only a flexible line: it
+can imply prices no market could show. It was replaced by SVI, fitted in strike over
+forward and held to shapes with no butterfly arbitrage, which is what a desk uses.
+SVI needs seven strikes, so thin expiries dropped out; they are now judged against
+one surface fitted across the whole day (SSVI), and every expiry is counted.
+
+The first version of that surface read each thin expiry's level off a straight line
+between the two strikes around the forward. A smile curves upward, so the line sat
+above it, and every strike beyond 200 days came out 0.1 to 0.3 vol points below the
+curve, on every day. The pooled chart showed it at once as a block of cells all the
+same sign. Fitting the level instead removed it (the at-the-money cell went from
+-0.33 to +0.07). A uniform sign across a whole row of cells is the signature of the
+yardstick being wrong, not the quotes.
+
+## Finding 11: the index future agrees on the sign of funding, not yet on its size
+
+The standard source for an index's funding is its own future. The SXF basis,
+ln(future / index) / T less the CORRA futures rate, is the funding spread minus the
+index's dividend yield. On 91 contract-days with more than 30 days to run it is
+-173 basis points a year (standard error 6). With XIU's distributions over the last
+year standing in for the index's yield (2.26%), that leaves a funding spread of
+about +50, and by contract +24, +72 and +36.
+
+Those three should be one number. They differ because dividends are seasonal and a
+twelve-month average is not the dividends due in each contract's own life. So the
+future confirms what RY's options (17.7) and XIU's (13.1) say, that funding costs
+more than the overnight rate, and puts it somewhere between about 20 and 80 basis
+points. Pinning it needs the index's actual dividend points, which are not on disk.
+
+The index options were no help, and why is worth knowing. The exchange's SXO file
+has settlements only. Call minus put on those settlements gives a forward that
+matches the index grown at the interest rate with NO dividends to within 0.6 basis
+points on average (standard deviation 8.5), and sits 72 above the future, which is
+about the dividends due. The settlements were struck without the index's dividends.
+They are the exchange's model and say nothing about funding.
+
+## Finding 12: funding and dividends can be told apart, by the shape they leave
+
+One spread had been standing for everything the options say about carry. A funding
+cost moves the forward a little more with each extra day. A dividend the market
+expects to differ from the schedule moves it by a step at the ex-date and by nothing
+before. So the change in forward error from the last expiry before an ex-date to the
+first one after it, times the share price, is the market's dividend minus the
+schedule's (`scripts/funding_split.py`).
+
+| Name | Dividend | Schedule (rule) | Implied by options | Difference |
+|---|---|---|---|---|
+| RY | January 2027 | 1.86 | 1.81 | -0.05 (t -4.0) |
+| RY | April 2027 | 1.86 | 1.80 | -0.06 (t -2.5) |
+| TD | January 2027 | 1.15 | 1.21 | +0.06 (t 13) |
+| TD | April 2027 | 1.15 | 1.16 | +0.01 (t 1.7) |
+| XIU | November 2026 | 0.300 | 0.286 | -0.014 (t -6.6) |
+| XIU | May 2027 | 0.272 | 0.247 | -0.025 (t -7.4) |
+
+The raise rule over-projects RY by about 5 cents a quarter and under-projects TD's
+next dividend by 6: the market expects TD to raise by more than it did a year ago.
+"Same as last year" runs about 7% high for XIU. These are what a desk would use in
+place of a rule, and they are not used as inputs here, because a dividend taken from
+the options would make calls and puts agree by construction.
+
+Two limits. Borrow cannot be separated from funding in option prices, so it is
+assumed zero and any borrow cost sits inside the funding number. And the funding
+spread is measured on expiries a few months out and assumed to hold for a year: each
+basis point a year of funding left out is a basis point of share price per year of
+maturity, and it lands in the implied dividends.
+
+## Finding 13: what holds on fifteen names, and what does not
+
+Twelve more names and two more funds were run the same way (`reports/all_names_summary.txt`).
+
+- The share price implied from options sits within 4 basis points of the last trade
+  on average on every name.
+- Every name's options imply funding above the overnight rate: median 31 basis
+  points a year. RY's 18 is the lowest single name. One firm's funding cost should
+  not differ by name, so the spread from 18 to 49 is something else speaking through
+  the same number: dividends expected to differ from the schedule, or borrow.
+- On expiries resting on declared dividends, calls and puts agree on RY, BNS, BMO,
+  SU, BCE, ABX and SHOP, and nearly on TD. SHOP pays no dividend, so it isolates
+  rates and funding, and it sits at -0.01 vol points.
+- CNQ (-0.35), CNR (-0.11), ENB (+0.24), MFC (+0.29) and XEG (+0.81) do not agree,
+  each by many standard errors. Each has a wrong input that has not been found. The
+  method did its job, which is to say which names to distrust.
+
+## Finding 14: three independent views of next year's dividends
+
+The rule, the options and analysts' consensus share nothing. For fiscal 2027 the
+rule is within 2.0% of consensus on average across eight names and the options
+within 1.6%. On RY the rule says 7.68, the options 7.52 and eight analysts 7.49: the
+two market-facing numbers agree and the rule is the outlier, by the same 5 cents a
+quarter Finding 12 measured. On the year already declared all three agree to about
+1%, which checks that dividends are being assigned to the right fiscal year.
+
+## Finding 15: "what is left looks like noise" was too kind
+
+The share-hedge report said the residual's one-day autocorrelation was near zero and
+called it noise. Four further checks (`reports/hedge_shares_numbers.txt`):
+
+- **A test over ten lags finds structure** in what is left of RY, BNS, CM, MFC, ENB
+  and BCE, and strongly in the five-bank basket against ZEB. One lag near zero was
+  not evidence of none.
+- **The tail is hedged less well than the variance.** For the banks the hedge
+  removes about 80% of daily variance, but the average loss on the worst 1 day in
+  40 only falls by about half (RY: 3.2% to 1.4%).
+- **The hedge works better in stress, not worse,** for every name but ABX: RY's
+  goes from 73% of variance removed on calm days to 87% on stressed ones. In
+  stress everything moves with the index.
+- **The ratio is not a constant.** The index ratio's yearly average runs from 0.70
+  to 1.01 for RY, and from 0.30 to 1.92 for CNQ. A ratio fitted on last year is a
+  moving target for the energy names.
+- **Each figure has an error:** RY's 81% is known to about 3 points, BCE's 30% to
+  12.
+
+Stress periods are now compounded returns, not sums of daily returns, and show NA
+where a hedge did not exist for the whole period.
+
+## Finding 16: why five names disagreed, and what was changed
+
+CNQ, CNR, ENB, MFC and XEG showed gaps on declared dividends. By expiry and by date
+the cause was the same for four of them: the funding spread fitted from each name's
+OWN options was too thinly measured. ENB and MFC announce a dividend days before it
+goes ex, so almost no expiry rests on declared dividends; they collected under
+twenty estimates and ran with no spread, leaving a gap that grows with maturity.
+CNQ's daily estimates ran from -80 to +427 basis points and it was given 80 where
+about 35 is right. XEG's quotes are five vol points wide. CNR was mild: its applied
+spread lagged its own falling estimates by about ten basis points.
+
+The change: a name's own spread is used only where it is well measured (twenty
+earlier estimates whose mean has a standard error of at most 5 basis points);
+otherwise it takes the median across the names that are. A desk has one funding
+cost, not one per name; a name's own figure is kept where it is good because it
+also carries what is particular to that name. CNQ had a second cause, its dividend
+dates: last June's record date was moved by four days and the rule copied the
+unusual date forward.
+
+What the re-run showed (`reports/all_names_summary.txt`, declared-dividend gap in
+vol points, before and after):
+
+- **ENB +0.24 to -0.04 and XEG +0.81 to +0.24 (1.4 standard errors):** explained.
+- **CNQ -0.35 to -0.18:** half explained; the date problem remains.
+- **CNR -0.11, unchanged.** Its own spread is well measured, so the rule left it
+  alone. The diagnosis for CNR was wrong or incomplete, and it is open.
+- **MFC +0.29 to -0.97: worse.** MFC's own options imply a negative spread (-41 bp,
+  standard error 10.7), so the median of the others pushed it the wrong way. The
+  options price its November dividend at 0.64 against 0.485 declared (11.7
+  standard errors). The ex-date is 20 November, the same day as the monthly
+  expiry, and before the announcement the rule placed it a few days later, after
+  that expiry. A dividend on the wrong side of an expiry looks exactly like this.
+  Not yet tested.
+- **RY pays for the pooling:** on its first twenty days it takes the pool's 45 to 49
+  bp against its own 18, and its declared gap is -0.06 (t -2.2) on 104 days where
+  it was -0.02 on the 92 days funded by its own spread.
+
+The rule was chosen after looking at which names failed. Applying it to earlier
+days only keeps each day honest, but these six months are no longer an untouched
+test of the rule; the next files downloaded are.
+
+## Finding 17: the marks are less certain than the P&L computed from them
+
+Two made-up books, struck near the money, valued at the exchange's marks on every
+day (`scripts/book_report.py`). Each option's daily change is split by repricing one
+input at a time, so the parts sum to the change in the marks exactly.
+
+- Once the share move is taken out, the dollars resting on marks that fail a check
+  (vega times the disagreement with the call or put partner, or with the smile)
+  exceed half of the day's remaining P&L on 24 of 127 days in the bank-heavy book
+  and 39 in the diversified one, and exceed all of it on 15 and 30.
+- The series flagged most in the diversified book are ABX and MFC, through the
+  call-put check. Both have a dividend input already known to be wrong. A failed
+  pair check is a wrong carry input as often as a wrong quote, and the report does
+  not yet say which.
+- Dividend exposure is small on these books: 5% on every dividend is about $1,400
+  against $3,400 a vol point, and the two errors found earlier move them by under
+  $100. Reported as small, not dressed up.
+- On made-up data with planted bad quotes (`scripts/mark_benchmark.py`), the smile
+  check catches 81% of 1-point errors at 10 false alarms per 1,000 clean quotes; a
+  day-on-day rule net of the market's move catches 35% at the same rate, or all of
+  them at 49. A raw day-on-day rule flags 280 per 1,000 when vol moves.
+- **Found by the benchmark, not fixed:** the smile fit is least squares. A second
+  bad quote in the same expiry drags the curve, and the check then misses even a
+  4-point error (one in six). The call-put check caught every one. The known fix is
+  a robust fit (down-weight large residuals and refit); it would change every
+  smile panel, so it is a decision, not a patch.
+- The two sample books had to be re-struck: written before the option files were
+  on disk, most strikes were 20 to 40% from the money and two were never listed.
+
+## What a third outside review found (12 November 2026)
+
+Accepted, and acted on in the same release:
+
+- **Reports, caches and text did not describe one run.** Every name was re-run under
+  the final conventions and the tables above come from that run.
+- **"Funding spread" claims more than the evidence gives.** It is an option-implied
+  carry adjustment, conditional on the share price, the dividends and the pricing
+  conventions used; borrow cannot be separated from it. With the file's last trade
+  as the share price it cannot be measured at all.
+- **The smile is screened, not proven arbitrage-free:** butterfly conditions are
+  checked on a grid of strikes, slices can cross between expiries (counted), and the
+  thin-expiry surface keeps the held-out strike in its shared shape.
+- **Many cells, one threshold.** With 25 to 50 cells tested at two standard errors,
+  one or two flags are expected by chance.
+- **The hedge headline follows the diagnostics:** not "noise".
+
+Accepted, not done:
+
+- **The project had not shown a shortcoming it fixes.** Greeks and scenarios exist
+  elsewhere. Done since (Finding 17): two sample books valued end to end, the
+  dollars of daily P&L sitting on marks that fail a check, a catch rate on planted
+  bad quotes against plain rules, and dividend exposure in dollars. Still not
+  done: the hedge stages on the book.
+- Days with too little dividend history fall back to the file's amounts (none in
+  the current sample, and counted if any occur). Hand-entered projected dates
+  carry no date on which they became public. The New York check converts
+  dividends at the ex-date's exchange rate, which is hindsight.
+- The hedge study is before costs, contract rounding, the futures basis and rolls.
+- The live path is untested and the day runner reads exchange files only.
+
+## What an outside review found (12 November 2026)
+
+Three faults in controls, all confirmed against the code:
+
+- **A return across a missing day was set beside a one-day return.** The price
+  reader took a return over any gap, and returns are joined by the day they end on.
+  In the data the index has no row for 23 November 2017, a day every share traded,
+  so that Friday the index's two-day move was paired with each share's one-day move.
+  Only one-session returns are kept now, and the ones dropped are listed in the
+  report. One day in 3,225; no published figure changed.
+- **A book could hold a quantity of `nan` or a multiplier of `inf`.** Both parse as
+  numbers. They are refused now.
+- **The cache key used each exchange file's name and size, not its contents,** so a
+  corrected quote of the same length would be missed. The files are hashed by
+  content now, and the existing cache was moved to the new keys without re-pricing.
+
+And two boundaries it asked to be drawn more tightly, both fair:
+
+- Twelve years of share prices support hedge ratios. They say nothing about what is
+  left after hedging a book's OPTIONS, and the index stands in for a future whose
+  basis, rolls and costs are not in it.
+- Dividend hindsight remains. A dividend announced later is labelled as unknown on
+  earlier days but its eventual amount is still what the model prices with, and the
+  New York comparison converts at the exchange rate on the ex-date. Both are checks
+  of a convention after the fact, not of what was knowable on the day.
+
+## A second outside review (12 November 2026)
+
+Checked item by item against the code. Fixed:
+
+- **The solver answered for inputs it could not answer for.** A price of `nan`
+  compares False with everything, so it passed every bracket test and came back as a
+  500% vol marked "ok"; with no iterations allowed it returned the middle of the
+  bracket, also "ok". The chain screen stops such rows first, but the function is
+  called directly too. It now refuses non-finite inputs and reports
+  non-convergence, each with its own reason and no vol.
+- **The share-price expiry was counted as evidence on the front chart.** The share
+  price is implied from one expiry's call-put pairs, so calls and puts agree there
+  by construction. Those pairs are now left out of the call-minus-put panel, as they
+  already were from the carry tables, and the number left out is printed.
+- **Two runs of a day could be read as two days.** A cache folder can hold a day
+  under more than one set-up. The current folders hold one each (checked), but
+  nothing enforced it. Every reader now stops if a day appears twice.
+- **The surface's no-arbitrage claim was too strong.** The documented condition only
+  implies the real ones while at-the-money total variance stays at or below 1. That
+  covers every equity here, but it is not the guarantee the note claimed. The
+  fitter now checks the two actual conditions at the largest level fitted, and the
+  note says these are conditions on a European surface, not on the American prices.
+- **A claim that did not match its table.** "Autocorrelation within 0.07 of zero for
+  every single name" was wrong for CM (-0.13), and "looks like noise" claimed more
+  than a lag-one correlation can show. Both are reworded.
+
+Accepted, and done the same day:
+
+- **Dividends are point-in-time.** Each day is priced with the schedule as it could
+  have been written that day: a dividend not yet announced is replaced, in amount
+  and date, by what the rule projects from the dividends then known
+  (`loaders.reference.as_known_on`). Where an announcement date could not be found
+  the dividend counts as unknown until it goes ex. Still retrospective: the exchange
+  rate used on the New York listings is the one on the ex-date.
+- **A gap inside the CORRA fixings stops the curve builder** instead of the last
+  rate being carried across it.
+- **One command reproduces everything and records what went in**
+  (`scripts/reproduce_all.py`): all reports, all or nothing, with a manifest of
+  input hashes, versions and the commit.
+- **Hedge interpretation** has tails, regimes, a test over ten lags, an error on
+  each figure and the same days for every hedge stage (Finding 15).
+- **A made-up-data example runs the whole method** with no licensed files
+  (`scripts/demo_synthetic.py`, also the end-to-end test).
 
 ## The front chart
 
@@ -203,7 +518,7 @@ With those inputs settled, each implied vol is compared with three references ov
 | Reference | Result |
 |---|---|
 | Call minus put | No cell further than 0.14 vol points from zero |
-| Strike minus a smile fitted through the other strikes | No cell further than 0.08 beyond 30 days |
+| Strike minus a smile fitted through the other strikes | No cell further than 0.11 beyond 30 days, none beyond 0.03 between 30 and 200 days; 0.1 to 0.3 under 30 days |
 | Ours minus the exchange's published vol | In-the-money puts up to 2.4 lower on our side; calls 0.2 to 1.0 lower beyond 60 days |
 
 The expected sign of the third was written into the script before the chart was
@@ -233,24 +548,50 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
 | Counting all time in trading sessions | It would fix nothing further and would put every implied vol on a different scale from the exchange's and OptionMetrics', so they could no longer be compared. |
 | Taking a dividend at face value across currencies | On the New York listings it leaves calls two to four vol points above puts. The amount is converted at the exchange rate on the ex-date. |
 | A quadratic smile | Its misses repeated in a mirror-image pattern across the money every day, up to a vol point, because the real smile is steeper on the put side. A cubic removed it. |
+| A cubic smile | It fitted, but a polynomial can imply prices that admit arbitrage and runs off past its last strike. Replaced by SVI against the forward, with a surface for thin expiries (Finding 10). |
+| Reading a thin expiry's level off a line between two strikes | A line across a curved smile sits above it; it biased every long expiry by 0.1 to 0.3 vol points. The level is fitted instead. |
+| Standard errors that treat days as independent | Neighbouring days move together, so they claimed too much (Finding 9). |
+| Applying RY's funding spread to XIU | A spread fitted from one name's options carries that name's dividend and borrow effects. XIU uses its own, and the index future is the proper source. |
 
 ## What is still not trusted
 
-- **One name, six months.** Nothing here has seen a crisis, a dividend cut or a
-  hard-to-borrow share.
+- **Fifteen names, six months.** Nothing here has seen a crisis, a dividend cut or
+  a hard-to-borrow share.
+- **Five names with an unexplained gap on declared dividends:** CNQ, CNR, ENB, MFC
+  and XEG (Finding 13). Their charts should not be read until the cause is found.
+- **The funding spread differs by name, 18 to 49 basis points.** It is one number
+  standing for funding, expected dividends and borrow together.
+- **ABX's projected dividends.** It declares in US dollars; the schedule repeats last
+  year's Canadian-dollar amounts.
+- **Analysts' consensus is dated 20 August 2026,** the latest on WRDS, and predates
+  some November announcements.
 - **The funding spread's size.** It is fitted from the options it explains, and it
   ran slightly high early in the sample.
 - **Dividends beyond October 2026.** They follow a rule, and the rule is mine.
 - **Days before a dividend was announced.** The model uses the amount declared later
   on those days. They are labelled and kept out of the spread fit, but it is
-  hindsight.
+  hindsight. Announcement dates now come from company releases for every name
+  (`reference/dividend_announcements.csv`); four fund distributions use an
+  estimated date and one Barrick dividend has none.
 - **Dividend projections, tested on one year.** The raise rule would have predicted
   two 6-cent raises for 2026 from 2025's. The actual raises were 10 and 12 cents.
   (The ex-dates themselves are now confirmed by a second source: OptionMetrics'
   record shows the ex-date equal to the record date on every RY dividend since
   June 2024.)
-- **The standard errors.** They treat days as independent. Neighbouring days are not,
-  so a result just past two standard errors deserves less weight than it looks.
+- **The standard errors.** They now allow a day to resemble the three or four before
+  it (Finding 9). They still take neighbouring days in the series as neighbouring
+  days, and dependence that lasts longer than a week is not captured.
+- **The smile across time.** Each expiry's curve is free of arbitrage across
+  strikes, but the curves are fitted one expiry at a time: 4% of neighbouring pairs
+  on RY and 7% on XIU cross. The surface that ties expiries together is used only
+  for thin expiries, and it shares one tilt across all maturities, which leaves a
+  slope of about 0.1 vol points across strikes on the longest RY expiries.
+- **The smile under 30 days.** Misses of 0.1 to 0.3 vol points alternate in sign
+  across strike bands, the same way every day: the curve's shape, not the quotes.
+- **XIU's funding spread.** Thirteen basis points from 42 days of estimates. The
+  index future is the proper source and has not been used yet.
+- **The index option file.** The exchange's SXO file carries settlements only: no
+  bids, asks, volume or open interest. Parity on it shows the exchange's model.
 - **The exchange's method.** Its published vol behaves like a European formula, but
   that is inferred from the pattern. Its inputs are not known.
 - **The same-day comparison of the two markets.** The engine has been checked against
@@ -260,7 +601,7 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
 - **The gap left on New York options that span a dividend** (0.1 to 1.1 vol points,
   Finding 5). Funding and withholding tax are candidates. Neither is tested.
 - **The end strikes of each smile.** They are judged by a curve extended past its
-  data.
+  data. SVI's wings go straight, which is better behaved than a polynomial there.
 - **The share price on 29 May 2026.** The file's last trade sits 104 basis points
   from the implied price that day and looks stale.
 
@@ -270,4 +611,4 @@ The option layers of the closing chart: the book's P&L with its options revalued
 day, split into the delta the future missed and the gamma and vega it cannot touch,
 and then a vega hedge with listed options. They need implied vol history by name,
 which for the New York listings is on WRDS to August 2025 and has not been pulled.
-The front chart exists for one name.
+The front chart exists for fifteen names.

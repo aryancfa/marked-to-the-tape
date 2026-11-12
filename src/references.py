@@ -297,13 +297,35 @@ def ssvi_total_variance(theta, k, rho: float, eta: float, gamma: float) -> np.nd
         w = theta / 2 * (1 + rho*phi*k + sqrt((phi*k + rho)^2 + 1 - rho^2)),
         phi = eta * theta^(-gamma)
 
-    With 0 < gamma <= 1/2, eta * (1 + |rho|) <= 2 and theta rising with
-    maturity, the surface has no butterfly arbitrage at any expiry and no
-    calendar arbitrage between expiries."""
+    When it is free of arbitrage (their Theorems 4.1 and 4.2). Between
+    expiries: theta must rise with maturity (and gamma <= 1 does the rest for
+    this phi). Across strikes, at every theta on the surface:
+
+        theta * phi * (1 + |rho|) < 4   and   theta * phi^2 * (1 + |rho|) <= 4
+
+    With this phi, both left sides grow with theta when gamma <= 1/2, so it is
+    enough to check them at the LARGEST theta fitted. ssvi_butterfly_free does
+    that, and fit_ssvi accepts no shape that fails it. The earlier shortcut
+    "eta * (1 + |rho|) <= 2" is NOT a guarantee by itself: it only implies
+    the conditions while theta stays at or below 1.
+
+    These are conditions on a EUROPEAN surface in strike over forward. The
+    vols here come from American prices with cash dividends, inverted on the
+    tree, so they are the vol of the underlying process and the conditions
+    apply to that; they are not a check that the American prices themselves
+    admit no arbitrage."""
     theta = np.asarray(theta, dtype=float)
     k = np.asarray(k, dtype=float)
     phi = eta * theta ** (-gamma)
     return 0.5 * theta * (1.0 + rho * phi * k + np.sqrt((phi * k + rho) ** 2 + 1.0 - rho * rho))
+
+
+def ssvi_butterfly_free(theta_max: float, rho: float, eta: float, gamma: float) -> bool:
+    """The two strike conditions of ssvi_total_variance, at the largest
+    at-the-money total variance on the surface."""
+    phi = eta * theta_max ** (-gamma)
+    a = theta_max * phi * (1.0 + abs(rho))
+    return bool(gamma <= 0.5 and a < 4.0 and a * phi <= 4.0)
 
 
 def atm_total_variance(k, iv, w, T: float) -> float:
@@ -319,35 +341,73 @@ def atm_total_variance(k, iv, w, T: float) -> float:
     return float(np.interp(0.0, ks, tv))
 
 
+def fit_level(k, iv, w, T: float, rho: float, eta: float, gamma: float,
+              floor: float = 0.0) -> float:
+    """
+    One expiry's at-the-money total variance, given the surface's three
+    shared numbers: the level at which the surface passes closest to this
+    expiry's vols (weighted), not below `floor`. NaN with no usable point.
+
+    Fitted, not read off a line between the two strikes around the forward.
+    A smile curves upward, so a straight line across it sits above it, and a
+    level read that way is too high: on RY it left every strike of the long,
+    thinly-struck expiries 0.1 to 0.3 vol points below the surface.
+    """
+    k, iv, w = (np.asarray(x, dtype=float) for x in (k, iv, w))
+    ok = np.isfinite(iv) & np.isfinite(w) & (w > 0)
+    if not ok.any() or T <= 0:
+        return float("nan")
+    k, iv, w = k[ok], iv[ok], w[ok]
+    target = iv * iv * T
+    wt = w / np.maximum(2.0 * iv * T, 1e-12) ** 2
+    centre, width = float(np.average(target, weights=w)), 3.0
+    for _ in range(4):                              # a grid, narrowed four times
+        grid = np.maximum(centre * np.geomspace(1.0 / width, width, 41), max(floor, 1e-12))
+        model = ssvi_total_variance(grid[:, None], k[None, :], rho, eta, gamma)
+        centre = float(grid[np.argmin(((model - target[None, :]) ** 2 * wt[None, :]).sum(axis=1))])
+        width = width ** 0.25
+    return centre
+
+
 def fit_ssvi(slices: Sequence[tuple], min_points: int = 8) -> SurfaceFit | None:
     """
     Fit one surface to every expiry of a day. `slices` is a list of
     (k, iv, weight, T), one per expiry, in time order, k = ln(strike / forward).
 
-    Each expiry's level is taken from the data: its at-the-money total
-    variance (atm_total_variance). Where that would FALL from one expiry to
-    the next it is lifted to the earlier level and counted in `raised`,
+    Each expiry's level starts from the data: its at-the-money total
+    variance (atm_total_variance, or the weighted mean where the strikes do
+    not straddle the forward), and is then fitted (fit_level) in turn with
+    the shared numbers, twice over. Where a level would FALL from one expiry
+    to the next it is held at the earlier level and counted in `raised`,
     because total variance that falls with time is a calendar arbitrage: you
     could sell the nearer option, buy the further one, and never lose.
 
     Three numbers are then shared by every expiry (rho, eta, gamma), found by
-    a grid search held inside the no-arbitrage region and refined once. With
+    a grid search and refined. A shape is only considered if it passes
+    ssvi_butterfly_free at the largest level fitted; None if none does. With
     only three shared numbers, an expiry with too few strikes for a curve of
     its own still gets one, shaped by all the others.
     """
     use = [(np.asarray(k, float), np.asarray(iv, float), np.asarray(w, float), float(T))
            for k, iv, w, T in slices]
-    theta = np.array([atm_total_variance(*x) for x in use])
-    if not np.isfinite(theta).all() or len(use) < 2 or sum(len(x[0]) for x in use) < min_points:
+    if len(use) < 2 or sum(len(x[0]) for x in use) < min_points:
         return None
+    theta = np.array([atm_total_variance(*x) for x in use])
+    for i, (k, iv, w, T) in enumerate(use):         # no straddle: start from the mean
+        if not np.isfinite(theta[i]):
+            theta[i] = float(np.average(iv * iv * T, weights=w))
     lifted = np.maximum.accumulate(theta)
     raised = int((lifted > theta + 1e-15).sum())
     K = np.concatenate([x[0] for x in use])
     V = np.concatenate([x[1] for x in use])
     TT = np.concatenate([np.full(len(x[0]), x[3]) for x in use])
-    TH = np.concatenate([np.full(len(x[0]), th) for x, th in zip(use, lifted)])
     W = np.concatenate([x[2] for x in use])
     target, wt = V * V * TT, W / np.maximum(2.0 * V * TT, 1e-12) ** 2
+
+    def spread(levels):
+        return np.concatenate([np.full(len(x[0]), th) for x, th in zip(use, levels)])
+
+    TH = spread(lifted)
 
     def search(rhos, gammas, shares):
         best = (np.inf, None)
@@ -355,18 +415,36 @@ def fit_ssvi(slices: Sequence[tuple], min_points: int = 8) -> SurfaceFit | None:
             for rho in rhos:
                 for sh in shares:                   # eta as a share of its ceiling
                     eta = sh * 2.0 / (1.0 + abs(rho))
+                    if not ssvi_butterfly_free(float(TH.max()), rho, eta, g):
+                        continue                    # this shape admits an arbitrage
                     miss = ssvi_total_variance(TH, K, rho, eta, g) - target
                     sse = float(wt @ (miss * miss))
                     if sse < best[0]:
                         best = (sse, (float(rho), float(eta), float(g)))
         return best[1]
 
-    rho, eta, g = search(np.linspace(-0.95, 0.95, 39), (0.1, 0.2, 0.3, 0.4, 0.5),
+    start = search(np.linspace(-0.95, 0.95, 39), (0.1, 0.2, 0.3, 0.4, 0.5),
                          np.linspace(0.02, 1.0, 25))
+    if start is None:
+        return None
+    rho, eta, g = start
     sh = eta * (1.0 + abs(rho)) / 2.0
-    rho, eta, g = search(np.clip(rho + np.linspace(-0.05, 0.05, 11), -0.99, 0.99),
-                         np.clip(g + np.linspace(-0.1, 0.1, 5), 0.05, 0.5),
-                         np.clip(sh + np.linspace(-0.04, 0.04, 9), 0.005, 1.0))
+    for _ in range(2):                  # levels given the shape, shape given the levels
+        free, floor = [], 0.0
+        for k, iv, w, T in use:
+            free.append(fit_level(k, iv, w, T, rho, eta, g))
+            floor = max(floor, free[-1])
+        free = np.array(free)
+        lifted = np.maximum.accumulate(free)
+        raised = int((lifted > free * (1.0 + 1e-9)).sum())
+        TH = spread(lifted)
+        sh = eta * (1.0 + abs(rho)) / 2.0
+        again = search(np.clip(rho + np.linspace(-0.05, 0.05, 11), -0.99, 0.99),
+                       np.clip(g + np.linspace(-0.1, 0.1, 5), 0.05, 0.5),
+                       np.clip(sh + np.linspace(-0.04, 0.04, 9), 0.005, 1.0))
+        rho, eta, g = again if again is not None else (rho, eta, g)
+    if not ssvi_butterfly_free(float(lifted.max()), rho, eta, g):
+        return None
     model = np.sqrt(ssvi_total_variance(TH, K, rho, eta, g) / TT)
     rms = float(np.sqrt(np.sum(W * (V - model) ** 2) / np.sum(W)))
     return SurfaceFit(rho, eta, g, tuple(float(x) for x in lifted), raised, rms, int(len(K)))
@@ -495,9 +573,13 @@ def reference_differences(inverted: pd.DataFrame, spot: float,
             if surface is not None:
                 for x in np.unique(np.round(k, 10)):
                     here = np.isclose(k, x, atol=1e-10)
-                    th = atm_total_variance(k[~here], iv[~here], vega[~here], T)
-                    if np.isfinite(th):         # this expiry's level without the strike
-                        th = max(th, max(surface.theta[:i], default=0.0))
+                    if (~here).sum() < 2:
+                        continue
+                    # this expiry's level, fitted without the strike
+                    th = fit_level(k[~here], iv[~here], vega[~here], T, surface.rho,
+                                   surface.eta, surface.gamma,
+                                   floor=max(surface.theta[:i], default=0.0))
+                    if np.isfinite(th):
                         resid[here] = iv[here] - np.sqrt(ssvi_total_variance(
                             th, k[here], surface.rho, surface.eta, surface.gamma) / T)
             if not np.isfinite(resid).any():

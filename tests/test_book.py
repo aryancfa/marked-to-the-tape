@@ -88,3 +88,16 @@ def test_bank_heavy_book_is_mostly_banks():
     banks = {"RY", "TD", "BNS", "BMO", "CM"}
     options = [p for p in book if p.kind == "option"]
     assert sum(p.underlying in banks for p in options) / len(options) > 0.7
+
+
+@pytest.mark.parametrize("row,what", [
+    ("future,SXF,,,2026-12-17,nan,200,MX\n", "quantity"),
+    ("future,SXF,,,2026-12-17,-2,inf,MX\n", "multiplier"),
+    ("option,RY,C,-inf,2027-01-15,10,100,MX\n", "strike"),
+    ("equity,TD,,,,Infinity,1,TSX\n", "quantity"),
+])
+def test_numbers_that_are_not_finite_are_refused(tmp_path, row, what):
+    """float() reads "nan" and "inf" without complaint. A position with one
+    of those would turn every total it touches into nan or infinity."""
+    with pytest.raises(BookError, match=f"{what}.*not a finite number"):
+        load_book(write(tmp_path, row))

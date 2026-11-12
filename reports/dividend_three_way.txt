@@ -1,0 +1,33 @@
+Derived statistics only: dividends per share summed over a fiscal year.
+
+Three views of each fiscal year's dividends per share, in Canadian dollars.
+rule = this project's schedule; options = the same with the dividends the options
+imply swapped in where one could be isolated ('implied of 4' says how many);
+analysts = I/B/E/S consensus mean, with the spread across analysts and their number.
+
+name fiscal year to  projected of 4  rule  options  implied of 4  analysts  analysts sd  n      as of  rule vs analysts %  options vs analysts %
+  RY     2026-10-31               0  6.80    6.803             1      6.84         0.08  8 2026-08-20              -0.585                 -0.544
+  RY     2027-10-31               4  7.68    7.543             3      7.49         0.25  8 2026-08-20               2.537                  0.702
+  TD     2026-10-31               0  4.40    4.405             1      4.40         0.04  8 2026-08-20               0.000                  0.114
+  TD     2027-10-31               4  4.68    4.746             3      4.66         0.11  8 2026-08-20               0.429                  1.849
+ BNS     2026-10-31               0  4.48    4.513             1      4.48         0.00  8 2026-08-20               0.000                  0.736
+ BNS     2027-10-31               4  4.64    4.720             3      4.71         0.17  8 2026-08-20              -1.486                  0.222
+ BMO     2026-10-31               0  6.76    6.767             1      6.76         0.05  9 2026-08-20               0.000                  0.101
+ BMO     2027-10-31               4  7.08    7.059             3      7.08         0.12  9 2026-08-20               0.000                 -0.292
+ MFC     2026-12-31               0  1.94    2.092             2      1.93         0.03  5 2026-08-20               0.518                  8.385
+ MFC     2027-12-31               4  2.12    1.983             3      2.09         0.06  5 2026-08-20               1.435                 -5.124
+ CNQ     2026-12-31               0  2.50    2.490             2      2.47         0.05 13 2026-08-20               1.215                  0.792
+ CNQ     2027-12-31               4  2.65    2.638             1      2.57         0.11 13 2026-08-20               3.113                  2.665
+  SU     2026-12-31               0  2.46    2.431             2      2.42         0.03 14 2026-08-20               1.653                  0.454
+  SU     2027-12-31               4  2.70    2.662             3      2.49         0.13 13 2026-08-20               8.434                  6.920
+ ENB     2026-12-31               0  3.88    3.851             2      3.89         0.01 17 2026-08-20              -0.257                 -1.011
+ ENB     2027-12-31               4  3.99    3.841             3      4.00         0.05 16 2026-08-20              -0.250                 -3.982
+ CNR     2026-12-31               0  3.66    3.680             2      3.66         0.00  9 2026-08-20               0.000                  0.537
+ CNR     2027-12-31               4  3.77    3.798             3      3.82         0.23 12 2026-08-20              -1.309                 -0.580
+ BCE     2026-12-31               1  1.75    1.735             2      1.75         0.01 10 2026-08-20               0.000                 -0.851
+ BCE     2027-12-31               4  1.75    1.709             3      1.76         0.03 10 2026-08-20              -0.568                 -2.918
+
+Years with at least one projected dividend:
+  rule against analysts: mean +1.1%, mean absolute 1.8%, 11 name-years.
+  options against analysts: mean -0.1%, mean absolute 2.4%, 11 name-years.
+  on those same 11, rule against analysts: mean absolute 1.8%.

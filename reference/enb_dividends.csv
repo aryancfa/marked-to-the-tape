@@ -7,7 +7,7 @@ ENB,2026-02-17,0.97,declared,,Compustat daily file (cash dividend on its ex-date
 ENB,2026-05-15,0.97,declared,2026-05-06,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: Enbridge release of 2026-05-06 (0.97; record date 2026-05-15); found by web search 2026-11-12
 ENB,2026-08-14,0.97,declared,2026-07-28,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: Enbridge release of 2026-07-28 (0.97; record date 2026-08-14); found by web search 2026-11-12
 ENB,2026-11-13,0.97,declared,2026-11-04,Enbridge release of 2026-11-04 (0.97; record date 2026-11-13); found by web search 2026-11-12. Ex-date taken as the record date
-ENB,2027-02-17,0.9975,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0.0275)
-ENB,2027-05-14,0.9975,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
-ENB,2027-08-13,0.9975,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
-ENB,2027-11-12,0.9975,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+ENB,2027-02-17,0.9975,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+ENB,2027-05-14,0.9975,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+ENB,2027-08-13,0.9975,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier
+ENB,2027-11-12,0.9975,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier

@@ -1,67 +1,95 @@
 Derived statistics only. No prices appear in this file.
 
-Daily returns 2014-01-03 to 2026-11-10, 3225 days. Hedge ratios from the 250 days before each day.
+Daily returns 2014-01-03 to 2026-11-10, 3224 days. Hedge ratios from the 250 days before each day.
 The TSX 60 index stands in for the SXF future. Shares only: no gamma or vega here.
+returns that would have covered more than one session (a missing row before them), dropped so no two-day move is set beside a one-day move: {'index': ['2017-11-24']}
 daily moves beyond 25% (kept, listed so they can be checked): {'CNQ': 2}
 XIU against the index, as a check on the stand-in: correlation 0.9940
 
 Share of daily variance removed, out of sample (hindsight beside it):
                   days  vol %   1:1  index  index, hindsight  index+sector  index+sector, hindsight  ratio  ratio sd
 name                                                                                                                
-RY                2975  17.35  65.0   65.0              65.0          81.0                     81.0   0.87      0.10
-TD                2975  18.97  57.0   58.0              58.0          76.0                     76.0   0.86      0.14
-BNS               2975  18.95  58.0   58.0              58.0          79.0                     80.0   0.87      0.16
-BMO               2975  20.48  61.0   62.0              61.0          81.0                     81.0   0.94      0.16
-CM                2975  19.60  55.0   55.0              55.0          78.0                     79.0   0.85      0.16
-MFC               2975  25.86  51.0   53.0              53.0          56.0                     57.0   1.20      0.20
-CNQ               2975  38.19  31.0   38.0              36.0          85.0                     85.0   1.56      0.46
-SU                2975  34.21  32.0   37.0              35.0          82.0                     81.0   1.39      0.42
-ENB               2975  23.26  46.0   49.0              46.0          51.0                     49.0   0.97      0.35
-CNR               2975  20.76  39.0   40.0              40.0           NaN                      NaN   0.96      0.17
-BCE               2975  17.47   9.0   30.0              23.0           NaN                      NaN   0.41      0.28
-ABX               2975  39.21   4.0    8.0               6.0           NaN                      NaN   0.75      0.55
-SHOP              2628  57.61  17.0   23.0              20.0           NaN                      NaN   2.05      0.70
-banks (5, equal)  2975  17.18  73.0   73.0              73.0          97.0                     97.0   0.88      0.12
-all 13 (equal)    2628  16.60  92.0   92.0              92.0           NaN                      NaN   1.05      0.07
+RY                2974  17.35  65.0   65.0              65.0          81.0                     81.0   0.87      0.10
+TD                2974  18.97  57.0   58.0              58.0          76.0                     76.0   0.86      0.14
+BNS               2974  18.95  58.0   58.0              58.0          79.0                     80.0   0.87      0.16
+BMO               2974  20.48  61.0   62.0              61.0          81.0                     81.0   0.94      0.16
+CM                2974  19.60  55.0   55.0              55.0          78.0                     79.0   0.85      0.16
+MFC               2974  25.86  51.0   53.0              53.0          56.0                     57.0   1.20      0.20
+CNQ               2974  38.20  31.0   38.0              36.0          85.0                     85.0   1.56      0.46
+SU                2974  34.21  32.0   37.0              35.0          82.0                     81.0   1.39      0.42
+ENB               2974  23.26  46.0   49.0              46.0          51.0                     49.0   0.97      0.35
+CNR               2974  20.76  39.0   40.0              40.0           NaN                      NaN   0.96      0.17
+BCE               2974  17.48   9.0   30.0              23.0           NaN                      NaN   0.41      0.28
+ABX               2974  39.21   4.0    8.0               6.0           NaN                      NaN   0.75      0.55
+SHOP              2627  57.62  17.0   23.0              20.0           NaN                      NaN   2.05      0.70
+banks (5, equal)  2974  17.19  73.0   73.0              73.0          97.0                     97.0   0.88      0.12
+all 13 (equal)    2627  16.61  92.0   92.0              92.0           NaN                      NaN   1.05      0.07
 
 What is left after the best hedge used (annual vol; one day's standard deviation
 on a $1,000,000 holding; day-to-day autocorrelation; correlation with the fund NOT used):
                  sector  left vol %  left, $ a day per $1m  autocorr corr with ZEB corr with XEG
 name                                                                                            
-RY                  ZEB        7.64                4814.60     -0.05             -         -0.09
-TD                  ZEB        9.35                5888.92      0.03             -         -0.03
-BNS                 ZEB        8.64                5444.86     -0.07             -          0.03
-BMO                 ZEB        8.90                5605.26     -0.00             -          0.03
-CM                  ZEB        9.14                5758.54     -0.13             -         -0.03
-MFC                 ZEB       17.11               10776.86      0.04             -          0.07
-CNQ                 XEG       14.87                9367.09      0.00           0.0             -
-SU                  XEG       14.62                9212.15      0.04          0.05             -
-ENB                 XEG       16.28               10254.96      0.05         -0.01             -
-CNR                   -       16.10               10140.51     -0.02         -0.08         -0.13
-BCE                   -       14.60                9195.89      0.04         -0.01         -0.13
-ABX                   -       37.61               23689.00     -0.00         -0.17         -0.06
-SHOP                  -       50.46               31788.22      0.03         -0.15         -0.21
-banks (5, equal)    ZEB        2.79                1756.18     -0.23             -         -0.05
-all 13 (equal)        -        4.65                2929.35      0.02          0.13          0.38
+RY                  ZEB        7.64                4815.50     -0.05             -         -0.09
+TD                  ZEB        9.35                5889.83      0.03             -         -0.03
+BNS                 ZEB        8.64                5445.83     -0.07             -          0.03
+BMO                 ZEB        8.90                5606.12     -0.00             -          0.03
+CM                  ZEB        9.14                5758.93     -0.13             -         -0.03
+MFC                 ZEB       17.11               10778.20      0.04             -          0.07
+CNQ                 XEG       14.87                9368.75      0.00           0.0             -
+SU                  XEG       14.63                9214.01      0.04          0.05             -
+ENB                 XEG       16.28               10255.87      0.05         -0.01             -
+CNR                   -       16.10               10142.18     -0.02         -0.08         -0.13
+BCE                   -       14.60                9197.32      0.04         -0.01         -0.13
+ABX                   -       37.61               23691.24     -0.00         -0.17         -0.06
+SHOP                  -       50.47               31793.91      0.03         -0.15         -0.21
+banks (5, equal)    ZEB        2.79                1756.43     -0.23             -         -0.05
+all 13 (equal)        -        4.65                2929.65      0.02          0.13          0.38
 
-Stress periods: daily returns added up over the period, unhedged and after the best hedge used (%).
-(A sum of daily returns, so a long fall can add to more than 100.)
-                  Jan 2015 rate cut: unhedged  Jan 2015 rate cut: hedged  Feb-Mar 2020: unhedged  Feb-Mar 2020: hedged  Jun-Oct 2022: unhedged  Jun-Oct 2022: hedged
-name                                                                                                                                                                
-RY                                       -4.2                       -2.4                   -36.2                   7.7                    -6.3                   4.8
-TD                                        0.2                        2.0                   -38.4                  11.3                   -10.0                   3.5
-BNS                                      -0.9                        0.2                   -42.4                  -1.3                   -23.3                 -10.9
-BMO                                      -2.0                       -0.1                   -52.8                  -0.3                   -12.2                   2.1
-CM                                       -4.0                       -2.1                   -42.4                  10.4                   -14.8                  -2.0
-MFC                                      -0.1                       -1.5                   -63.3                  -0.8                    -5.1                   9.9
-CNQ                                      12.5                        5.5                  -101.0                   7.7                    -5.3                   3.0
-SU                                        8.7                        2.3                   -86.6                 -13.8                   -11.0                  -3.2
-ENB                                      13.5                       10.5                   -40.7                   6.8                   -13.3                  -7.0
-CNR                                       6.8                        2.2                   -19.1                  28.4                     5.0                  15.7
-BCE                                       5.8                        3.9                   -28.3                   2.8                   -13.5                  -8.8
-ABX                                      28.0                       24.2                    -5.9                  -8.1                   -24.1                 -19.9
-SHOP                                      0.0                        NaN                   -23.3                  40.3                   -13.6                  25.6
-banks (5, equal)                         -2.2                       -0.5                   -42.4                   5.6                   -13.3                  -0.5
-all 13 (equal)                            0.0                        NaN                   -44.6                   0.5                   -11.3                   1.2
+How well that is known, where it is weakest, and the tail. 'removed' is the share of
+daily variance taken away by the best hedge used; 'se' is its standard error from
+resampling 20-day blocks; calm and stressed split the days by the index's volatility
+over the 20 days before (top fifth = stressed); 'worst days' is the average loss on
+the worst 1 day in 40 (%); 'pattern' is yes if the Ljung-Box test over ten lags finds
+structure in what is left; the last two columns are the index ratio's lowest and
+highest yearly average.
+                  removed  removed se  removed, calm  removed, stressed  worst days, unhedged %  worst days, hedged %  Ljung-Box Q(10) pattern  ratio, lowest year  ratio, highest year
+name                                                                                                                                                                                   
+RY                   80.6         2.9           72.6               87.0                    3.23                  1.42            32.21     yes                0.70                 1.01
+TD                   75.7         5.4           59.5               90.4                    3.66                  1.87             8.63      no                0.61                 1.10
+BNS                  79.2         4.2           66.7               89.0                    3.58                  1.68            30.53     yes                0.60                 1.03
+BMO                  81.1         3.9           70.1               89.1                    3.93                  1.81            16.41      no                0.72                 1.18
+CM                   78.3         3.8           69.5               85.3                    3.65                  1.80            70.50     yes                0.72                 1.10
+MFC                  56.2         5.4           40.3               70.9                    4.87                  3.07            27.33     yes                1.01                 1.45
+CNQ                  84.8         1.7           80.4               88.8                    6.46                  2.44            16.39      no                0.30                 1.92
+SU                   81.7         1.4           78.1               85.5                    6.01                  2.57            15.40      no                0.28                 1.90
+ENB                  51.0         8.2           29.7               70.3                    4.28                  2.92            21.51     yes                0.25                 1.43
+CNR                  39.9         4.4           31.3               55.1                    3.81                  2.93             8.45      no                0.77                 1.33
+BCE                  30.2        11.9            7.8               55.7                    3.51                  2.91            19.41     yes               -0.19                 0.82
+ABX                   8.0         2.1            9.6                4.8                    6.87                  6.54            13.42      no                0.09                 2.13
+SHOP                 23.3         2.0           19.6               30.0                    9.78                  8.65             9.78      no                1.02                 3.05
+banks (5, equal)     97.4         0.4           96.4               98.0                    3.18                  0.50           234.68     yes                0.75                 1.08
+all 13 (equal)       92.2         2.0           87.2               95.0                    3.07                  0.68            32.89     yes                0.86                 1.12
+
+Stress periods: total return over the period, COMPOUNDED from daily returns, unhedged
+and after the best hedge used (%). NA where the hedge did not exist for the whole
+period (a name with too little history then), never zero. The hedged figure compounds
+daily residuals: it is what a daily re-hedged position earned, before costs.
+                 Jan 2015 rate cut: unhedged Jan 2015 rate cut: hedged  Feb-Mar 2020: unhedged  Feb-Mar 2020: hedged  Jun-Oct 2022: unhedged  Jun-Oct 2022: hedged
+name                                                                                                                                                              
+RY                                      -4.3                      -2.4                   -33.0                   7.5                    -6.8                   4.8
+TD                                       0.1                       2.0                   -34.8                  11.8                   -10.3                   3.4
+BNS                                     -1.0                       0.2                   -37.4                  -1.4                   -21.4                 -10.6
+BMO                                     -2.1                      -0.1                   -44.4                  -0.5                   -12.3                   2.0
+CM                                      -4.0                      -2.0                   -38.0                  10.5                   -14.5                  -2.1
+MFC                                     -0.3                      -1.5                   -50.2                  -2.2                    -5.9                  10.0
+CNQ                                     12.5                       5.5                   -68.7                   7.2                    -8.4                   2.7
+SU                                       8.7                       2.3                   -61.3                 -13.5                   -13.7                  -3.6
+ENB                                     14.2                      10.8                   -37.9                   6.1                   -13.2                  -7.0
+CNR                                      6.9                       2.2                   -19.5                  32.0                     4.3                  16.6
+BCE                                      5.8                       3.9                   -27.6                   2.3                   -13.2                  -8.8
+ABX                                     30.9                      26.2                    -8.9                 -11.3                   -23.1                 -19.7
+SHOP                                      NA                        NA                   -24.5                  44.3                   -23.7                  17.3
+banks (5, equal)                        -2.3                      -0.5                   -37.5                   5.7                   -13.1                  -0.5
+all 13 (equal)                            NA                        NA                   -38.6                   0.5                   -11.4                   1.2
 
 chart: reports\hedge_shares.png

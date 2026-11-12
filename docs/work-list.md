@@ -50,7 +50,7 @@ Different parts need different amounts, and only one of them needs options histo
 
 | Use | Needs | Why that much | Source | On disk? |
 |---|---|---|---|---|
-| Front chart, per name | 3 to 6 months of option files | The carry checks reach a standard error of 0.02 vol points in six months. More days would not change a conclusion. | Exchange site, by hand | RY only |
+| Front chart, per name | 3 to 6 months of option files | The carry checks reach a standard error of 0.02 vol points in six months. More days would not change a conclusion. | Exchange site, by hand | All names, 8 May to early November 2026 (SU from 8 June) |
 | Engine check, per name | 3 months of New York option rows | 1,400 comparisons per name is ample for a mean and a tail | WRDS OptionMetrics | RY done, six running |
 | Hedge ratios | Daily closes, 1 year window | A ratio fitted on n days is known to about 1/sqrt(n) of itself when the hedge explains half the variance: 13% on 60 days, 6% on 250, 4.5% on 500 | WRDS Compustat | Not pulled yet |
 | Judging a hedge out of sample | A further 2 years or more | A variance ratio measured on m days is known to about sqrt(2/m): 13% on 124 days, 6% on 500 | Same | Not pulled yet |
@@ -80,8 +80,8 @@ Two gaps that stay open:
   factors for the universe from January 2014, with a loader and tests.
 - [ ] **Me:** pull OptionMetrics' standardised vol surfaces for the New York listings,
   2014 to August 2025.
-- [ ] **You:** download three to six months of option files for each added name, and
-  the rest of XIU.
+- [x] **You:** download three to six months of option files for each added name, and
+  the rest of XIU. Done 11 November 2026, with SXF and SXO.
 
 ## 3. The closing chart
 
@@ -119,13 +119,16 @@ So the front chart can be refreshed after the close without anyone downloading f
 1. [ ] **You:** an Interactive Brokers account with market data for the Montreal
    Exchange, and Trader Workstation or the Gateway running with the API switched on.
    I cannot sign in or subscribe for you.
-2. [ ] **Me:** `scripts/capture_ibkr.py`. After the close, for each name: the chain's
+2. [x] **Me:** `scripts/capture_ibkr.py`. After the close, for each name: the chain's
    contracts, closing bid, ask and last for strikes near the money, and the share's
-   close. Saved under `data/raw/ibkr/` by date.
-3. [ ] **Me:** a loader that returns the same table as the exchange-file loader, so
-   nothing downstream changes. Tests on made-up rows.
-4. [ ] **Me:** a capture log: one line per day and name, with rows captured and
-   anything missed, checked against the trading calendar.
+   close. Saved under `data/raw/ibkr/` by date. Written 12 November 2026 and NOT YET
+   RUN against a live Gateway; the exchange code for Montreal ("CDE") is unverified.
+   Read-only connection. Start with `--dry-run`.
+3. [x] **Me:** `src/loaders/ibkr.py` returns the same tables as the exchange-file
+   loader, so nothing downstream changes. 11 tests on made-up rows, one of which
+   runs captured rows through the same inversion.
+4. [x] **Me:** the capture log (`capture_summary`) and `missed_days`, which lists
+   trading days with no capture for a name.
 5. [ ] **Me:** `scripts/after_close.py`: capture, then the reproduction command, in
    one step.
 6. [ ] **You:** a scheduled task on your machine to run it on trading days.
@@ -158,14 +161,22 @@ RY's fitted funding spread is not applied to XIU. The standard source for an ind
 funding is the index itself: the gap between the SXF future and the index, or put-call
 parity on the European SXO options, which gives the forward with no model at all.
 
-- [ ] **You:** download SXF and SXO files from the exchange.
-- [ ] **Me:** imply the index's funding from SXO parity (`voleng.implied_forward_european`
-  already exists) and from the SXF basis, and compare both with the spread RY's
-  options imply.
+- [x] **You:** download SXF and SXO files from the exchange. Done. The SXO file
+  carries settlements only (no quotes, volume or open interest), so the SXF basis
+  is the source to trust and SXO parity goes beside it as the exchange's view.
+- [x] **Me:** imply the index's funding from SXO parity and from the SXF basis
+  (`scripts/index_funding.py`, `reports/index_funding_numbers.txt`). The basis gives
+  the spread minus the dividend yield: -173 bp a year (standard error 6). With
+  XIU's trailing yield as a stand-in the spread is about +50, and +24, +72 and +36
+  by contract, so it is a range of roughly 20 to 80, not a number. SXO parity turned
+  out to carry no dividends at all, so it is not a funding source.
+- [ ] **You or me:** the index's dividends over each contract's life. The S&P/TSX 60
+  total-return index on WRDS would give them exactly for past contracts (total
+  return less price return). It needs one more pull with your WRDS login.
 
 ## What you need to do
 
 1. Confirm the twelve names against the exchange's volume statistics.
-2. Download option files for the added names and the rest of XIU.
+2. ~~Download option files for the added names and the rest of XIU.~~ Done.
 3. Decide whether the first milestone's "live" is a static page.
 4. When ready for section 4: the Interactive Brokers account and data subscription.

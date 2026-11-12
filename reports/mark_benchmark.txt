@@ -1,0 +1,28 @@
+Made-up data only: nothing here comes from a market.
+
+Made-up data: an invented share and option chain with bad quotes planted at random.
+About 2% of quotes are bad on any day, by 0.5, 1, 2 or 4 vol points, up or down.
+
+VOL LEVEL NEVER MOVES: 3246 quotes over 39 days, 54 of them planted; median quote bar 0.60 vol points; quotes the smile could not judge: 27
+                       caught, 0.5 pt %  caught, 1 pt %  caught, 2 pt %  caught, 4 pt %  caught, all %  false alarms per 1,000  of which the day after  flags that are real %
+rule                                                                                                                                                                         
+smile                              27.3            70.4            90.0            66.7           64.8                    13.8                     0.6                   44.3
+smile or pair                      27.3            70.4            90.0           100.0           68.5                    18.2                     0.6                   38.9
+day-on-day > 0.5                   45.5            81.5           100.0           100.0           79.6                   168.5                    13.5                    7.4
+day-on-day > 1                      9.1            44.4           100.0           100.0           53.7                    16.6                     7.2                   35.4
+day-on-day, net > 0.5              45.5            92.6           100.0           100.0           85.2                    49.5                    13.2                   22.5
+day-on-day, net > 1                 0.0            29.6           100.0           100.0           44.4                    11.9                     7.5                   38.7
+
+VOL LEVEL MOVES ABOUT ONE POINT A DAY: 3470 quotes over 39 days, 55 of them planted; median quote bar 0.58 vol points; quotes the smile could not judge: 8
+                       caught, 0.5 pt %  caught, 1 pt %  caught, 2 pt %  caught, 4 pt %  caught, all %  false alarms per 1,000  of which the day after  flags that are real %
+rule                                                                                                                                                                         
+smile                              27.3            80.8           100.0            83.3           74.5                    10.5                     0.3                   53.2
+smile or pair                      27.3            80.8           100.0           100.0           76.4                    16.1                     0.3                   43.3
+day-on-day > 0.5                   81.8            80.8           100.0           100.0           87.3                   580.1                    13.2                    2.4
+day-on-day > 1                     27.3            61.5            91.7           100.0           65.5                   280.2                    10.0                    3.6
+day-on-day, net > 0.5              54.5           100.0           100.0           100.0           90.9                    48.6                    14.3                   23.1
+day-on-day, net > 1                 0.0            34.6           100.0           100.0           49.1                    10.2                     7.9                   43.5
+
+caught = planted quotes flagged; false alarms = flags per 1,000 clean quotes;
+the day after = a good mark flagged because yesterday's was bad;
+flags that are real = of everything the rule flags, the share that was planted.

@@ -538,6 +538,54 @@ def trailing_spread(estimates: Mapping[date, float | None], day: date,
     return float(np.mean(past[-window:] if window else past))
 
 
+OWN, POOLED = "own options, earlier days", "pooled across names, earlier days"
+
+
+def choose_spread(own: Mapping[date, float | None], day: date,
+                  others: Mapping[str, Mapping[date, float | None]] | None = None,
+                  min_days: int = 20, max_se: float = 5e-4, min_names: int = 3,
+                  window: int | None = None) -> tuple[float | None, str]:
+    """
+    The funding spread to use on `day`, and where it came from.
+
+    A name's own trailing spread (trailing_spread) is used when it is WELL
+    MEASURED: at least `min_days` earlier estimates whose mean has a standard
+    error of at most `max_se` (5 basis points a year), allowing for
+    dependence between days. Otherwise the spread is the median, across the
+    other names that pass the same test, of their own trailing spreads.
+    (None, "none") if neither exists.
+
+    Why. Some names have almost no expiry resting on declared dividends,
+    because they announce each dividend days before it goes ex, or their
+    quotes are too wide for a daily estimate to mean much. Their own number
+    is then missing or swings by hundreds of basis points, and pricing with
+    it does more harm than pricing with none. A desk does not fund each name
+    separately: it has one funding cost. The pooled figure is that, measured
+    on the names where it can be measured. A name's own figure is kept where
+    it is good because it also carries what is particular to the name (its
+    borrow cost), which the pooled one cannot.
+
+    Earlier days only, for both.
+    """
+    def measured(est: Mapping[date, float | None]) -> float | None:
+        past = [s for d, s in sorted(est.items()) if d < day and s is not None]
+        if len(past) < min_days:
+            return None
+        past = past[-window:] if window else past
+        # the larger of the two standard errors: estimates that flip sign from
+        # day to day look precise to the dependence-adjusted one, and are not
+        se = max(mean_std_error(past), float(np.std(past, ddof=1) / np.sqrt(len(past))))
+        return float(np.mean(past)) if se <= max_se else None
+
+    mine = measured(own)
+    if mine is not None:
+        return mine, OWN
+    pool = [m for m in (measured(e) for e in (others or {}).values()) if m is not None]
+    if len(pool) >= min_names:
+        return float(np.median(pool)), POOLED
+    return None, "none"
+
+
 @dataclass
 class DayResult:
     valuation: date
