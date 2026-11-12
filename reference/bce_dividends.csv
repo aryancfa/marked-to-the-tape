@@ -1,0 +1,13 @@
+underlying,ex_date,cash,status,announced,source
+BCE,2025-03-14,0.9975,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+BCE,2025-06-16,0.4375,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+BCE,2025-09-15,0.4375,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+BCE,2025-12-15,0.4375,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+BCE,2026-03-16,0.4375,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+BCE,2026-06-15,0.4375,declared,2026-05-06,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: BCE's published 2026 dividend schedule (declared 2026-05-06; record date 2026-06-15); found by web search 2026-11-12
+BCE,2026-09-15,0.4375,declared,2026-08-06,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: BCE's schedule says declared 2026-08-05 and a news report says 2026-08-06; the later date is used so nothing is treated as known early; found by web search 2026-11-12
+BCE,2026-12-15,0.4375,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+BCE,2027-03-16,0.4375,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+BCE,2027-06-15,0.4375,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+BCE,2027-09-15,0.4375,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+BCE,2027-12-15,0.4375,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)

@@ -1,0 +1,37 @@
+underlying,ex_date,cash,status,announced,source
+ZEB,2025-01-30,0.14,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2025-02-27,0.14,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2025-03-28,0.14,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2025-04-29,0.14,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2025-05-29,0.145,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2025-06-27,0.145,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2025-07-30,0.145,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2025-08-28,0.145,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2025-09-29,0.145,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2025-10-30,0.145,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2025-11-26,0.145,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2025-12-30,0.145,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2026-01-29,0.146,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2026-02-26,0.146,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2026-03-30,0.145,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2026-04-29,0.145,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+ZEB,2026-05-28,0.145,declared,2026-05-20,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: BMO release of 2026-05-20 (ex-date 2026-05-28); found by web search 2026-11-12
+ZEB,2026-06-29,0.148,declared,2026-06-22,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: ESTIMATE: release not found. This fund's three releases that were found came 7 to 8 days before the ex-date; 7 days is assumed
+ZEB,2026-07-30,0.148,declared,2026-07-23,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: BMO release of 2026-07-23 (ex-date 2026-07-30); found by web search 2026-11-12
+ZEB,2026-08-28,0.148,declared,2026-08-21,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: BMO release of 2026-08-21; found by web search 2026-11-12
+ZEB,2026-09-29,0.15,declared,2026-09-22,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: ESTIMATE: release not found; 7 days before the ex-date assumed as for June
+ZEB,2026-10-29,0.15,declared,2026-10-22,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: ESTIMATE: release not found; 7 days before the ex-date assumed as for June
+ZEB,2026-11-26,0.145,projected,,RULE: same date and amount as a year earlier
+ZEB,2026-12-30,0.145,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-01-29,0.146,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-02-26,0.146,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-03-30,0.145,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-04-29,0.145,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-05-28,0.145,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-06-29,0.148,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-07-30,0.148,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-08-27,0.148,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-09-29,0.15,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-10-29,0.15,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-11-26,0.145,projected,,RULE: same date and amount as a year earlier
+ZEB,2027-12-30,0.145,projected,,RULE: same date and amount as a year earlier

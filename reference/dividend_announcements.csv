@@ -1,0 +1,33 @@
+underlying,ex_date,cash,announced,source
+TD,2026-07-10,,2026-05-28,TD release of 2026-05-28 (1.12; record date 2026-07-10); found by web search 2026-11-12
+TD,2026-10-09,,2026-08-27,TD release of 2026-08-27 (1.12; record date 2026-10-09); found by web search 2026-11-12
+BNS,2026-07-07,,2026-05-27,Scotiabank release of 2026-05-27 (raised 4 cents to 1.14; record date 2026-07-07); found by web search 2026-11-12
+BNS,2026-10-06,,2026-08-25,Scotiabank release of 2026-08-25 (1.14; record date 2026-10-06); found by web search 2026-11-12
+BMO,2026-07-30,,2026-05-27,BMO release of 2026-05-27 (raised 4 cents to 1.71; record date 2026-07-30); found by web search 2026-11-12
+BMO,2026-10-30,,2026-08-25,BMO release of 2026-08-25 (1.71; record date 2026-10-30); found by web search 2026-11-12
+CNQ,2026-06-23,,2026-05-07,Canadian Natural release of 2026-05-07 (0.625). The record date was first given as 19 June and amended to 23 June on 2026-05-11; found by web search 2026-11-12
+CNQ,2026-09-11,,2026-08-06,Canadian Natural release of 2026-08-06 (0.625; record date 2026-09-11); found by web search 2026-11-12
+CNQ,2026-12-15,0.625,2026-11-05,Canadian Natural release of 2026-11-05 (0.625; record date 2026-12-15; payable 2027-01-05); found by web search 2026-11-12. Ex-date taken as the record date
+SU,2026-06-04,,2026-05-05,Suncor release of 2026-05-05 (0.60; record date 2026-06-04); found by web search 2026-11-12
+SU,2026-09-04,,2026-08-04,Suncor release of 2026-08-04 (0.60; record date 2026-09-04); found by web search 2026-11-12
+SU,2026-12-03,0.66,2026-11-03,Suncor release of 2026-11-03 (raised 10% to 0.66; record date 2026-12-03); seen in one filing only when found by web search 2026-11-12. Ex-date taken as the record date
+MFC,2026-05-29,,2026-05-13,Manulife release of 2026-05-13 (0.485; record date 2026-05-29); found by web search 2026-11-12
+MFC,2026-08-21,,2026-08-05,Manulife release of 2026-08-05 (0.485; record date 2026-08-21); found by web search 2026-11-12
+MFC,2026-11-20,0.485,2026-11-04,Manulife release of 2026-11-04 (0.485; record date 2026-11-20); found by web search 2026-11-12. Ex-date taken as the record date
+ENB,2026-05-15,,2026-05-06,Enbridge release of 2026-05-06 (0.97; record date 2026-05-15); found by web search 2026-11-12
+ENB,2026-08-14,,2026-07-28,Enbridge release of 2026-07-28 (0.97; record date 2026-08-14); found by web search 2026-11-12
+ENB,2026-11-13,0.97,2026-11-04,Enbridge release of 2026-11-04 (0.97; record date 2026-11-13); found by web search 2026-11-12. Ex-date taken as the record date
+CNR,2026-06-09,,2026-04-29,CN release of 2026-04-29 (0.915; record date 2026-06-09); found by web search 2026-11-12
+CNR,2026-09-08,,2026-07-24,CN release of 2026-07-24 (0.915; record date 2026-09-08); found by web search 2026-11-12
+CNR,2026-12-09,0.915,2026-10-30,CN release of 2026-10-30 (0.915; record date 2026-12-09); found by web search 2026-11-12. Ex-date taken as the record date
+BCE,2026-06-15,,2026-05-06,BCE's published 2026 dividend schedule (declared 2026-05-06; record date 2026-06-15); found by web search 2026-11-12
+BCE,2026-09-15,,2026-08-06,BCE's schedule says declared 2026-08-05 and a news report says 2026-08-06; the later date is used so nothing is treated as known early; found by web search 2026-11-12
+ABX,2026-05-29,,2026-05-11,Barrick release of 2026-05-11 (US$0.175; record date 2026-05-29). Declared in US dollars; the amount on file is Compustat's Canadian-dollar figure; found by web search 2026-11-12
+ZEB,2026-05-28,,2026-05-20,BMO release of 2026-05-20 (ex-date 2026-05-28); found by web search 2026-11-12
+ZEB,2026-06-29,,2026-06-22,ESTIMATE: release not found. This fund's three releases that were found came 7 to 8 days before the ex-date; 7 days is assumed
+ZEB,2026-07-30,,2026-07-23,BMO release of 2026-07-23 (ex-date 2026-07-30); found by web search 2026-11-12
+ZEB,2026-08-28,,2026-08-21,BMO release of 2026-08-21; found by web search 2026-11-12
+ZEB,2026-09-29,,2026-09-22,ESTIMATE: release not found; 7 days before the ex-date assumed as for June
+ZEB,2026-10-29,,2026-10-22,ESTIMATE: release not found; 7 days before the ex-date assumed as for June
+XEG,2026-06-25,,2026-06-18,BlackRock Canada release of 2026-06-18 (0.150; record date 2026-06-25); found by web search 2026-11-12
+XEG,2026-09-24,,2026-09-17,ESTIMATE: the release (0.173; record date 2026-09-24) was found only in reposts with no date; 7 days before the ex-date assumed as in June

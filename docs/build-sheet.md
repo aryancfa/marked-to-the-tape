@@ -81,6 +81,7 @@ A format that only knows listed options fails the moment someone adds a futures 
 
 - **Done when:** Types: listed option, index future, ETF, equity. Fields for underlying, call or put, strike, expiry, quantity, multiplier and venue. Upload with readable error messages, and two sample books in the repo.
 - **Depends on:** –
+- **State, 11 November 2026:** done (`src/book.py`, `books/bank_heavy.csv`, `books/diversified.csv`). Every problem in a pasted book is reported at once, by line, in words.
 
 ### A4. Dividend schedule for the bank and energy names
 
@@ -93,7 +94,7 @@ The early-exercise logic depends on ex-dividend dates and cash amounts. One date
 
 Demos happen on bad WiFi. The app has to run without a network, and no number may change between two reloads in front of the same person.
 
-- **Done when:** Cached fetches; a Live/Snapshot switch that reads the local data folder; a global seed; under three seconds to load from the snapshot. The snapshot stays on your laptop, outside the repo.
+- **Done when:** Cached fetches; a Live/Snapshot switch that reads the local data folder; a global seed; under three seconds to load from the snapshot. The snapshot stays on your laptop, outside the repo. One command reproduces every reported number and both charts from the snapshot (`scripts/reproduce.py`), and writes the numbers to a text file under `reports/` so a reader without the data can still check them against the write-up.
 - **Depends on:** SRC, LIC, A3
 
 ### A6. A rate for each expiry
@@ -141,7 +142,7 @@ A chart that hides how many quotes it dropped isn't a measurement. Deep in-the-m
 
 The vega screen is a floor set at one cent, the smallest tick. It removes quotes with no information; it doesn't say the rest are precise. Many series tick in five cents (one cent only below $0.50, or below $3.00 in the penny program), so one tick can be worth more than a vol point on a cheap option. That shows up in B3's half-spread, not here.
 
-- **Done when:** Counts by reason shown next to the surface: no activity, crossed market, spread too wide, below intrinsic value, no solution, vega too small. The tick rule and each class's penny-program status confirmed against the current exchange rules and recorded.
+- **Done when:** Counts by reason shown next to the surface: no activity, crossed market, spread too wide, below intrinsic value, no solution, vega too small. The tick rule and each class's penny-program status confirmed against the current exchange rules and recorded. Data-quality flags shown beside the chart as well: days whose rates were carried from an earlier day, days whose last trade sits far from the implied share price, and expiry-days whose smile could not be fitted.
 - **Depends on:** B3
 
 ### B5. Call against put at the same strike
@@ -171,6 +172,7 @@ The last limitation on this sheet used to read “no independent model to check 
 
 - **Done when:** For the seven New York listings over at least one month: the distribution of your implied vol minus theirs in vol points, by moneyness and days to expiry, with the largest gaps explained. Statistics and charts published, never their rows. The IvyDB version recorded.
 - **Depends on:** B1, WRDS
+- **State, 11 November 2026:** done for all seven listings on 63 days, June to August 2025 (`src/loaders/optionm.py`, `scripts/wrds_pull.py`, `scripts/engine_check.py`). With no dividend in the option's life the engines agree to a mean absolute 0.006 to 0.011 vol points on 7,884 options, all within 0.25. With a dividend they differ by one to three points, which is the dividend assumed: the Canadian-dollar amount taken at face value leaves calls 1.8 to 4.2 points above puts in market prices, converted to US dollars it leaves 0.1 to 1.1. Open: that remainder, and a same-day comparison with Montreal, which the data's dates rule out for now. The WRDS item is also done: IvyDB US only, 1996 to 29 August 2025, no Canadian product; Compustat holds daily prices for every Toronto listing, the ETFs and the TSX 60 to 10 November 2026.
 
 ### B9. Realized against implied volatility  _(the trading view)_
 
@@ -178,6 +180,14 @@ Implied vol is the price of an option quoted as a volatility. Realized vol is ho
 
 - **Done when:** For the liquid names, at-the-money implied vol for the nearest monthly expiry against the realized vol over that same window (close to close, on the shared calendar, ex-dividend days adjusted). The gap's history and distribution, with the number of non-overlapping windows stated beside it, since six months gives about six. The 25-delta risk reversal and butterfly. The P&L of holding one at-the-money straddle to expiry with a daily delta hedge, entered at the quoted bid or ask and not the mid, shown per expiry as what happened and not as a strategy.
 - **Depends on:** B3, A1, A4
+
+### B10. Robustness table
+
+A result that depends on one choice the author happened to make is a weaker result. Each choice behind the front chart gets changed on its own, on the same days, to see which conclusions move and which do not.
+
+- **Done when:** The front chart's main numbers (call minus put by expiry group, the funding spread) recomputed with one thing changed at a time: the dividend projection (no raise against the raise rule), the funding lookback (10, 20 and 40 earlier days), the tree steps (400 against 800), and the share price (implied from five strike pairs, from three, and the file's last trade). One table, with the conclusions that survive every row stated separately from those that do not.
+- **Depends on:** B3, B5
+- **State, 11 November 2026:** done for RY (`scripts/robustness.py`, `reports/ry_robustness.txt`). The funding lookback and the tree steps change nothing. Calls and puts agree on declared-dividend expiries under every choice except taking the share price from the file's last trade, where the funding spread cannot be measured (2.6 bp, standard error 7.5). The dividend projection is not settled: no raise leaves -0.05 and the raise rule +0.07.
 
 ## Week 3: Risk, hedge, ship
 
@@ -210,8 +220,9 @@ What's left after a hedge you could actually put on is the question a desk asks,
 
 Two things keep this chart honest. A hedge ratio fitted on the same days it is judged on always looks better than it would have been, so each day's ratio comes only from data before that day. And a futures hedge removes delta only, so on an options book most of what's left is gamma and vega, which would be misread as sector risk unless it is shown separately.
 
-- **Done when:** Short SXF, plus ZEB where the book is bank-heavy, applied to the historical book P&L. Hedge ratios estimated on a rolling window that ends the day before they are applied, with the in-sample result shown beside it so the gap is visible. Residual split into the delta part the hedge missed and the option part (gamma and vega) it could not reach, which C4b takes on. The delta part shown against the TSX 60 and the sector ETF, by name and by sector, with minimum-variance and beta hedge ratios compared.
+- **Done when:** Short SXF, plus ZEB where the book is bank-heavy, applied to the historical book P&L. Hedge ratios estimated on a rolling window that ends the day before they are applied, with the in-sample result shown beside it so the gap is visible. Residual split into the delta part the hedge missed and the option part (gamma and vega) it could not reach, which C4b takes on. The delta part shown against the TSX 60 and the sector ETF, by name and by sector, with minimum-variance and beta hedge ratios compared. The chart has to answer three questions in words, not only draw bars. (1) How much of the book's daily P&L variance does each hedge remove, out of sample, stated as a percentage and in dollars. (2) What the remainder is made of: name-specific moves the index and sector do not share, gamma, vega, and dividend or funding surprises, each sized. (3) Whether the remainder behaves like noise or like something the next instrument could hedge: its day-to-day autocorrelation, and its correlation with the instruments not yet used. Reported in dollars and also in vol points or basis points of the underlying, with a few named stress days shown one by one. Nothing in the residual is called an edge unless it has been tested as one.
 - **Depends on:** C2, C3
+- **State, 11 November 2026:** the share layer is built (`src/hedge.py`, `src/loaders/compustat.py`, `scripts/hedge_shares.py`) on thirteen names and daily returns from 2015 to 2026, with ratios from the 250 days before each day and the hindsight result beside it. The index removes 55 to 65% of a bank's daily variance and the index plus ZEB 76 to 81%; for CNQ and SU, under 40% and then 82 to 85% with XEG. The residual shows no day-to-day pattern on single names. The TSX 60 index stands in for SXF. Not built: the option layers (the gamma and vega split, the replay).
 
 ### C4b. Vega hedge with listed options
 
@@ -252,7 +263,7 @@ Desks split daily P&L into its sources and watch what's left unexplained.
 
 Nobody clones a repo. A reader spends a few seconds, and a live link is what those seconds need to contain.
 
-- **Done when:** Limitations page, a four-to-six page methodology PDF, the app deployed showing computed results only, a ninety-second walkthrough following the demo order, the live URL on your resume, and a commit history that shows the work in sequence.
+- **Done when:** Limitations page, a four-to-six page methodology PDF, the app deployed showing computed results only, a ninety-second walkthrough following the demo order, the live URL on your resume, and a commit history that shows the work in sequence. A two-to-three page findings note in plain language (`docs/findings.md`): what was found, what was rejected and why, and what is still not trusted. Any day or expiry reachable from the demo in under a minute.
 - **Depends on:** everything
 
 ## Deferred (add later, in this order)
@@ -292,7 +303,11 @@ These wait until both charts exist and the project is live.
 - Deep in-the-money American options carry no recoverable implied vol, so screen on vega
 - The solver's noise floor is 0.04 vol points at 400 steps; smaller differences are rounding
 - The bid-ask spread is a far higher floor, often 0.4 to 2 vol points; a difference inside it is not a disagreement
-- A fitted quadratic smile misses short-dated skew, so wing residuals there are partly fit error
+- The smile reference is a cubic fitted without the strike being judged; the two end strikes of each expiry are judged by a curve extended past its data, and under 30 days the fit is loosest
+- History is six months, the most the exchange's site offers in one pass; nothing here has seen a crisis
+- The funding spread is fitted from the same option market the call-put check tests, so that check is not independent on rates
+- Dividends after the last declared one follow a rule from the company's own history, not a forecast
+- Every result so far is one name, RY
 - The vega hedge uses index or ETF options, so gamma and single-name vol that moves apart from index vol stay in the residual
 - Realized-against-implied rests on a handful of non-overlapping windows; it is a description, not a tested strategy
 - Time is calendar days over 365, so weekends carry the same variance as trading days

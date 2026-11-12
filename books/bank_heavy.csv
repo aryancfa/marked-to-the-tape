@@ -1,0 +1,13 @@
+kind,underlying,call_put,strike,expiry,quantity,multiplier,venue
+option,RY,C,250,2027-01-15,40,100,MX
+option,RY,P,230,2027-01-15,-30,100,MX
+option,RY,C,260,2027-03-19,25,100,MX
+option,TD,C,115,2027-01-15,50,100,MX
+option,TD,P,105,2027-03-19,-40,100,MX
+option,BNS,C,95,2027-01-15,60,100,MX
+option,BNS,P,85,2027-01-15,30,100,MX
+option,BMO,C,180,2027-03-19,20,100,MX
+option,CNQ,C,48,2027-01-15,30,100,MX
+option,SU,P,60,2027-03-19,-25,100,MX
+equity,RY,,,,-1500,1,TSX
+etf,ZEB,,,,2000,1,TSX

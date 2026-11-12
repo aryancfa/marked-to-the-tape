@@ -1,0 +1,13 @@
+underlying,ex_date,cash,status,announced,source
+CNQ,2025-03-21,0.5875,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+CNQ,2025-06-13,0.5875,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+CNQ,2025-09-19,0.5875,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+CNQ,2025-12-12,0.5875,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+CNQ,2026-03-20,0.625,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+CNQ,2026-06-23,0.625,declared,2026-05-07,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: Canadian Natural release of 2026-05-07 (0.625). The record date was first given as 19 June and amended to 23 June on 2026-05-11; found by web search 2026-11-12
+CNQ,2026-09-11,0.625,declared,2026-08-06,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: Canadian Natural release of 2026-08-06 (0.625; record date 2026-09-11); found by web search 2026-11-12
+CNQ,2026-12-15,0.625,declared,2026-11-05,Canadian Natural release of 2026-11-05 (0.625; record date 2026-12-15; payable 2027-01-05); found by web search 2026-11-12. Ex-date taken as the record date
+CNQ,2027-03-19,0.6625,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0.0375)
+CNQ,2027-06-23,0.6625,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+CNQ,2027-09-10,0.6625,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+CNQ,2027-12-15,0.6625,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)

@@ -48,7 +48,7 @@ import numpy as np
 import pandas as pd
 
 from references import (EXCHANGE, PAIR, SMILE, add_buckets, pool_buckets,
-                        sensitivity_table, tightest)
+                        reference_differences, sensitivity_table, smile_counts, tightest)
 from run_days import fingerprint            # the cache this script reads
 
 PANELS = [(PAIR, "pair", "Call minus put"),
@@ -59,15 +59,17 @@ SOLVER_FLOOR = 0.04     # vol points, n=400 against n=1600 (tests/test_voleng.py
 
 
 def load(name: str) -> list[dict]:
-    """The funded pass (futures curve plus trailing spread) from the cache.
+    """The funded pass (futures curve plus trailing spread) from the cache, or
+    the pass with no spread where no spread could be fitted for this name.
     Files this project wrote itself; pickle is not safe on anyone else's."""
     cache = ROOT / "data/derived" / name.lower() / fingerprint(name)
-    files = sorted(cache.glob("*_base_s*.pkl")) if cache.exists() else []
-    out = [pickle.loads(f.read_bytes()) for f in files]
-    out = [r for r in out if r.get("ok") and "diffs" in r]
-    if not out:
-        raise SystemExit(f"no cached results for {name}; run scripts/run_days.py {name} first")
-    return out
+    for pattern in ("*_base_s*.pkl", "*_base.pkl"):
+        files = sorted(cache.glob(pattern)) if cache.exists() else []
+        out = [pickle.loads(f.read_bytes()) for f in files]
+        out = [r for r in out if r.get("ok") and "inverted" in r]
+        if out:
+            return out
+    raise SystemExit(f"no cached results for {name}; run scripts/run_days.py {name} first")
 
 
 def grid(pooled: pd.DataFrame, reference: str, side: str, col: str) -> pd.DataFrame:
@@ -96,15 +98,20 @@ def draw(ax, pooled, reference, side, title):
 
 def main(name: str) -> None:
     results = load(name)
-    diffs = pd.concat([r["diffs"] for r in results], ignore_index=True)
+    # the comparison with the references is done here, from the vols the day
+    # runner cached, so changing the smile never means re-pricing
+    daily = [reference_differences(r["inverted"], r["spot"], divs=r["divs"]) for r in results]
+    fits = smile_counts(daily)
+    diffs = pd.concat(daily, ignore_index=True)
     smile = diffs[diffs["reference"] == SMILE]
     diffs.loc[diffs["reference"] == SMILE, "side"] = "all"      # calls and puts on one curve
     first, last = results[0]["date"], results[-1]["date"]
-    spreads = [r["spread_used"] * 1e4 for r in results]
+    spreads = [r["spread_used"] * 1e4 for r in results if r["spread_used"] is not None]
+    rates = (f"CORRA futures plus a funding spread FITTED FROM OPTIONS on earlier days "
+             f"({min(spreads):.0f} to {max(spreads):.0f} bp a year)" if spreads else
+             "CORRA futures, NO funding spread (none could be fitted for this name)")
 
-    print(f"{name}: {len(results)} days, {first} to {last}. Rates: CORRA futures plus a "
-          f"funding spread FITTED FROM OPTIONS on earlier days ({min(spreads):.0f} to "
-          f"{max(spreads):.0f} bp a year).")
+    print(f"{name}: {len(results)} days, {first} to {last}. Rates: {rates}.")
     tiers = pd.DataFrame([r["tiers"] for r in results]).fillna(0).sum().astype(int)
     tally = pd.DataFrame([r["tally"] for r in results]).fillna(0).sum().astype(int)
     tally = tally.sort_values(ascending=False)
@@ -117,9 +124,16 @@ def main(name: str) -> None:
     by_exp = smile.groupby(["date", "expiry"])["poor_fit"].first()
     print(f"smile fits: {len(by_exp)} expiry-days, {int(by_exp.sum())} flagged as poor fits "
           f"({by_exp.mean():.0%}) and left out of the smile panel")
+    print(f"smile coverage: {fits['expiries']} expiry-days; {fits['slice']} fitted by their own "
+          f"curve, {fits['surface']} by the day's surface (too few strikes for a curve of "
+          f"their own), {fits['unfitted']} not fitted")
+    print(f"calendar check: {fits['calendar_pairs']} pairs of neighbouring expiries tested, "
+          f"{fits['calendar_violations']} where the later curve sits below the earlier one "
+          f"({fits['calendar_violations'] / max(fits['calendar_pairs'], 1):.1%}); the surface "
+          f"lifted {fits['levels_raised']} at-the-money levels")
 
     pooled, tight = pool_buckets(diffs), pool_buckets(tightest(diffs))
-    cols = ["days_bucket", "moneyness_bucket", "days", "mean", "std_error", "t_stat",
+    cols = ["days_bucket", "moneyness_bucket", "days", "mean", "std_error", "std_error_iid", "t_stat",
             "mean_quote_bar", "in_quote_bars", "disagreement"]
     for ref, side, title in PANELS:
         p = pooled[(pooled["reference"] == ref) & (pooled["side"] == side)]
@@ -152,15 +166,17 @@ def main(name: str) -> None:
         f"{name}: our implied vol against three references, in vol points. {len(results)} days, "
         f"{first} to {last}.\nCell = mean across days (small number = days behind it). "
         "Bold with * = more than 2 standard errors from zero on at least 5 days; grey = not "
-        "distinguishable from zero.\nRates: CORRA futures plus a funding spread FITTED FROM "
-        f"OPTIONS on earlier days ({min(spreads):.0f} to {max(spreads):.0f} bp a year). Marks "
+        f"distinguishable from zero.\nRates: {rates}. Marks "
         "are quote midpoints where a two-sided quote exists, settlements otherwise.",
         fontsize=9.5)
     foot = (f"Rows {total}: inverted {used}, rejected {total - used} ("
             + ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in tally.items() if k != "ok")
             + ").   Evidence: " + ", ".join(f"{k.replace('_', ' ')} {v / tiers.sum():.0%}"
                                             for k, v in tiers.items())
-            + f".   Smile: {by_exp.mean():.0%} of expiry-days flagged as poor fits and left out."
+            + f".   Smile (SVI against the forward): {fits['slice']} expiry-days on their own "
+            f"curve, {fits['surface']} on the day's surface, {fits['unfitted']} not fitted; "
+            f"{by_exp.mean():.0%} flagged as poor fits and left out; calendar check failed on "
+            f"{fits['calendar_violations']} of {fits['calendar_pairs']} neighbouring pairs."
             + f"\nThree yardsticks: the standard error (decides bold); the quote bar, median "
             f"{bars['quote_bar'].median():.1f} vol points for one option (on the first two panels "
             f"no cell exceeds {market['in_quote_bars'].abs().max():.2f} of it, so nothing there "

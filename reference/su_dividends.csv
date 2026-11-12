@@ -1,0 +1,13 @@
+underlying,ex_date,cash,status,announced,source
+SU,2025-03-04,0.57,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+SU,2025-06-04,0.57,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+SU,2025-09-04,0.57,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+SU,2025-12-03,0.6,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+SU,2026-03-04,0.6,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+SU,2026-06-04,0.6,declared,2026-05-05,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: Suncor release of 2026-05-05 (0.60; record date 2026-06-04); found by web search 2026-11-12
+SU,2026-09-04,0.6,declared,2026-08-04,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: Suncor release of 2026-08-04 (0.60; record date 2026-09-04); found by web search 2026-11-12
+SU,2026-12-03,0.66,declared,2026-11-03,Suncor release of 2026-11-03 (raised 10% to 0.66; record date 2026-12-03); seen in one filing only when found by web search 2026-11-12. Ex-date taken as the record date
+SU,2027-03-04,0.66,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+SU,2027-06-04,0.66,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+SU,2027-09-03,0.66,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+SU,2027-12-03,0.72,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0.06)

@@ -1,0 +1,13 @@
+underlying,ex_date,cash,status,announced,source
+XEG,2025-03-26,0.133,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+XEG,2025-06-25,0.182,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+XEG,2025-09-24,0.204,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+XEG,2025-12-30,0.1783,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+XEG,2026-03-26,0.167,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+XEG,2026-06-25,0.15,declared,2026-06-18,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: BlackRock Canada release of 2026-06-18 (0.150; record date 2026-06-25); found by web search 2026-11-12
+XEG,2026-09-24,0.173,declared,2026-09-17,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: ESTIMATE: the release (0.173; record date 2026-09-24) was found only in reposts with no date; 7 days before the ex-date assumed as in June
+XEG,2026-12-30,0.1783,projected,,RULE: same date and amount as a year earlier
+XEG,2027-03-25,0.167,projected,,RULE: same date and amount as a year earlier
+XEG,2027-06-25,0.15,projected,,RULE: same date and amount as a year earlier
+XEG,2027-09-24,0.173,projected,,RULE: same date and amount as a year earlier
+XEG,2027-12-30,0.1783,projected,,RULE: same date and amount as a year earlier

@@ -1,0 +1,112 @@
+Derived statistics only. No prices or quotes appear in this file.
+
+BNS New York listing, OptionMetrics, 2025-06-02 to 2025-08-29 (63 days).
+Our vol minus OptionMetrics' vol, in vol points, from their own inputs.
+dividends used (ex-date, US dollars after conversion): 2025-07-02 0.808, 2025-10-07 0.788
+
+rows near the money: 2234; we inverted 1407, they published 1748, both 1342
+our rejections: spread_wider_than_limit 485, no_price_to_invert 163, no_bracket_vol_below_floor 91, below_intrinsic 69, vega_too_small_to_invert 19
+
+summary by run (all rows where both have a vol):
+                            run                       rows    n   mean  median     p5   p95  within 0.25  mean |diff|
+  A  ours (sessions, converted)                        all 1342  0.223   0.000 -1.404 2.159        0.368        0.767
+  A  ours (sessions, converted)                      calls  740 -0.112  -0.007 -1.334 1.701        0.382        0.601
+  A  ours (sessions, converted)                       puts  602  0.636   0.618 -1.491 2.716        0.350        0.972
+  A  ours (sessions, converted)  expiry after next ex-date  876  0.342   0.420 -1.556 2.386        0.032        1.172
+  A  ours (sessions, converted) expiry before next ex-date  466  0.000  -0.002 -0.010 0.016        1.000        0.006
+ B  drop at the ex-date's close                        all 1341  0.181  -0.001 -1.424 2.146        0.391        0.768
+ B  drop at the ex-date's close                      calls  739 -0.201  -0.010 -1.414 1.649        0.424        0.599
+ B  drop at the ex-date's close                       puts  602  0.650   0.618 -1.431 2.780        0.350        0.976
+ B  drop at the ex-date's close  expiry after next ex-date  875  0.277   0.031 -1.575 2.393        0.066        1.174
+ B  drop at the ex-date's close expiry before next ex-date  466  0.000  -0.002 -0.010 0.016        1.000        0.006
+      C  dividend not converted                        all 1325  0.187   0.011 -0.245 2.518        0.709        0.552
+      C  dividend not converted                      calls  740  0.653   0.134 -0.008 3.593        0.569        0.656
+      C  dividend not converted                       puts  585 -0.402   0.004 -3.172 0.029        0.885        0.420
+      C  dividend not converted  expiry after next ex-date  859  0.289   0.042 -2.754 3.334        0.551        0.848
+      C  dividend not converted expiry before next ex-date  466  0.000  -0.002 -0.010 0.016        1.000        0.006
+D  not converted, drop at close                        all 1326  0.124   0.016 -0.021 2.416        0.761        0.490
+D  not converted, drop at close                      calls  739  0.532   0.091 -0.008 3.517        0.664        0.535
+D  not converted, drop at close                       puts  587 -0.390   0.009 -3.192 0.079        0.882        0.433
+D  not converted, drop at close  expiry after next ex-date  860  0.191   0.065 -2.802 3.273        0.631        0.752
+D  not converted, drop at close expiry before next ex-date  466  0.000  -0.002 -0.010 0.016        1.000        0.006
+
+which dividend does the MARKET price? Call minus put on expiries after the next ex-date,
+weighted by quote tightness (zero means that run's forward matches the market's):
+                            run  days  mean gap  std_error      t
+  A  ours (sessions, converted)    63     0.605      0.092  6.589
+ B  drop at the ex-date's close    63     0.514      0.092  5.604
+      C  dividend not converted    63     3.194      0.175 18.260
+D  not converted, drop at close    63     3.068      0.175 17.522
+
+run A, ours minus OptionMetrics, calls (vol points):
+days_bucket moneyness_bucket  days  mean  std_error  t_stat  mean_quote_bar  in_quote_bars  disagreement
+      7-30d        0.88-0.95    24 -0.21       0.14   -1.49           52.87          -0.00         False
+      7-30d        0.95-0.98    23 -0.03       0.05   -0.63            8.07          -0.00         False
+      7-30d        0.98-1.02    46 -0.05       0.03   -1.63            2.02          -0.02         False
+      7-30d        1.02-1.05    16 -0.08       0.08   -0.99            1.22          -0.07         False
+      7-30d        1.05-1.12     3  0.00       0.00    0.41            1.05           0.00         False
+     31-60d        0.88-0.95    41  0.18       0.10    1.85           18.62           0.01         False
+     31-60d        0.95-0.98    31  0.06       0.10    0.55            5.11           0.01         False
+     31-60d        0.98-1.02    49 -0.06       0.06   -0.95            1.68          -0.04         False
+     31-60d        1.02-1.05    25 -0.05       0.05   -0.93            1.14          -0.04         False
+     31-60d        1.05-1.12    14 -0.04       0.08   -0.45            1.22          -0.03         False
+    61-120d        0.88-0.95    39 -0.89       0.15   -6.11            8.07          -0.11          True
+    61-120d        0.95-0.98    36 -0.84       0.13   -6.60            2.61          -0.32          True
+    61-120d        0.98-1.02    34 -0.70       0.10   -7.15            1.87          -0.37          True
+    61-120d        1.02-1.05    17 -0.68       0.10   -7.05            1.40          -0.48          True
+    61-120d        1.05-1.12    20 -0.57       0.07   -8.54            1.07          -0.53          True
+   121-200d        0.88-0.95    55  0.45       0.18    2.42            4.45           0.10          True
+   121-200d        0.95-0.98    39  0.39       0.19    2.10            2.43           0.16          True
+   121-200d        0.98-1.02    51  0.05       0.14    0.33            1.79           0.03         False
+   121-200d        1.02-1.05    32 -0.06       0.15   -0.36            0.86          -0.07         False
+   121-200d        1.05-1.12    54 -0.02       0.10   -0.22            0.94          -0.02         False
+
+run A, ours minus OptionMetrics, puts (vol points):
+days_bucket moneyness_bucket  days  mean  std_error  t_stat  mean_quote_bar  in_quote_bars  disagreement
+      7-30d        0.88-0.95    11  0.42       0.17    2.42            1.59           0.26          True
+      7-30d        0.95-0.98    19  0.37       0.17    2.18            1.60           0.23          True
+      7-30d        0.98-1.02    32  0.56       0.34    1.67            2.80           0.20         False
+      7-30d        1.02-1.05     7  0.00       0.00    0.77           12.98           0.00         False
+      7-30d        1.05-1.12    20  0.00       0.00    0.15           64.54           0.00         False
+     31-60d        0.88-0.95    37  0.47       0.08    5.79            1.54           0.30          True
+     31-60d        0.95-0.98    35  0.88       0.12    7.60            1.40           0.63          True
+     31-60d        0.98-1.02    43  0.89       0.20    4.46            1.83           0.49          True
+     31-60d        1.02-1.05    11  0.00       0.00    0.91            2.17           0.00         False
+     31-60d        1.05-1.12    19  1.10       0.51    2.15           33.77           0.03          True
+    61-120d        0.88-0.95    24  0.60       0.06   10.51            1.24           0.48          True
+    61-120d        0.95-0.98    29  0.76       0.09    8.39            1.39           0.55          True
+    61-120d        0.98-1.02    32  1.29       0.15    8.57            2.24           0.58          True
+    61-120d        1.02-1.05    13  1.46       0.34    4.26            4.37           0.33          True
+    61-120d        1.05-1.12    11  2.41       0.86    2.81           18.03           0.13          True
+   121-200d        0.88-0.95    49  0.15       0.12    1.24            1.66           0.09         False
+   121-200d        0.95-0.98    36  0.12       0.17    0.69            1.39           0.09         False
+   121-200d        0.98-1.02    51  0.34       0.19    1.84            1.91           0.18         False
+   121-200d        1.02-1.05    30  0.73       0.32    2.27            2.59           0.28          True
+   121-200d        1.05-1.12    32  1.16       0.44    2.61            9.23           0.13          True
+
+run A, call minus put on the New York quotes, their rates and no funding spread:
+days_bucket moneyness_bucket  days  mean  std_error  t_stat  mean_quote_bar  in_quote_bars  disagreement
+      7-30d        0.88-0.95     5  7.43       5.32    1.40           18.84           0.39         False
+      7-30d        0.95-0.98    15  5.16       2.76    1.87            9.47           0.54         False
+      7-30d        0.98-1.02    34 -0.11       0.35   -0.32            4.75          -0.02         False
+      7-30d        1.02-1.05     3 -3.98       3.98   -1.00           17.86          -0.22         False
+      7-30d        1.05-1.12     3 -6.79       4.68   -1.45           26.01          -0.26         False
+     31-60d        0.88-0.95    31  0.24       0.56    0.42           11.60           0.02         False
+     31-60d        0.95-0.98    26  0.46       0.36    1.28            5.43           0.08         False
+     31-60d        0.98-1.02    44  0.09       0.19    0.46            3.32           0.03         False
+     31-60d        1.02-1.05    13  0.38       0.23    1.66            3.67           0.10         False
+     31-60d        1.05-1.12     8 -3.54       1.41   -2.51           16.89          -0.21          True
+    61-120d        0.88-0.95    24  0.82       0.34    2.41            6.51           0.13          True
+    61-120d        0.95-0.98    29  0.53       0.17    3.02            3.66           0.14          True
+    61-120d        0.98-1.02    28  0.63       0.20    3.20            3.62           0.17          True
+    61-120d        1.02-1.05    13  0.04       0.44    0.08            5.26           0.01         False
+    61-120d        1.05-1.12     8 -0.30       1.60   -0.19           17.24          -0.02         False
+   121-200d        0.88-0.95    49  1.20       0.26    4.54            6.08           0.20          True
+   121-200d        0.95-0.98    36  0.59       0.20    2.93            3.80           0.16          True
+   121-200d        0.98-1.02    50  0.88       0.26    3.32            3.69           0.24          True
+   121-200d        1.02-1.05    30  0.37       0.22    1.67            3.46           0.11         False
+   121-200d        1.05-1.12    42  1.22       0.31    3.86           15.88           0.08          True
+
+median quote bar of one option: 1.85 vol points
+
+chart: reports\bns_us_engine_check.png

@@ -159,7 +159,7 @@ def test_one_date_and_one_underlying_only():
 # ---------------------------------------------------------------------------
 
 from surface import (analyse_day, carry_label, gap_summary, near_the_money,
-                     pool_across_days, vs_exchange)
+                     pool_across_days, vs_exchange, mean_std_error, newey_west_lags)
 
 WIDE = (45.0, 47.5, 50.0, 52.5, 55.0)
 
@@ -229,8 +229,9 @@ def test_pool_across_days_uses_the_day_to_day_scatter():
     assert far["mean_gap"] == pytest.approx(0.3)
     sd = np.std([0.2, 0.4, 0.2, 0.4], ddof=1)
     assert far["scatter_across_days"] == pytest.approx(sd)
-    assert far["std_error"] == pytest.approx(sd / 2.0)
-    assert far["t_stat"] == pytest.approx(0.3 / (sd / 2.0))
+    assert far["std_error_iid"] == pytest.approx(sd / 2.0)
+    assert far["std_error"] == pytest.approx(mean_std_error([0.2, 0.4, 0.2, 0.4]))
+    assert far["t_stat"] == pytest.approx(0.3 / far["std_error"])
     assert np.isnan(p.loc[NEAR, "std_error"])           # one day: no error
 
 
@@ -406,3 +407,99 @@ def test_a_drop_placed_at_the_close_shows_as_a_gap_just_after_the_ex_date():
     assert (at_close < -0.05).all()
     by_sessions = call_put_gap(invert_chain(c, S0, R, [(EX, 0.5)]))["gap"]
     assert by_sessions.abs().max() < 0.01
+
+
+def test_dividend_timing_follows_the_calendar_of_the_listing():
+    """Thursday 26 November 2026 is US Thanksgiving: New York is shut and
+    Toronto is open. So an option listed in New York has one session fewer
+    before a Friday ex-date than the same option listed in Montreal, and the
+    drop sits at a different point in its life."""
+    from tradingcal import NYSE
+    val, ex, expiry = date(2026, 11, 23), date(2026, 11, 27), date(2026, 11, 30)
+    T = year_fraction(val, expiry)
+    (tsx, _), = dividend_times(val, [(ex, 0.5)], expiry)
+    (nyse, _), = dividend_times(val, [(ex, 0.5)], expiry, venue=NYSE)
+    assert tsx == pytest.approx(T * 3 / 5) and nyse == pytest.approx(T * 2 / 4)
+    rows = []
+    for K in (49.0, 50.0, 51.0):
+        for cp in "CP":
+            px = crr_american(S0, K, T, R, 0.0, SIG, [(nyse, 0.5)], cp == "C")
+            rows.append(dict(
+                date=pd.Timestamp(val), underlying="ZZZ:US", expiry=pd.Timestamp(expiry),
+                strike=K, call_put=cp, bid=px - HALF, ask=px + HALF, settle=px,
+                volume=0, open_interest=0, traded=False, two_sided=True,
+                tier="quoted", mark=px, mark_source="mid"))
+    c = pd.DataFrame(rows)
+    right = call_put_gap(invert_chain(c, S0, R, [(ex, 0.5)], venue=NYSE))["gap"]
+    wrong = call_put_gap(invert_chain(c, S0, R, [(ex, 0.5)]))["gap"]
+    assert right.abs().max() < 0.01 and wrong.abs().max() > 0.05
+
+
+# ---------------------------------------------------------------------------
+# Choices the robustness table varies (build sheet B10)
+# ---------------------------------------------------------------------------
+
+def test_trailing_spread_can_use_only_the_most_recent_days():
+    """All earlier days by default. With a window, only the latest few, so an
+    old estimate stops counting."""
+    est = {date(2026, 11, d): 0.001 * d for d in (2, 3, 4, 5, 6)}
+    day = date(2026, 11, 9)
+    assert trailing_spread(est, day, min_days=3) == pytest.approx(0.004)
+    assert trailing_spread(est, day, min_days=3, window=2) == pytest.approx(0.0055)
+    # still nothing until there is enough history, whatever the window
+    assert trailing_spread(est, date(2026, 11, 4), min_days=3, window=2) is None
+
+
+def test_the_share_price_can_be_implied_from_fewer_pairs():
+    day = analyse_day(chain(strikes=WIDE), approx_spot=S0 * 1.005, rate=R, divs=DIVS,
+                      spot_pairs=3)
+    assert day.pairs_used == 3 and day.spot == pytest.approx(S0, rel=1e-4)
+
+
+def test_a_given_share_price_is_used_as_it_is():
+    """Hand it a share price 0.5% too high and tell it not to imply one. It
+    uses that price, and every expiry then shows calls below puts: the gap a
+    wrong share price leaves, largest on the nearest expiry."""
+    day = analyse_day(chain(strikes=WIDE), approx_spot=S0, rate=R, divs=DIVS,
+                      spot=S0 * 1.005)
+    assert day.spot == pytest.approx(S0 * 1.005) and day.pairs_used == 0
+    gaps = day.summary["mean_gap"]
+    assert (gaps < -1.0).all() and gaps.iloc[0] < gaps.iloc[-1]
+    assert list(day.summary["carry"]) == ["declared only", "declared only"]
+
+
+# ---------------------------------------------------------------------------
+# Standard error of a mean when days resemble their neighbours (Newey-West)
+# ---------------------------------------------------------------------------
+
+def test_with_no_lags_the_standard_error_is_the_plain_formula():
+    x = [0.1, 0.4, 0.2, 0.5, 0.3, 0.0]
+    assert mean_std_error(x, lags=0) == pytest.approx(np.std(x, ddof=1) / np.sqrt(6))
+
+
+def test_days_that_resemble_their_neighbours_widen_the_standard_error():
+    """A slow drift: each day close to the one before. Ninety such days are
+    not ninety independent measurements, so the error must be wider than the
+    plain formula says."""
+    rng = np.random.default_rng(7)
+    x = np.zeros(90)
+    for i in range(1, 90):
+        x[i] = 0.8 * x[i - 1] + rng.normal(0.0, 0.1)
+    plain = np.std(x, ddof=1) / np.sqrt(90)
+    assert mean_std_error(x) > 1.5 * plain
+
+
+def test_independent_days_leave_the_standard_error_about_where_it_was():
+    x = np.random.default_rng(11).normal(0.0, 0.1, 400)
+    plain = np.std(x, ddof=1) / np.sqrt(400)
+    assert mean_std_error(x) == pytest.approx(plain, rel=0.2)
+
+
+def test_standard_error_needs_two_days_and_ignores_missing_ones():
+    assert np.isnan(mean_std_error([0.3]))
+    assert mean_std_error([0.1, np.nan, 0.3], lags=0) == pytest.approx(
+        np.std([0.1, 0.3], ddof=1) / np.sqrt(2))
+
+
+def test_lag_rule():
+    assert [newey_west_lags(n) for n in (1, 50, 100, 250)] == [0, 3, 4, 4]

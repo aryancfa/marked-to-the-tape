@@ -110,7 +110,7 @@ def invert_chain(options: pd.DataFrame, spot: float,
                  r: float | Callable[[float], float],
                  divs: Sequence[DatedDividend], b: float = 0.0,
                  n: int = 400, exact_bars: bool = False,
-                 ex_shift_days: float | None = None) -> pd.DataFrame:
+                 ex_shift_days: float | None = None, venue: str = TSX) -> pd.DataFrame:
     """
     Invert every row of ONE underlying on ONE date.
 
@@ -134,6 +134,9 @@ def invert_chain(options: pd.DataFrame, spot: float,
     instead: three times the work, and the bar goes empty where the bid sits
     below exercise value.
 
+    `venue` is the exchange whose trading sessions place the dividends
+    (TSX for Montreal options, NYSE for the New York listings).
+
     Screening: a two-sided quote is evidence on its own, so quoted rows are
     not thrown out for having no volume or open interest. Rows marked from a
     settlement keep the activity screen, since an untraded settlement with no
@@ -155,7 +158,8 @@ def invert_chain(options: pd.DataFrame, spot: float,
         T = year_fraction(valuation, expiry)
         is_call = o.call_put == "C"
         if expiry not in dts_by_expiry:         # dividend times depend on the expiry
-            dts_by_expiry[expiry] = dividend_times(valuation, divs, expiry, ex_shift_days)
+            dts_by_expiry[expiry] = dividend_times(valuation, divs, expiry,
+                                                   ex_shift_days, venue)
         dts = dts_by_expiry[expiry]
         rT = rate(max(T, 0.0))
         rec = dict(T=T, r=rT, iv=np.nan, reason=Reject.OK, iv_bid=np.nan,
@@ -354,12 +358,51 @@ def gap_summary(gap: pd.DataFrame, valuation: date, front: date | None = None,
                 "std_error", "t_stat", "median_quote_bar", "carry"]]
 
 
+def newey_west_lags(n: int) -> int:
+    """How many days back the dependence is allowed to reach: the usual rule
+    of thumb, floor(4 * (n / 100) ** (2 / 9)). 3 at 50 days, 4 at 100."""
+    return int(np.floor(4.0 * (n / 100.0) ** (2.0 / 9.0))) if n > 1 else 0
+
+
+def mean_std_error(x: Sequence[float], lags: int | None = None) -> float:
+    """
+    Standard error of the mean of a series of daily values IN DATE ORDER,
+    allowing each day to resemble the days before it (Newey-West).
+
+    The plain formula, scatter / sqrt(days), assumes every day is a fresh
+    measurement. Here it is not: a dividend that is slightly wrong, or a
+    dealer's slow-moving quote, pushes today's gap the same way as
+    yesterday's. Ninety such days hold fewer than ninety independent pieces
+    of evidence, and the plain formula claims too much.
+
+    The fix adds to the variance the co-movement between each day and the
+    days up to `lags` before it, with weights that fall off in a straight
+    line (1 - k / (lags + 1)), which keeps the result from going negative.
+    `lags=0` is the plain formula. Left out, newey_west_lags picks it.
+
+    Missing days are not filled in: neighbours in the series are treated as
+    neighbouring days. NaN with fewer than two values.
+    """
+    x = np.asarray(x, dtype=float)
+    x = x[np.isfinite(x)]
+    n = len(x)
+    if n < 2:
+        return float("nan")
+    L = min(newey_west_lags(n) if lags is None else lags, n - 1)
+    e = x - x.mean()
+    var = e @ e / (n - 1)
+    for k in range(1, L + 1):
+        var += 2.0 * (1.0 - k / (L + 1.0)) * (e[k:] @ e[:-k]) / (n - 1)
+    return float(np.sqrt(max(var, 0.0) / n))
+
+
 def pool_across_days(daily: pd.DataFrame) -> pd.DataFrame:
     """
     Pool one number per (date, expiry) across days. `daily` needs columns
     date, expiry, mean_gap. Indexed by expiry:
 
-      days_observed, mean_gap, scatter_across_days, std_error, t_stat
+      days_observed, mean_gap, scatter_across_days, std_error,
+      std_error_iid, t_stat
 
     Quote noise changes from day to day and averages out. A wrong dividend
     or rate does not: it pushes the same expiry the same way every day. So a
@@ -367,14 +410,16 @@ def pool_across_days(daily: pd.DataFrame) -> pd.DataFrame:
     day-to-day scatter, is the evidence of a wrong input. One day gives no
     scatter, so its std_error stays empty.
 
-    The standard error assumes days are independent. Neighbouring days share
-    slow-moving quotes, so read |t| near 2 with caution.
+    std_error allows neighbouring days to resemble each other
+    (mean_std_error) and is what t_stat uses. std_error_iid is the plain
+    scatter / sqrt(days), kept beside it so the cost of the dependence shows.
     """
-    d = daily.assign(expiry=[_as_date(e) for e in daily["expiry"]])
-    out = d.groupby("expiry").agg(
-        days_observed=("mean_gap", "count"), mean_gap=("mean_gap", "mean"),
-        scatter_across_days=("mean_gap", "std"))
-    out["std_error"] = out["scatter_across_days"] / np.sqrt(out["days_observed"])
+    d = daily.assign(expiry=[_as_date(e) for e in daily["expiry"]]).sort_values("date")
+    g = d.groupby("expiry")["mean_gap"]
+    out = pd.DataFrame({"days_observed": g.count(), "mean_gap": g.mean(),
+                        "scatter_across_days": g.std(),
+                        "std_error": g.apply(mean_std_error)})
+    out["std_error_iid"] = out["scatter_across_days"] / np.sqrt(out["days_observed"])
     out["t_stat"] = out["mean_gap"] / out["std_error"].where(out["std_error"] > 0)
     return out
 
@@ -473,7 +518,7 @@ def fit_funding_spread(summary: pd.DataFrame, front: date,
 
 
 def trailing_spread(estimates: Mapping[date, float | None], day: date,
-                    min_days: int = 20) -> float | None:
+                    min_days: int = 20, window: int | None = None) -> float | None:
     """
     The funding spread to USE on `day`: the mean of the daily estimates from
     days strictly before it. None until `min_days` of them exist, and then no
@@ -482,9 +527,15 @@ def trailing_spread(estimates: Mapping[date, float | None], day: date,
     Earlier days only, the same rule as the hedge ratios. A spread fitted on
     a day and applied to that same day would close the call-put gap by
     construction, and the chart would then be the model checking itself.
+
+    `window` keeps only the most recent that many earlier estimates. Left
+    out, every earlier day counts equally, which is steadier but slow to
+    follow a funding cost that really has moved.
     """
-    past = [s for d, s in estimates.items() if d < day and s is not None]
-    return float(np.mean(past)) if len(past) >= min_days else None
+    past = [s for d, s in sorted(estimates.items()) if d < day and s is not None]
+    if len(past) < min_days:
+        return None
+    return float(np.mean(past[-window:] if window else past))
 
 
 @dataclass
@@ -506,7 +557,8 @@ def analyse_day(options: pd.DataFrame, approx_spot: float,
                 first_projected: date | None = None, moneyness: float = 0.12,
                 min_days: int = 7, max_days: int = 400, bracket: float = 0.015,
                 n: int = 400, exact_bars: bool = False,
-                ex_shift_days: float | None = None) -> DayResult:
+                ex_shift_days: float | None = None, spot_pairs: int = 5,
+                spot: float | None = None) -> DayResult:
     """
     One underlying on one date, start to finish:
 
@@ -518,28 +570,37 @@ def analyse_day(options: pd.DataFrame, approx_spot: float,
 
     If no share price can be implied the result says why and carries no
     vols. Nothing downstream runs on a guessed share price.
+
+    `spot_pairs` is how many strike pairs the share price is implied from.
+    `spot`, if given, is used as it is and nothing is implied; then no
+    expiry is calibrated, and the funding fit is anchored at the valuation
+    date. Both exist for the robustness table (B10).
     """
     valuation = _as_date(options["date"].iloc[0])
     r = rate if callable(rate) else (lambda T, _r=rate: _r)
-    front, pairs = front_pairs(options, approx_spot, min_days=min_days)
-    if front is None:
-        return DayResult(valuation, None, None, Reject.TOO_FEW_PAIRS, 0,
-                         None, None, None)
-    T_front = year_fraction(valuation, front)
-    res = implied_spot_american(pairs, T_front, r(T_front), 0.0,
-                                dividend_times(valuation, divs, front, ex_shift_days),
-                                approx_spot * (1.0 - bracket),
-                                approx_spot * (1.0 + bracket), n=n)
-    if res.spot is None:
-        return DayResult(valuation, front, None, res.reason, res.pairs_used,
-                         None, None, None)
-    near = near_the_money(options, res.spot, moneyness, min_days, max_days)
-    inverted = invert_chain(near, res.spot, r, divs, n=n, exact_bars=exact_bars,
+    if spot is not None:
+        front, used, anchor = None, 0, valuation
+    else:
+        front, pairs = front_pairs(options, approx_spot, min_days=min_days, k=spot_pairs)
+        if front is None:
+            return DayResult(valuation, None, None, Reject.TOO_FEW_PAIRS, 0,
+                             None, None, None)
+        T_front = year_fraction(valuation, front)
+        res = implied_spot_american(pairs, T_front, r(T_front), 0.0,
+                                    dividend_times(valuation, divs, front, ex_shift_days),
+                                    approx_spot * (1.0 - bracket),
+                                    approx_spot * (1.0 + bracket), n=n)
+        if res.spot is None:
+            return DayResult(valuation, front, None, res.reason, res.pairs_used,
+                             None, None, None)
+        spot, used, anchor = res.spot, res.pairs_used, front
+    near = near_the_money(options, spot, moneyness, min_days, max_days)
+    inverted = invert_chain(near, spot, r, divs, n=n, exact_bars=exact_bars,
                             ex_shift_days=ex_shift_days)
     gap = call_put_gap(inverted)
     summary = gap_summary(gap, valuation, front, first_projected)
-    summary["fwd_error_bp"] = forward_errors(gap, summary, res.spot, r, divs,
+    summary["fwd_error_bp"] = forward_errors(gap, summary, spot, r, divs,
                                              valuation, n, ex_shift_days)
-    return DayResult(valuation, front, res.spot, Reject.OK, res.pairs_used,
+    return DayResult(valuation, front, spot, Reject.OK, used,
                      inverted, gap, summary,
-                     fit_funding_spread(summary, front))
+                     fit_funding_spread(summary, anchor))

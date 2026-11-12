@@ -1,0 +1,13 @@
+underlying,ex_date,cash,status,announced,source
+BNS,2025-01-07,1.06,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+BNS,2025-04-01,1.06,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+BNS,2025-07-02,1.1,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+BNS,2025-10-07,1.1,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+BNS,2026-01-06,1.1,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+BNS,2026-04-07,1.1,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+BNS,2026-07-07,1.14,declared,2026-05-27,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: Scotiabank release of 2026-05-27 (raised 4 cents to 1.14; record date 2026-07-07); found by web search 2026-11-12
+BNS,2026-10-06,1.14,declared,2026-08-25,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: Scotiabank release of 2026-08-25 (1.14; record date 2026-10-06); found by web search 2026-11-12
+BNS,2027-01-06,1.14,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+BNS,2027-04-07,1.14,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+BNS,2027-07-07,1.18,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0.04)
+BNS,2027-10-06,1.18,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)

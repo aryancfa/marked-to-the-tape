@@ -1,0 +1,10 @@
+underlying,ex_date,cash,status,announced,source
+XIU,2025-11-19,0.300,declared,,Compustat daily file (cash distribution on its ex-date); read 2026-11-11. Not yet checked against the fund's own page
+XIU,2026-02-24,0.277,declared,,Compustat daily file; read 2026-11-11. Not yet checked against the fund's own page
+XIU,2026-05-21,0.272,declared,,Compustat daily file; read 2026-11-11. Not yet checked against the fund's own page
+XIU,2026-08-26,0.287,declared,2026-08-19,Compustat daily file; TMX Money shows the same amount and ex-date and a declaration date of 2026-08-19
+XIU,2026-11-25,0.300,projected,,Date: BlackRock Canada's 2026 distribution schedule lists 25 November as the ex-date (its August date matched XIU's); not yet declared for XIU when read 2026-11-11. The first projection was 19 November from last year's date and the option prices rejected it: only the 20 November expiry showed a gap. Amount: RULE same as a year earlier
+XIU,2027-02-24,0.277,projected,,RULE: same date and amount as a year earlier
+XIU,2027-05-21,0.272,projected,,RULE: same date and amount as a year earlier
+XIU,2027-08-26,0.287,projected,,RULE: same date and amount as a year earlier
+XIU,2027-11-19,0.300,projected,,RULE: same date and amount as a year earlier

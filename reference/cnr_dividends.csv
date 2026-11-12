@@ -1,0 +1,13 @@
+underlying,ex_date,cash,status,announced,source
+CNR,2025-03-10,0.8875,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+CNR,2025-06-09,0.8875,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+CNR,2025-09-08,0.8875,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+CNR,2025-12-09,0.8875,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+CNR,2026-03-10,0.915,declared,,Compustat daily file (cash dividend on its ex-date); read 2026-11-11.
+CNR,2026-06-09,0.915,declared,2026-04-29,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: CN release of 2026-04-29 (0.915; record date 2026-06-09); found by web search 2026-11-12
+CNR,2026-09-08,0.915,declared,2026-07-24,Compustat daily file (cash dividend on its ex-date); read 2026-11-11. Announced: CN release of 2026-07-24 (0.915; record date 2026-09-08); found by web search 2026-11-12
+CNR,2026-12-09,0.915,declared,2026-10-30,CN release of 2026-10-30 (0.915; record date 2026-12-09); found by web search 2026-11-12. Ex-date taken as the record date
+CNR,2027-03-10,0.9425,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0.0275)
+CNR,2027-06-09,0.9425,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+CNR,2027-09-08,0.9425,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
+CNR,2027-12-09,0.9425,projected,,RULE: same date as a year earlier; previous amount plus the raise at the same point a year earlier (+0)
