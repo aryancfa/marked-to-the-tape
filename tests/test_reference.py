@@ -121,3 +121,79 @@ def test_with_too_little_history_the_file_is_returned_and_that_is_reported():
 def test_funds_repeat_and_companies_raise():
     assert rule_for("xiu") == "repeat" and rule_for("ZEB") == "repeat"
     assert rule_for("RY") == "raise"
+
+
+# ---------------------------------------------------------------------------
+# Ex-dates the issuer publishes in advance
+# ---------------------------------------------------------------------------
+
+from loaders.reference import uncertain_ex_dates
+
+
+def _fund(tmp_path, published=True):
+    """Made-up fund: pays each quarter, announces the amount a week ahead,
+    and (if `published`) posted this year's ex-dates on 1 January."""
+    (tmp_path / "zzz_dividends.csv").write_text(
+        "underlying,ex_date,cash,status,announced,source\n"
+        "ZZZ,2025-02-25,0.20,declared,,made up\n"
+        "ZZZ,2025-05-22,0.21,declared,,made up\n"
+        "ZZZ,2025-08-26,0.22,declared,,made up\n"
+        "ZZZ,2025-11-19,0.23,declared,,made up\n"
+        "ZZZ,2026-02-24,0.20,declared,,made up\n"
+        "ZZZ,2026-05-21,0.21,declared,,made up\n"
+        "ZZZ,2026-08-26,0.25,declared,2026-08-19,made up\n"
+        "ZZZ,2026-11-25,0.23,projected,,made up\n"
+        "ZZZ,2027-02-24,0.20,projected,,made up\n", encoding="utf-8")
+    if published:
+        (tmp_path / "published_dates.csv").write_text(
+            "underlying,ex_date,known_from,source\n"
+            "ZZZ,2026-08-26,2026-01-01,made up\n"
+            "ZZZ,2026-11-25,2026-01-01,made up\n"
+            "OTHER,2026-11-25,2026-01-01,made up\n", encoding="utf-8")
+    return load_dividends(tmp_path / "zzz_dividends.csv")
+
+
+def test_a_published_ex_date_is_read_onto_its_row(tmp_path):
+    divs = _fund(tmp_path)
+    by = {x.ex_date: x.date_known for x in divs}
+    assert by[date(2026, 11, 25)] == date(2026, 1, 1)
+    assert by[date(2026, 8, 26)] == date(2026, 1, 1)
+    assert by[date(2027, 2, 24)] is None and by[date(2026, 5, 21)] is None
+
+
+def test_a_published_date_is_kept_point_in_time_and_is_not_uncertain(tmp_path):
+    """In June the August amount is unknown (the rule repeats last year's
+    0.22, not the 0.25 declared later) but its date is public. November's is
+    the published 25th, not last year's 19th. Next February's is a guess."""
+    day = date(2026, 6, 10)
+    sched = as_known_on(_fund(tmp_path), day, "repeat")
+    aug = next(x for x in sched if x.ex_date == date(2026, 8, 26))
+    assert aug.status == "projected" and aug.cash == 0.22 and aug.date_known is not None
+    assert any(x.ex_date == date(2026, 11, 25) and x.date_known for x in sched)
+    assert not any(x.ex_date == date(2026, 11, 19) for x in sched)
+    assert uncertain_ex_dates(sched, day) == [x.ex_date for x in sched
+                                              if x.ex_date > date(2026, 12, 31)]
+    assert uncertain_ex_dates(sched, day)                   # 2027 is still a guess
+
+
+def test_without_a_published_schedule_every_projected_date_is_uncertain(tmp_path):
+    day = date(2026, 6, 10)
+    sched = as_known_on(_fund(tmp_path, published=False), day, "repeat")
+    assert date(2026, 8, 26) in uncertain_ex_dates(sched, day)
+    assert all(x.date_known is None for x in sched)
+
+
+def test_a_date_published_later_is_still_a_guess_on_the_day(tmp_path):
+    divs = [x._replace(date_known=date(2026, 7, 1)) if x.date_known else x
+            for x in _fund(tmp_path)]
+    sched = as_known_on(divs, date(2026, 6, 10), "repeat")
+    assert date(2026, 8, 26) in uncertain_ex_dates(sched, date(2026, 6, 10))
+
+
+def test_a_published_date_with_no_row_in_the_schedule_raises(tmp_path):
+    _fund(tmp_path)
+    (tmp_path / "published_dates.csv").write_text(
+        "underlying,ex_date,known_from,source\nZZZ,2026-12-30,2026-01-01,made up\n",
+        encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_dividends(tmp_path / "zzz_dividends.csv")

@@ -330,29 +330,33 @@ def near_the_money(options: pd.DataFrame, spot: float, moneyness: float = 0.12,
 
 
 def carry_label(expiry: date, front: date | None,
-                first_projected: date | None) -> str:
+                first_projected: date | None,
+                uncertain_ex_dates: Sequence[date] = ()) -> str:
     """
     How far the carry inputs behind an expiry can be trusted:
       calibrated          the share price was implied from this expiry, so
                           its call-put gap is zero by construction
       declared only       every dividend before it has been declared
       projected dividend  at least one dividend before it is our projection,
-                          or the first projected ex-date falls within
+                          or an ex-date whose DATE is a guess falls within
                           DATE_WINDOW sessions AFTER it: a projected date
                           can be a few days out, and then this expiry holds
-                          a dividend the model left outside it
+                          a dividend the model left outside it. A date the
+                          issuer has published is not a guess, so it is not
+                          in `uncertain_ex_dates` and does not count here.
     """
     if front is not None and expiry == front:
         return "calibrated"
-    if first_projected is not None and (
-            expiry >= first_projected
-            or sessions_between(expiry, first_projected) <= DATE_WINDOW):
+    if first_projected is not None and expiry >= first_projected:
+        return "projected dividend"
+    if any(0 < sessions_between(expiry, d) <= DATE_WINDOW for d in uncertain_ex_dates):
         return "projected dividend"
     return "declared only"
 
 
 def gap_summary(gap: pd.DataFrame, valuation: date, front: date | None = None,
-                first_projected: date | None = None) -> pd.DataFrame:
+                first_projected: date | None = None,
+                uncertain_ex_dates: Sequence[date] = ()) -> pd.DataFrame:
     """
     One row per expiry from call_put_gap output, indexed by expiry date.
 
@@ -395,7 +399,8 @@ def gap_summary(gap: pd.DataFrame, valuation: date, front: date | None = None,
     out["std_error"] = out["scatter"] / np.sqrt(out["pairs"])
     out["t_stat"] = out["mean_gap"] / out["std_error"].where(out["std_error"] > 0)
     out.insert(0, "days", [(e - valuation).days for e in out.index])
-    out["carry"] = [carry_label(e, front, first_projected) for e in out.index]
+    out["carry"] = [carry_label(e, front, first_projected, uncertain_ex_dates)
+                    for e in out.index]
     return out[["days", "pairs", "mean_gap", "weighted_gap", "scatter",
                 "std_error", "t_stat", "median_quote_bar", "carry"]]
 
@@ -667,9 +672,11 @@ def analyse_day(options: pd.DataFrame, approx_spot: float,
     expiry is calibrated, and the funding fit is anchored at the valuation
     date. Both exist for the robustness table (B10).
 
-    `uncertain_ex_dates` are the ex-dates not yet announced on this day; the
-    share price is not implied from an expiry that sits next to one
-    (front_pairs).
+    `uncertain_ex_dates` are the future ex-dates whose date is a guess on
+    this day (loaders.reference.uncertain_ex_dates): not announced and not
+    published by the issuer. The share price is not implied from an expiry
+    that sits next to one (front_pairs), and an expiry just before one is
+    labelled as resting on a projection (carry_label).
     """
     valuation = _as_date(options["date"].iloc[0])
     r = rate if callable(rate) else (lambda T, _r=rate: _r)
@@ -694,7 +701,7 @@ def analyse_day(options: pd.DataFrame, approx_spot: float,
     inverted = invert_chain(near, spot, r, divs, n=n, exact_bars=exact_bars,
                             ex_shift_days=ex_shift_days)
     gap = call_put_gap(inverted)
-    summary = gap_summary(gap, valuation, front, first_projected)
+    summary = gap_summary(gap, valuation, front, first_projected, uncertain_ex_dates)
     summary["fwd_error_bp"] = forward_errors(gap, summary, spot, r, divs,
                                              valuation, n, ex_shift_days)
     return DayResult(valuation, front, spot, Reject.OK, used,

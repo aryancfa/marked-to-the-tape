@@ -107,3 +107,17 @@ def test_every_schedule_can_be_rebuilt_as_it_was_known_on_the_first_day_of_data(
     # nothing announced after that day is in the schedule as a declared row
     assert all(x.announced is None or x.announced <= day for x in divs if x.ex_date in known)
     assert any(x.status == "projected" and x.ex_date > day for x in then)
+
+
+def test_published_ex_dates_are_public_before_they_are_announced():
+    """reference/published_dates.csv: each row matches a schedule row (the
+    reader raises otherwise), was public before the dividend went ex, and
+    names where the date was read."""
+    raw = pd.read_csv(REF / "published_dates.csv", parse_dates=["ex_date", "known_from"])
+    assert (raw["known_from"] < raw["ex_date"]).all()
+    assert (raw["source"].str.len() > 10).all()
+    for name in sorted(set(raw["underlying"])):
+        divs = load_dividends(REF / f"{name.lower()}_dividends.csv")
+        got = sorted(x.ex_date for x in divs if x.date_known is not None)
+        want = sorted(d.date() for d in raw.loc[raw["underlying"] == name, "ex_date"])
+        assert got == want

@@ -56,8 +56,8 @@ import numpy as np
 import pandas as pd
 
 from loaders.mx import load_mx_futures, load_mx_options, load_mx_underlying
-from loaders.reference import (as_known_on, first_projected, has_history, load_dividends,
-                               rule_for)
+from loaders.reference import (PUBLISHED, as_known_on, first_projected, has_history,
+                               load_dividends, rule_for, uncertain_ex_dates)
 from rates import load_base_curve, load_curve
 from surface import (OWN, POOLED, analyse_day, choose_spread, mean_std_error,
                      pool_across_days, rejection_tally, vs_exchange)
@@ -86,6 +86,8 @@ def fingerprint(underlying: str) -> str:
     files = [ROOT / "src" / f for f in PRICING_MODULES]
     files += sorted(BOC.glob("*.csv"))
     files.append(ROOT / "reference" / f"{underlying.lower()}_dividends.csv")
+    if (ROOT / "reference" / PUBLISHED).exists():       # ex-dates published in advance
+        files.append(ROOT / "reference" / PUBLISHED)
     for f in files:
         h.update(f.name.encode())
         h.update(f.read_bytes().replace(b"\r\n", b"\n"))
@@ -143,10 +145,10 @@ def one_day(task) -> dict:
     if spread is not None:
         curve = curve.plus(spread)
     divs = [(x.ex_date, x.cash) for x in schedule]
-    # ex-dates not announced by this day: after as_known_on these are exactly
-    # the projected rows. The share price is not implied from an expiry that
-    # sits within a few sessions of one.
-    uncertain = [x.ex_date for x in schedule if x.ex_date > day and x.status == "projected"]
+    # ex-dates whose DATE is a guess on this day: projected, and not published
+    # in advance by the issuer. The share price is not implied from an expiry
+    # that sits within a few sessions of one.
+    uncertain = uncertain_ex_dates(schedule, day)
     res = analyse_day(o, file_mid, curve, divs, first_projected(schedule, day),
                       uncertain_ex_dates=uncertain,
                       ex_shift_days=opt["ex_shift"], n=opt["steps"],

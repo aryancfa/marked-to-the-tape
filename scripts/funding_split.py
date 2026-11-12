@@ -120,8 +120,13 @@ def main(name: str) -> None:
     say()
     say("1. FUNDING (fitted on expiries with declared dividends, earlier days only):")
     say(f"   applied: {used.min():.1f} to {used.max():.1f} bp a year, last {used.iloc[-1]:.1f}.")
-    say(f"   left over on the same days after applying it: {own.mean():+.1f} bp a year "
-        f"(standard error {mean_std_error(own):.1f}). Near zero means the spread did its job.")
+    if len(own) < 2:
+        say("   left over after applying it: cannot be measured. On these days no long expiry")
+        say("   rests on declared dividends alone, so the spread applied is not tested here.")
+    else:
+        say(f"   left over on the same days after applying it: {own.mean():+.1f} bp a year "
+            f"(standard error {mean_std_error(own):.1f}, {len(own)} days). Near zero means "
+            "the spread did its job.")
     say()
     say("2. BORROW: assumed zero. It cannot be told from funding in option prices, so any")
     say("   borrow cost is inside the funding number above.")

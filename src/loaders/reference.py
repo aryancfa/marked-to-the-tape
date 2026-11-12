@@ -15,6 +15,12 @@ day: dividends not yet announced are replaced by what the projection rule
 gives from the ones that were known. Empty means announced before the option
 data starts. Where the announcement date could not be found the ex-date
 itself is entered, so the dividend counts as unknown until it goes ex.
+
+Some issuers publish next year's ex-DATES in advance and only the amounts a
+week ahead (BlackRock's fund distribution schedule). Those dates are kept in
+reference/published_dates.csv with the day they became public. Such a date
+is a fact from that day on, though the amount is still a projection:
+`date_known` carries it, and `uncertain_ex_dates` leaves it out.
 """
 
 from __future__ import annotations
@@ -34,6 +40,21 @@ class Dividend(NamedTuple):
     cash: float                     # per share
     status: str                     # "declared" or "projected"
     announced: date | None = None   # None: known before the data starts
+    date_known: date | None = None  # the ex-DATE was published by the issuer on this day
+
+
+PUBLISHED = "published_dates.csv"
+
+
+def published_dates(folder: str | Path, underlying: str) -> dict[date, date]:
+    """ex-date -> the day the issuer made that date public, for one name.
+    Empty if the folder has no published_dates.csv or the name is not in it."""
+    p = Path(folder) / PUBLISHED
+    if not p.exists():
+        return {}
+    df = pd.read_csv(p, parse_dates=["ex_date", "known_from"])
+    df = df[df["underlying"].str.upper() == underlying.upper()]
+    return {d.date(): k.date() for d, k in zip(df["ex_date"], df["known_from"])}
 
 
 def load_dividends(path: str | Path) -> list[Dividend]:
@@ -45,7 +66,13 @@ def load_dividends(path: str | Path) -> list[Dividend]:
                          f"expected one of {STATUSES}")
     ann = (pd.to_datetime(df["announced"]) if "announced" in df.columns
            else pd.Series(pd.NaT, index=df.index))
-    return [Dividend(d.date(), float(c), str(s), None if pd.isna(a) else a.date())
+    name = Path(path).stem.replace("_dividends", "")
+    pub = published_dates(Path(path).parent, name)
+    missing = sorted(set(pub) - {d.date() for d in df["ex_date"]})
+    if missing:
+        raise ValueError(f"{path}: published ex-dates with no row in the schedule: {missing}")
+    return [Dividend(d.date(), float(c), str(s), None if pd.isna(a) else a.date(),
+                     pub.get(d.date()))
             for d, c, s, a in zip(df["ex_date"], df["cash"], df["status"], ann)]
 
 
@@ -118,6 +145,10 @@ def as_known_on(divs: Sequence[Dividend], day: date, rule: str = "raise") -> lis
     publishes in advance, which was public on `day` too. The amount is always
     the rule's.
 
+    A row whose ex-date the issuer had published by `day` (date_known) gives
+    its date to the projection near it, declared later or not, and the
+    projected row carries date_known: its amount is a guess, its date is not.
+
     With too little history to project from, the file is returned unchanged
     (which is hindsight); `has_history` says whether that happened.
     """
@@ -132,11 +163,25 @@ def as_known_on(divs: Sequence[Dividend], day: date, rule: str = "raise") -> lis
     if chain is None:
         return list(divs)
     hand = [x for x in divs if x.status == "projected"]
+    firm = [x for x in divs if x.date_known is not None and x.date_known <= day]
     out = list(known)
     for d, cash in chain:
+        pub = [x for x in firm if abs((x.ex_date - d).days) <= 15]
+        if pub:
+            out.append(Dividend(pub[0].ex_date, cash, "projected", None, pub[0].date_known))
+            continue
         near = [x.ex_date for x in hand if abs((x.ex_date - d).days) <= 15]
         out.append(Dividend(near[0] if near else d, cash, "projected", None))
     return sorted(out, key=lambda x: x.ex_date)
+
+
+def uncertain_ex_dates(divs: Sequence[Dividend], day: date) -> list[date]:
+    """Future ex-dates whose DATE is a guess on `day`: projected rows of a
+    point-in-time schedule (as_known_on), less those the issuer had already
+    published. An expiry beside one of these may hold a dividend the model
+    left outside it, or the reverse (surface.date_uncertain)."""
+    return [x.ex_date for x in divs if x.ex_date > day and x.status == "projected"
+            and not (x.date_known is not None and x.date_known <= day)]
 
 
 def has_history(divs: Sequence[Dividend], day: date, rule: str = "raise") -> bool:

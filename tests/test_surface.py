@@ -588,6 +588,17 @@ def test_the_share_price_is_not_implied_from_an_expiry_next_to_an_unannounced_ex
 
 def test_an_expiry_just_before_a_projected_ex_date_is_labelled_projected():
     projected = date(2026, 11, 26)
-    assert carry_label(date(2026, 11, 20), None, projected) == "projected dividend"
-    assert carry_label(date(2026, 11, 13), None, projected) == "declared only"
-    assert carry_label(date(2026, 12, 18), None, projected) == "projected dividend"
+    guess = [projected]
+    assert carry_label(date(2026, 11, 20), None, projected, guess) == "projected dividend"
+    assert carry_label(date(2026, 11, 13), None, projected, guess) == "declared only"
+    assert carry_label(date(2026, 12, 18), None, projected, guess) == "projected dividend"
+
+
+def test_an_expiry_just_before_a_published_ex_date_rests_on_declared_dividends():
+    """The amount is a projection, so the expiry AFTER it is labelled. But the
+    issuer published the date, so the dividend cannot be on the wrong side of
+    the expiry before it: no guessed date, no window."""
+    projected = date(2026, 11, 25)
+    assert carry_label(date(2026, 11, 20), None, projected) == "declared only"
+    assert carry_label(date(2026, 11, 20), None, projected, []) == "declared only"
+    assert carry_label(date(2026, 12, 18), None, projected, []) == "projected dividend"
