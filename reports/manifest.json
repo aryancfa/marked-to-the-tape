@@ -1,0 +1,853 @@
+{
+ "started": "2026-11-12T08:44:56",
+ "commit": "b9cfdc7983827c550b237aa6ddc004db846a7806",
+ "uncommitted_changes": false,
+ "versions": {
+  "python": "3.13.17",
+  "numpy": "2.5.4",
+  "pandas": "2.2.3",
+  "matplotlib": "3.11.2"
+ },
+ "only": "everything",
+ "inputs": {
+  "data/raw/boc/AVG.INTWO.csv": {
+   "bytes": 5311,
+   "sha1": "2ac5a7f341703a286d8be3eefb8f098edf6bc8bd"
+  },
+  "data/raw/boc/TB.CDN.180D.MID.csv": {
+   "bytes": 3599,
+   "sha1": "875d55ec6e96762648b06690fc25a36d06985e7d"
+  },
+  "data/raw/boc/TB.CDN.1Y.MID.csv": {
+   "bytes": 3593,
+   "sha1": "6f355c5f181d905fd58e104fb439611ba7817219"
+  },
+  "data/raw/boc/TB.CDN.30D.MID.csv": {
+   "bytes": 3597,
+   "sha1": "7aea65106322044f3746b9a092a0b60ab7fa38c8"
+  },
+  "data/raw/boc/TB.CDN.90D.MID.csv": {
+   "bytes": 3597,
+   "sha1": "20097cffe92cefa072ceec4e1f3b7432087c14f1"
+  },
+  "data/raw/fx/FXUSDCAD.csv": {
+   "bytes": 10926,
+   "sha1": "96fe4fb7336bcab0e4241f9793fa2a70d88c061e"
+  },
+  "data/raw/mx/quote_ABX_20260508_20260810.csv": {
+   "bytes": 6013494,
+   "sha1": "b523c611e5cf101c6992f0e9b02b9f35edc4dbb0"
+  },
+  "data/raw/mx/quote_ABX_20260810_20261110.csv": {
+   "bytes": 6392958,
+   "sha1": "7f0f690c7986b9e4adf46dcb6d21fe1e79bfc776"
+  },
+  "data/raw/mx/quote_BCE_20260508_20261104.csv": {
+   "bytes": 10132519,
+   "sha1": "b1d02d146479f7c13069cde56dddc3e6b3b59caa"
+  },
+  "data/raw/mx/quote_BMO_20260508_20261104.csv": {
+   "bytes": 11461303,
+   "sha1": "b28034fea71510cd81c8376eb2af483d04d754b7"
+  },
+  "data/raw/mx/quote_BNS_20260508_20261104.csv": {
+   "bytes": 9657386,
+   "sha1": "a5c885cf6b963f7b6d1e16f14cef42e6f9281a3c"
+  },
+  "data/raw/mx/quote_CNQ_20260508_20261104.csv": {
+   "bytes": 11269810,
+   "sha1": "7076febb62cb4c114297120a826c61ab02d5fb23"
+  },
+  "data/raw/mx/quote_CNR_20260508_20261104.csv": {
+   "bytes": 7244094,
+   "sha1": "37459fb1bd0ca00a4d7cfb478f29f51ea7e3cb4b"
+  },
+  "data/raw/mx/quote_COA_20261012_20261109.csv": {
+   "bytes": 11416,
+   "sha1": "8f7d49e1813e5665eda847131dc1c51415396459"
+  },
+  "data/raw/mx/quote_CRA_20260508_20260811.csv": {
+   "bytes": 119492,
+   "sha1": "31528168ea5a5d8f960483556508af2105d9e926"
+  },
+  "data/raw/mx/quote_CRA_20260811_20261109.csv": {
+   "bytes": 113023,
+   "sha1": "a74b81e77c78b15e728458cd42b900c6ae2c9056"
+  },
+  "data/raw/mx/quote_ENB_20260508_20261104.csv": {
+   "bytes": 9346418,
+   "sha1": "f07fcbef57fc00ea425f91f767a7618e81524e44"
+  },
+  "data/raw/mx/quote_MFC_20260508_20261104.csv": {
+   "bytes": 9780363,
+   "sha1": "7fd8d36603e83edf0d766ede592ba905e930a48e"
+  },
+  "data/raw/mx/quote_RY_20260508_20261104.csv": {
+   "bytes": 10345225,
+   "sha1": "69bbad9a846efeffd81eb236c0ee32e408681b51"
+  },
+  "data/raw/mx/quote_SHOP_20260508_20260810.csv": {
+   "bytes": 6730281,
+   "sha1": "646e7da025077cfe15b7cf86c583ba4259c10a2f"
+  },
+  "data/raw/mx/quote_SHOP_20260810_20261110.csv": {
+   "bytes": 7943351,
+   "sha1": "cd312e830b7ea6a6358362fd8a064f8f2534fcfa"
+  },
+  "data/raw/mx/quote_SU_20260508_20260608.csv": {
+   "bytes": 2132757,
+   "sha1": "a17f10319935f978508b607775acb18799c5cfdd"
+  },
+  "data/raw/mx/quote_SU_20260608_20260810.csv": {
+   "bytes": 4506101,
+   "sha1": "e50a5a66cd47f0ba0be83feb619c03536de58837"
+  },
+  "data/raw/mx/quote_SU_20260810_20261110.csv": {
+   "bytes": 6285971,
+   "sha1": "5d55280dabcd2be62ee0fcf06b688231a10c9b48"
+  },
+  "data/raw/mx/quote_SXF_20260508_20261104.csv": {
+   "bytes": 122513,
+   "sha1": "f379310037d79b57a01d76e45de230b12eab6411"
+  },
+  "data/raw/mx/quote_SXO_20260508_20261104.csv": {
+   "bytes": 3098862,
+   "sha1": "f62a0466ac774e675bb13f21baaa029e66fe08a3"
+  },
+  "data/raw/mx/quote_TD_20260508_20261104.csv": {
+   "bytes": 10731402,
+   "sha1": "db8bd3f199f9e5b7640bfcb80ef2c58ef40dd5dd"
+  },
+  "data/raw/mx/quote_XEG_20260508_20260810.csv": {
+   "bytes": 8101038,
+   "sha1": "63f6e458e628195d1250329f2a489db3283403f4"
+  },
+  "data/raw/mx/quote_XEG_20260810_20261110.csv": {
+   "bytes": 7780372,
+   "sha1": "6350b269ee634cf7652198f538eb4c5861682168"
+  },
+  "data/raw/mx/quote_XIU_20260508_20260709.csv": {
+   "bytes": 8641257,
+   "sha1": "0e9455751312c91ebccf4c01b61fce4d37b55498"
+  },
+  "data/raw/mx/quote_XIU_20260709_20260909.csv": {
+   "bytes": 9125561,
+   "sha1": "b23afccc2337676577d946cb3f606bf0a83bd9ae"
+  },
+  "data/raw/mx/quote_XIU_20260910_20261108.csv": {
+   "bytes": 8626955,
+   "sha1": "171bab122735edc5c99c3616dfb89fdd6f9c702a"
+  },
+  "data/raw/mx/quote_ZEB_20260508_20260710.csv": {
+   "bytes": 10951849,
+   "sha1": "b7f444f58a78dc19ed35b76e65acd0a48046e757"
+  },
+  "data/raw/mx/quote_ZEB_20260710_20260910.csv": {
+   "bytes": 11588291,
+   "sha1": "cb2de45410d9625376b9d278c5bdf9672db9eaa9"
+  },
+  "data/raw/mx/quote_ZEB_20260910_20261110.csv": {
+   "bytes": 9915581,
+   "sha1": "42379c903cd082b7420a24c4ac11d29dcd25f6ee"
+  },
+  "data/raw/wrds/catalogue.txt": {
+   "bytes": 38665,
+   "sha1": "244eac6db585e29f1cd456a0aeb0834261b7dbaf"
+  },
+  "data/raw/wrds/distrd_BMO.csv": {
+   "bytes": 11103,
+   "sha1": "263dec6b65d2bc683dc6387d0c5d5d4cdbfe04be"
+  },
+  "data/raw/wrds/distrd_BNS.csv": {
+   "bytes": 8626,
+   "sha1": "56e734424e894694c4257f6ac5e1cb4130a8970f"
+  },
+  "data/raw/wrds/distrd_CM.csv": {
+   "bytes": 10054,
+   "sha1": "a712c3f2de3b6de5c27a7c0758bbf78d53858a74"
+  },
+  "data/raw/wrds/distrd_CNQ.csv": {
+   "bytes": 9432,
+   "sha1": "baabe79cd5c8a38c2c4767b487099477055b1de9"
+  },
+  "data/raw/wrds/distrd_RY.csv": {
+   "bytes": 10916,
+   "sha1": "828a6c2e7dbe0322d40a4def213a4c5661b5bab2"
+  },
+  "data/raw/wrds/distrd_SU.csv": {
+   "bytes": 11440,
+   "sha1": "9faf732e0e422d39106fffbdcb239f46f89f40a0"
+  },
+  "data/raw/wrds/distrd_TD.csv": {
+   "bytes": 10579,
+   "sha1": "f789f03d1b05720dbe7f559585f96feb243bf509"
+  },
+  "data/raw/wrds/ibes_catalogue.txt": {
+   "bytes": 32410,
+   "sha1": "cc419a49f2ca0022820a3afcec352f15e231f08b"
+  },
+  "data/raw/wrds/ibes_dps.csv": {
+   "bytes": 664799,
+   "sha1": "070729fad0b892dd5c2dd28cd0c16717c28d13e8"
+  },
+  "data/raw/wrds/index_TSX60.csv": {
+   "bytes": 113552,
+   "sha1": "1683ec843a2df6443e7e7e4a9fd788b1d09ec74d"
+  },
+  "data/raw/wrds/opprcd_BMO_20250602_20250829.csv": {
+   "bytes": 2405218,
+   "sha1": "12e36ed822e23fb4b23f3dba295963d68004bc58"
+  },
+  "data/raw/wrds/opprcd_BNS_20250602_20250829.csv": {
+   "bytes": 1765147,
+   "sha1": "6b0037b15c504d477c828908614bb7f22927c099"
+  },
+  "data/raw/wrds/opprcd_CM_20250602_20250829.csv": {
+   "bytes": 2313628,
+   "sha1": "a8a6b153ddf899149c6ec78df71b13fd6f718579"
+  },
+  "data/raw/wrds/opprcd_CNQ_20250602_20250829.csv": {
+   "bytes": 6317163,
+   "sha1": "03b1d47ebfd90d83682ef954069dc491239028ce"
+  },
+  "data/raw/wrds/opprcd_RY_20250602_20250829.csv": {
+   "bytes": 2413858,
+   "sha1": "ba93bd281bbc26dcea502db41cafe1edac1df0fb"
+  },
+  "data/raw/wrds/opprcd_SU_20250602_20250829.csv": {
+   "bytes": 7396539,
+   "sha1": "c705725979e92d516920d63f643ed210991a46c9"
+  },
+  "data/raw/wrds/opprcd_TD_20250602_20250829.csv": {
+   "bytes": 2226062,
+   "sha1": "871d246630913bbf3bd2b7a0ff871317b295bc38"
+  },
+  "data/raw/wrds/prices_ABX.csv": {
+   "bytes": 240979,
+   "sha1": "80be386f3559b76df7b2a01608225400d5eb481f"
+  },
+  "data/raw/wrds/prices_BCE.csv": {
+   "bytes": 243833,
+   "sha1": "b4f95a696c9d3993ca6bbbd6bb23f1ade3397400"
+  },
+  "data/raw/wrds/prices_BMO.csv": {
+   "bytes": 246718,
+   "sha1": "59571a07e59a25bc9d7f7de1b36cd6a422cf8fda"
+  },
+  "data/raw/wrds/prices_BNS.csv": {
+   "bytes": 241371,
+   "sha1": "de7e23e3b735bc7ef9c16c3647087275799dc803"
+  },
+  "data/raw/wrds/prices_CM.csv": {
+   "bytes": 243140,
+   "sha1": "2f51a25856a84a400eadb8665323d5054b91f559"
+  },
+  "data/raw/wrds/prices_CNQ.csv": {
+   "bytes": 241139,
+   "sha1": "ac669b368239bf0cd0359225e0c55423d260bb22"
+  },
+  "data/raw/wrds/prices_CNR.csv": {
+   "bytes": 248295,
+   "sha1": "113b3c6481f2d25d1abeb09f11392c4d6a37da45"
+  },
+  "data/raw/wrds/prices_ENB.csv": {
+   "bytes": 241056,
+   "sha1": "c13faa47a4b1f99f1b1eac0faa87998b7e03dc55"
+  },
+  "data/raw/wrds/prices_MFC.csv": {
+   "bytes": 241269,
+   "sha1": "b998a7008cf3cd85b1445ca72697c40d102494aa"
+  },
+  "data/raw/wrds/prices_RY.csv": {
+   "bytes": 244978,
+   "sha1": "44f2c3cce3af72ca797794cf4e3bc22d4949008b"
+  },
+  "data/raw/wrds/prices_SHOP.csv": {
+   "bytes": 196870,
+   "sha1": "f54352632b581d812a05e9cdcd3029c898659927"
+  },
+  "data/raw/wrds/prices_SU.csv": {
+   "bytes": 238009,
+   "sha1": "bdd1c665297993e1467253b369ba22d612c9f743"
+  },
+  "data/raw/wrds/prices_TD.csv": {
+   "bytes": 238972,
+   "sha1": "a68fec4dfc1feb39ccec4d561090d675f9447c86"
+  },
+  "data/raw/wrds/prices_XEG.csv": {
+   "bytes": 237221,
+   "sha1": "ebdf75ffd9873727ce01b37f45245109b1f419f6"
+  },
+  "data/raw/wrds/prices_XIU.csv": {
+   "bytes": 241565,
+   "sha1": "f9308e84e14da7884875c574fd975fc098966936"
+  },
+  "data/raw/wrds/prices_ZEB.csv": {
+   "bytes": 239428,
+   "sha1": "3a183b8ab7fb74926680dfa5a72c33e576d116b7"
+  },
+  "data/raw/wrds/secprd_BMO_20250602_20250829.csv": {
+   "bytes": 5696,
+   "sha1": "04b19f94ee785aa3949b6f6bf24288a4ea610b1c"
+  },
+  "data/raw/wrds/secprd_BNS_20250602_20250829.csv": {
+   "bytes": 5536,
+   "sha1": "ce9467c72d5418f76a1e2ed46c31b8e94560caa8"
+  },
+  "data/raw/wrds/secprd_CM_20250602_20250829.csv": {
+   "bytes": 5470,
+   "sha1": "1d4f8a45296b8480e0714d2869805afea7910768"
+  },
+  "data/raw/wrds/secprd_CNQ_20250602_20250829.csv": {
+   "bytes": 5643,
+   "sha1": "4d18f70a34b900aaf8db3e5d3c650055dfc555dd"
+  },
+  "data/raw/wrds/secprd_RY_20250602_20250829.csv": {
+   "bytes": 5778,
+   "sha1": "dbfe1ff356722c67308615e0e8e336a0b8cab39a"
+  },
+  "data/raw/wrds/secprd_SU_20250602_20250829.csv": {
+   "bytes": 5655,
+   "sha1": "e40108d9ff23617bb861dcc938fedbb8861a78a4"
+  },
+  "data/raw/wrds/secprd_TD_20250602_20250829.csv": {
+   "bytes": 5518,
+   "sha1": "578f959d8c339a93c45b7d02ce2732d53704ad80"
+  },
+  "data/raw/wrds/zerocd_20250602_20250829.csv": {
+   "bytes": 18379,
+   "sha1": "094bb60fefc41b057817009b7b38460e49fa3a00"
+  },
+  "reference/abx_dividends.csv": {
+   "bytes": 1468,
+   "sha1": "f643cf7a732f66912d29885918d229c9ed5d8ec5"
+  },
+  "reference/bce_dividends.csv": {
+   "bytes": 1748,
+   "sha1": "53a4ee715cebbd938a7cf7c911748c275a8f576a"
+  },
+  "reference/bmo_dividends.csv": {
+   "bytes": 1606,
+   "sha1": "6f1ef22dedc34cabd5a6ef2cc89b47e9ec62af0b"
+  },
+  "reference/bns_dividends.csv": {
+   "bytes": 1616,
+   "sha1": "3bb7e5b32ec22ef6a3b0cef4bbfb74893b2ba926"
+  },
+  "reference/cnq_dividends.csv": {
+   "bytes": 1790,
+   "sha1": "e1cf548c41f3e69548c76c3bfe9187498fef7dfe"
+  },
+  "reference/cnr_dividends.csv": {
+   "bytes": 1671,
+   "sha1": "aaa7c1dbba7a5426f249d9c126d4aeed9d91fb3f"
+  },
+  "reference/dividend_announcements.csv": {
+   "bytes": 4412,
+   "sha1": "51d95e9823deb6e16ea705916c811b67ed8f324b"
+  },
+  "reference/enb_dividends.csv": {
+   "bytes": 1682,
+   "sha1": "6a724bb23a08fd0055928605f90461c1eef9ab08"
+  },
+  "reference/mfc_dividends.csv": {
+   "bytes": 1673,
+   "sha1": "654ad2399286a0e93486d128c5cf72a6c46af7c5"
+  },
+  "reference/ry_dividends.csv": {
+   "bytes": 2070,
+   "sha1": "e37b1818d2bbfda86519ba0835901ad2f8be0eb6"
+  },
+  "reference/shop_dividends.csv": {
+   "bytes": 48,
+   "sha1": "a3ed55026d72b67d8b33658e1d2a3b29be783bbf"
+  },
+  "reference/su_dividends.csv": {
+   "bytes": 1687,
+   "sha1": "c790e2d4a23f721111a0277a7f18e192b73c70bb"
+  },
+  "reference/td_dividends.csv": {
+   "bytes": 1574,
+   "sha1": "9135b513872ac8e727d9854254da5a0b53bd3a20"
+  },
+  "reference/xeg_dividends.csv": {
+   "bytes": 1425,
+   "sha1": "e367e0fdab72a8d0d6caa81c67302e9804cb0d3a"
+  },
+  "reference/xiu_dividends.csv": {
+   "bytes": 1792,
+   "sha1": "99ca74e82796674b0c9dc7ac5a62b2d3c418dfdc"
+  },
+  "reference/zeb_dividends.csv": {
+   "bytes": 3959,
+   "sha1": "1cb10d8b01642b7124548e921af9fda4b55dee37"
+  },
+  "books/bank_heavy.csv": {
+   "bytes": 487,
+   "sha1": "f6e38ad9de49e2cc675d3c6ab149ab56972385d0"
+  },
+  "books/diversified.csv": {
+   "bytes": 571,
+   "sha1": "1748e35707ea0c2b35c70d4bfab720317f14ff23"
+  }
+ },
+ "steps": [
+  {
+   "step": "base_RY",
+   "command": "scripts/run_days.py RY --base-only",
+   "seconds": 1.3,
+   "exit_code": 0
+  },
+  {
+   "step": "base_TD",
+   "command": "scripts/run_days.py TD --base-only",
+   "seconds": 1.3,
+   "exit_code": 0
+  },
+  {
+   "step": "base_BNS",
+   "command": "scripts/run_days.py BNS --base-only",
+   "seconds": 1.3,
+   "exit_code": 0
+  },
+  {
+   "step": "base_BMO",
+   "command": "scripts/run_days.py BMO --base-only",
+   "seconds": 1.3,
+   "exit_code": 0
+  },
+  {
+   "step": "base_SHOP",
+   "command": "scripts/run_days.py SHOP --base-only",
+   "seconds": 1.4,
+   "exit_code": 0
+  },
+  {
+   "step": "base_SU",
+   "command": "scripts/run_days.py SU --base-only",
+   "seconds": 1.4,
+   "exit_code": 0
+  },
+  {
+   "step": "base_BCE",
+   "command": "scripts/run_days.py BCE --base-only",
+   "seconds": 1.3,
+   "exit_code": 0
+  },
+  {
+   "step": "base_ABX",
+   "command": "scripts/run_days.py ABX --base-only",
+   "seconds": 1.4,
+   "exit_code": 0
+  },
+  {
+   "step": "base_CNR",
+   "command": "scripts/run_days.py CNR --base-only",
+   "seconds": 1.2,
+   "exit_code": 0
+  },
+  {
+   "step": "base_XIU",
+   "command": "scripts/run_days.py XIU --base-only",
+   "seconds": 1.9,
+   "exit_code": 0
+  },
+  {
+   "step": "base_CNQ",
+   "command": "scripts/run_days.py CNQ --base-only",
+   "seconds": 1.3,
+   "exit_code": 0
+  },
+  {
+   "step": "base_MFC",
+   "command": "scripts/run_days.py MFC --base-only",
+   "seconds": 1.3,
+   "exit_code": 0
+  },
+  {
+   "step": "base_ENB",
+   "command": "scripts/run_days.py ENB --base-only",
+   "seconds": 1.2,
+   "exit_code": 0
+  },
+  {
+   "step": "base_ZEB",
+   "command": "scripts/run_days.py ZEB --base-only",
+   "seconds": 2.1,
+   "exit_code": 0
+  },
+  {
+   "step": "base_XEG",
+   "command": "scripts/run_days.py XEG --base-only",
+   "seconds": 1.5,
+   "exit_code": 0
+  },
+  {
+   "step": "days_RY",
+   "command": "scripts/reproduce.py RY",
+   "seconds": 42.6,
+   "exit_code": 0
+  },
+  {
+   "step": "days_TD",
+   "command": "scripts/run_days.py TD",
+   "seconds": 2.5,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_TD",
+   "command": "scripts/front_chart.py TD",
+   "seconds": 46.6,
+   "exit_code": 0
+  },
+  {
+   "step": "days_BNS",
+   "command": "scripts/run_days.py BNS",
+   "seconds": 2.5,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_BNS",
+   "command": "scripts/front_chart.py BNS",
+   "seconds": 32.7,
+   "exit_code": 0
+  },
+  {
+   "step": "days_BMO",
+   "command": "scripts/run_days.py BMO",
+   "seconds": 2.5,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_BMO",
+   "command": "scripts/front_chart.py BMO",
+   "seconds": 48.8,
+   "exit_code": 0
+  },
+  {
+   "step": "days_SHOP",
+   "command": "scripts/run_days.py SHOP",
+   "seconds": 2.7,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_SHOP",
+   "command": "scripts/front_chart.py SHOP",
+   "seconds": 43.5,
+   "exit_code": 0
+  },
+  {
+   "step": "days_SU",
+   "command": "scripts/run_days.py SU",
+   "seconds": 2.6,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_SU",
+   "command": "scripts/front_chart.py SU",
+   "seconds": 50.4,
+   "exit_code": 0
+  },
+  {
+   "step": "days_BCE",
+   "command": "scripts/run_days.py BCE",
+   "seconds": 2.5,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_BCE",
+   "command": "scripts/front_chart.py BCE",
+   "seconds": 36.6,
+   "exit_code": 0
+  },
+  {
+   "step": "days_ABX",
+   "command": "scripts/run_days.py ABX",
+   "seconds": 2.6,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_ABX",
+   "command": "scripts/front_chart.py ABX",
+   "seconds": 42.3,
+   "exit_code": 0
+  },
+  {
+   "step": "days_CNR",
+   "command": "scripts/run_days.py CNR",
+   "seconds": 2.3,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_CNR",
+   "command": "scripts/front_chart.py CNR",
+   "seconds": 44.0,
+   "exit_code": 0
+  },
+  {
+   "step": "days_XIU",
+   "command": "scripts/run_days.py XIU",
+   "seconds": 3.1,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_XIU",
+   "command": "scripts/front_chart.py XIU",
+   "seconds": 94.0,
+   "exit_code": 0
+  },
+  {
+   "step": "days_CNQ",
+   "command": "scripts/run_days.py CNQ",
+   "seconds": 2.6,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_CNQ",
+   "command": "scripts/front_chart.py CNQ",
+   "seconds": 44.1,
+   "exit_code": 0
+  },
+  {
+   "step": "days_MFC",
+   "command": "scripts/run_days.py MFC",
+   "seconds": 2.5,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_MFC",
+   "command": "scripts/front_chart.py MFC",
+   "seconds": 39.9,
+   "exit_code": 0
+  },
+  {
+   "step": "days_ENB",
+   "command": "scripts/run_days.py ENB",
+   "seconds": 2.4,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_ENB",
+   "command": "scripts/front_chart.py ENB",
+   "seconds": 44.0,
+   "exit_code": 0
+  },
+  {
+   "step": "days_ZEB",
+   "command": "scripts/run_days.py ZEB",
+   "seconds": 3.4,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_ZEB",
+   "command": "scripts/front_chart.py ZEB",
+   "seconds": 108.6,
+   "exit_code": 0
+  },
+  {
+   "step": "days_XEG",
+   "command": "scripts/run_days.py XEG",
+   "seconds": 2.8,
+   "exit_code": 0
+  },
+  {
+   "step": "chart_XEG",
+   "command": "scripts/front_chart.py XEG",
+   "seconds": 59.1,
+   "exit_code": 0
+  },
+  {
+   "step": "summary",
+   "command": "scripts/summary_names.py",
+   "seconds": 2.8,
+   "exit_code": 0
+  },
+  {
+   "step": "split_RY",
+   "command": "scripts/funding_split.py RY",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_TD",
+   "command": "scripts/funding_split.py TD",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_BNS",
+   "command": "scripts/funding_split.py BNS",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_BMO",
+   "command": "scripts/funding_split.py BMO",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_SU",
+   "command": "scripts/funding_split.py SU",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_BCE",
+   "command": "scripts/funding_split.py BCE",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_ABX",
+   "command": "scripts/funding_split.py ABX",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_CNR",
+   "command": "scripts/funding_split.py CNR",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_XIU",
+   "command": "scripts/funding_split.py XIU",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_CNQ",
+   "command": "scripts/funding_split.py CNQ",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_MFC",
+   "command": "scripts/funding_split.py MFC",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_ENB",
+   "command": "scripts/funding_split.py ENB",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "split_XEG",
+   "command": "scripts/funding_split.py XEG",
+   "seconds": 0.9,
+   "exit_code": 0
+  },
+  {
+   "step": "dividends",
+   "command": "scripts/dividend_three_way.py",
+   "seconds": 1.5,
+   "exit_code": 0
+  },
+  {
+   "step": "index_funding",
+   "command": "scripts/index_funding.py",
+   "seconds": 1.2,
+   "exit_code": 0
+  },
+  {
+   "step": "hedge",
+   "command": "scripts/hedge_shares.py",
+   "seconds": 2.5,
+   "exit_code": 0
+  },
+  {
+   "step": "robustness",
+   "command": "scripts/robustness.py RY",
+   "seconds": 16.9,
+   "exit_code": 0
+  },
+  {
+   "step": "engine_RY",
+   "command": "scripts/engine_check.py RY",
+   "seconds": 54.8,
+   "exit_code": 0
+  },
+  {
+   "step": "engine_TD",
+   "command": "scripts/engine_check.py TD",
+   "seconds": 65.6,
+   "exit_code": 0
+  },
+  {
+   "step": "engine_BNS",
+   "command": "scripts/engine_check.py BNS",
+   "seconds": 55.1,
+   "exit_code": 0
+  },
+  {
+   "step": "engine_BMO",
+   "command": "scripts/engine_check.py BMO",
+   "seconds": 89.5,
+   "exit_code": 0
+  },
+  {
+   "step": "engine_CM",
+   "command": "scripts/engine_check.py CM",
+   "seconds": 46.3,
+   "exit_code": 0
+  },
+  {
+   "step": "engine_CNQ",
+   "command": "scripts/engine_check.py CNQ",
+   "seconds": 161.0,
+   "exit_code": 0
+  },
+  {
+   "step": "engine_SU",
+   "command": "scripts/engine_check.py SU",
+   "seconds": 289.2,
+   "exit_code": 0
+  },
+  {
+   "step": "demo",
+   "command": "scripts/demo_synthetic.py",
+   "seconds": 201.4,
+   "exit_code": 0
+  },
+  {
+   "step": "book_bank_heavy",
+   "command": "scripts/book_report.py books/bank_heavy.csv",
+   "seconds": 43.7,
+   "exit_code": 0
+  },
+  {
+   "step": "book_diversified",
+   "command": "scripts/book_report.py books/diversified.csv",
+   "seconds": 38.2,
+   "exit_code": 0
+  },
+  {
+   "step": "benchmark",
+   "command": "scripts/mark_benchmark.py",
+   "seconds": 183.0,
+   "exit_code": 0
+  }
+ ],
+ "finished": "2026-11-12T09:19:55",
+ "status": "ok",
+ "cache_fingerprints": {
+  "RY": "b8fd5d4829f4",
+  "TD": "22c3fb88eb83",
+  "BNS": "7541139e6f50",
+  "BMO": "ed4af11969f3",
+  "SHOP": "4b21377e567e",
+  "SU": "23066813a425",
+  "BCE": "68ae4ee90660",
+  "ABX": "681a6fab2d45",
+  "CNR": "8bf6eda05782",
+  "XIU": "a1b195e14da1",
+  "CNQ": "0b06a8ce8a4f",
+  "MFC": "7dc5cde3fbae",
+  "ENB": "f7e2612d8fac",
+  "ZEB": "108d2d059020",
+  "XEG": "63de5ef9bc72"
+ }
+}

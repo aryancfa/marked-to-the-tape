@@ -25,8 +25,7 @@ funding spread the options imply over the base curve: mean +17.7 bp a year, stan
 days with a spread to apply: 104 of 124, by source: {'own options, earlier days': 92, 'pooled across names, earlier days': 12} (other names with cached estimates: 14)
 spread applied (earlier days only): first +45.1, last +17.9, min +17.9, max +49.3 bp a year
 
-RY base curve plus spread: 104 days, 0 from cache, 104 to compute on 8 workers
-  computed in 282 s
+RY base curve plus spread: 104 days, 104 from cache, 0 to compute on 8 workers
 
 call minus put implied vol on the SAME 104 days (vol points).
 gap = mean weighted by quote tightness, se = standard error across days allowing
