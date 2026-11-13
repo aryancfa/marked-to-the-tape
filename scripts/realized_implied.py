@@ -150,7 +150,11 @@ def one_name(name: str) -> dict:
                 if is_monthly_expiry(e) and SKEW_DAYS[0] <= (e - d).days <= SKEW_DAYS[1]]
         if not near:
             continue
-        e = min(near, key=lambda x: abs((x - d).days - 45))
+        # sorted first: `near` comes from a set, whose order changes from run to
+        # run, and two monthlies can be equally far from 45 days. Unsorted, the
+        # tie went either way and the table moved in the second decimal between
+        # two runs of the same code. The nearer expiry now wins a tie.
+        e = min(sorted(near), key=lambda x: abs((x - d).days - 45))
         chain = rows(d, e)
         got = risk_reversal_butterfly(chain["strike"], chain["iv"], r["spot"],
                                       year_fraction(d, e), r["spot"]) if len(chain) else None
