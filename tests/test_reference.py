@@ -197,3 +197,57 @@ def test_a_published_date_with_no_row_in_the_schedule_raises(tmp_path):
         encoding="utf-8")
     with pytest.raises(ValueError):
         load_dividends(tmp_path / "zzz_dividends.csv")
+
+
+# ---------------------------------------------------------------------------
+# A dividend declared in US dollars
+# ---------------------------------------------------------------------------
+
+from loaders.reference import in_cad
+
+
+def _usd_payer():
+    """Made-up company declaring 0.10 US dollars a quarter, then 0.15."""
+    rows = [(date(2025, 2, 28), 0.10), (date(2025, 5, 30), 0.10), (date(2025, 8, 29), 0.15),
+            (date(2025, 11, 28), 0.15), (date(2026, 2, 27), 0.40), (date(2026, 5, 29), 0.15)]
+    out = [_D(d, c, "declared", None, None, "USD") for d, c in rows]
+    # declared later at a higher amount: unknown on a day in June
+    return out + [_D(date(2026, 8, 28), 0.20, "declared", date(2026, 8, 10), None, "USD")]
+
+
+def test_the_currency_column_is_read_and_defaults_to_canadian(tmp_path):
+    p = tmp_path / "zzz_dividends.csv"
+    p.write_text("ex_date,cash,status,currency,source\n"
+                 "2026-07-27,0.50,declared,USD,x\n2026-10-27,0.50,declared,,x\n",
+                 encoding="utf-8")
+    assert [x.currency for x in load_dividends(p)] == ["USD", "CAD"]
+    assert all(x.currency == "CAD" for x in load_dividends(
+        write(tmp_path, "2026-07-27,0.50,declared,made up\n")))
+    p.write_text("ex_date,cash,status,currency,source\n2026-07-27,0.50,declared,EUR,x\n",
+                 encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_dividends(p)
+
+
+def test_a_us_dollar_dividend_is_valued_at_the_days_rate():
+    """The rule repeats last year's US-dollar amount; the rate is the
+    valuation day's. Last year's exchange rate does not come along."""
+    day = date(2026, 6, 10)
+    out = as_known_on(_usd_payer(), day, "repeat", fx=lambda d: 1.40)
+    aug = next(x for x in out if x.ex_date.year == 2026 and x.ex_date.month == 8)
+    assert aug.status == "projected" and aug.cash == pytest.approx(0.15 * 1.40)
+    assert all(x.currency == "CAD" for x in out)
+    weaker = as_known_on(_usd_payer(), day, "repeat", fx=lambda d: 1.30)
+    assert next(x for x in weaker if x.ex_date == aug.ex_date).cash == pytest.approx(0.195)
+
+
+def test_us_dollar_amounts_are_never_passed_on_without_a_rate():
+    with pytest.raises(ValueError):
+        as_known_on(_usd_payer(), date(2026, 6, 10), "repeat")
+    with pytest.raises(ValueError):
+        in_cad(_usd_payer(), date(2026, 6, 10))
+
+
+def test_a_canadian_schedule_needs_no_rate_and_is_untouched():
+    q = _quarterly()
+    assert as_known_on(q, date(2026, 5, 1)) == as_known_on(q, date(2026, 5, 1), fx=lambda d: 9.9)

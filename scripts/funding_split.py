@@ -57,7 +57,8 @@ import numpy as np
 import pandas as pd
 
 from loaders.reference import load_dividends
-from run_days import fingerprint, one_per_day
+from fx import load_usdcad, rate_on
+from run_days import FX, fingerprint, one_per_day
 from surface import mean_std_error
 
 
@@ -72,7 +73,7 @@ def load(name: str) -> list[dict]:
     return one_per_day(out, f"{name} funding split")
 
 
-def implied_steps(results: list[dict], schedule) -> pd.DataFrame:
+def implied_steps(results: list[dict], schedule, fx=None) -> pd.DataFrame:
     """One row per (day, dividend not yet known that day): the schedule's
     amount and the amount the options imply, from the step in forward error
     across its ex-date. Only where exactly one such dividend falls between
@@ -94,8 +95,9 @@ def implied_steps(results: list[dict], schedule) -> pd.DataFrame:
             if sum(1 for y in schedule if e0 < y.ex_date <= e1) != 1:
                 continue                            # two dividends in the gap: not separable
             step_bp = float(s.loc[e1, "fwd_error_bp"] - s.loc[e0, "fwd_error_bp"])
-            rows.append(dict(date=day, ex_date=x.ex_date, schedule=x.cash, status=x.status,
-                             implied=x.cash - step_bp / 1e4 * r["spot"], step_bp=step_bp,
+            cash = x.cash if x.currency == "CAD" else x.cash * rate_on(fx, day)
+            rows.append(dict(date=day, ex_date=x.ex_date, schedule=cash, status=x.status,
+                             implied=cash - step_bp / 1e4 * r["spot"], step_bp=step_bp,
                              days_between=(e1 - e0).days))
     return pd.DataFrame(rows)
 
@@ -131,7 +133,12 @@ def main(name: str) -> None:
     say("2. BORROW: assumed zero. It cannot be told from funding in option prices, so any")
     say("   borrow cost is inside the funding number above.")
 
-    steps = implied_steps(results, schedule)
+    foreign = any(x.currency != "CAD" for x in schedule)
+    steps = implied_steps(results, schedule, load_usdcad(FX) if foreign else None)
+    if foreign:
+        say()
+        say("   This name declares in US dollars. Schedule amounts below are converted at")
+        say("   each valuation day's rate, as the day runner does, and averaged.")
     say()
     say("3. DIVIDENDS the options imply, against the schedule, for each dividend that was")
     say("   not yet known on the day (projected, or announced later):")

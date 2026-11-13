@@ -71,6 +71,9 @@ def steps() -> list[tuple[str, list[str]]]:
     out += [(f"book_{b}", [S + "book_report.py", f"books/{b}.csv"])
             for b in ("bank_heavy", "diversified")]
     out.append(("benchmark", [S + "mark_benchmark.py"]))
+    out += [(f"review_{b}", [S + "review_queue.py", f"books/{b}.csv"])
+            for b in ("bank_heavy", "diversified")]
+    out.append(("review_benchmark", [S + "review_benchmark.py"]))
     return out
 
 

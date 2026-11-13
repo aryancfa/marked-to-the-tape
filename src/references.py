@@ -539,6 +539,23 @@ def calendar_violations(curves: Sequence[tuple], floor_vol_points: float = 0.04)
 # one day: every difference against every reference
 # --------------------------------------------------------------------------
 
+def typical_miss(residual) -> float:
+    """How far a typical strike sits from its expiry's curve, in the
+    residual's own units: 1.4826 times the median absolute residual, which
+    equals the standard deviation when the misses are ordinary scatter.
+
+    This decides whether a curve is the wrong SHAPE for its expiry. A root
+    mean square was used first and it answered a different question: one
+    quote 4 vol points out lifted it past the quote bar, the whole expiry
+    was marked a poor fit, and the smile check was switched off for every
+    strike in it, on exactly the day it was needed. A median is not moved by
+    one quote, or by two; it is moved when most strikes miss, which is what
+    a wrong shape looks like."""
+    r = np.asarray(residual, dtype=float)
+    r = r[np.isfinite(r)]
+    return float(1.4826 * np.median(np.abs(r))) if len(r) else float("nan")
+
+
 def reference_differences(inverted: pd.DataFrame, spot: float,
                           published: str = "mx_iv",
                           divs: Sequence[tuple[date, float]] = (),
@@ -567,8 +584,9 @@ def reference_differences(inverted: pd.DataFrame, spot: float,
     not of the three shared numbers, which a single strike barely moves.
     An expiry that gets neither is counted, not dropped silently.
 
-    poor_fit marks smile rows from an expiry where the curve itself misses
-    by more than the typical quote bar. There the curve is the wrong shape,
+    poor_fit marks smile rows from an expiry where the curve's TYPICAL miss
+    (typical_miss: a median, so one or two bad quotes do not count) is more
+    than the typical quote bar. There the curve is the wrong shape,
     and a residual says so about the curve, not about the quote.
 
     The returned frame carries a count in `.attrs["smile"]`: expiries seen,
@@ -620,7 +638,7 @@ def reference_differences(inverted: pd.DataFrame, spot: float,
         count["slice"] += 1
         if k is not None:
             curves.append((T, fit.coef, float(k.min()), float(k.max())))
-        poor = bool(fit.rms * 100.0 > e["quote_bar"].median())
+        poor = bool(typical_miss(fit.residual) * 100.0 > e["quote_bar"].median())
         out.append(e[base].assign(
             reference=SMILE, side=e["call_put"], diff=fit.residual * 100.0,
             quote_bar=e["quote_bar"], tier=e["tier"], poor_fit=poor, smile_model="slice"))
@@ -650,11 +668,11 @@ def reference_differences(inverted: pd.DataFrame, spot: float,
                 continue
             count["surface"] += 1
             okr = np.isfinite(resid)
-            rms = float(np.sqrt(np.sum(vega[okr] * resid[okr] ** 2) / np.sum(vega[okr])))
             out.append(e[base].assign(
                 reference=SMILE, side=e["call_put"], diff=resid * 100.0,
                 quote_bar=e["quote_bar"], tier=e["tier"],
-                poor_fit=bool(rms * 100.0 > e["quote_bar"].median()), smile_model="surface"))
+                poor_fit=bool(typical_miss(resid) * 100.0 > e["quote_bar"].median()),
+                smile_model="surface"))
     else:
         count["unfitted"] = len(thin)
 

@@ -423,3 +423,47 @@ def test_ordinary_scatter_is_not_treated_as_bad_quotes():
     plain = fit_svi(SVI_K, iv, np.ones_like(SVI_K), SVI_T, robust=False)
     robust = fit_svi(SVI_K, iv, np.ones_like(SVI_K), SVI_T)
     assert np.abs(robust.residual - plain.residual).max() < 5e-4
+
+
+# ---------------------------------------------------------------------------
+# When is a curve the wrong shape for its expiry?
+# ---------------------------------------------------------------------------
+
+from references import typical_miss
+
+
+def test_typical_miss_is_the_scatter_and_ignores_a_gross_outlier():
+    rng = np.random.default_rng(3)
+    r = rng.normal(0.0, 0.004, 400)
+    assert typical_miss(r) == pytest.approx(0.004, rel=0.15)
+    r[:8] = 0.04                                        # 2% of quotes, ten times out
+    assert typical_miss(r) == pytest.approx(0.004, rel=0.2)
+    assert np.isnan(typical_miss([np.nan, np.nan]))
+
+
+def test_one_gross_bad_quote_does_not_switch_the_smile_check_off():
+    """A call 4 vol points high. The expiry's curve is still the right shape,
+    so its rows must stay usable, and the bad quote must show at full size.
+    Under the root-mean-square rule the whole expiry was dropped."""
+    def chain_with_bad_call():
+        c = chain(lambda K: smile(np.log(K / S0)))
+        T = year_fraction(VAL, NEAR)
+        hit = (c["strike"] == 52.5) & (c["call_put"] == "C")
+        px = crr_american(S0, 52.5, T, R, 0.0, smile(np.log(52.5 / S0)) + 0.04, [], True)
+        c.loc[hit, ["bid", "ask", "settle", "mark"]] = [px - HALF, px + HALF, px, px]
+        return c
+    d = reference_differences(invert_chain(chain_with_bad_call(), S0, R, []), S0)
+    s = d[d["reference"] == SMILE]
+    assert not s["poor_fit"].any()
+    bad = s[(s["strike"] == 52.5) & (s["side"] == "C")]["diff"]
+    assert bad.values == pytest.approx(4.0, abs=0.15)
+
+
+def test_a_curve_of_the_wrong_shape_is_still_called_a_poor_fit():
+    """Every other strike a point and a half off, alternating: no smooth
+    curve fits, most strikes miss, and the rows are marked."""
+    def zigzag(K):
+        i = list(STRIKES).index(K)
+        return smile(np.log(K / S0)) + (0.015 if i % 2 else -0.015)
+    d = reference_differences(invert_chain(chain(zigzag), S0, R, []), S0)
+    assert d[d["reference"] == SMILE]["poor_fit"].all()

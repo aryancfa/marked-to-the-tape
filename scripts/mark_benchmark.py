@@ -85,7 +85,10 @@ def one_day(task):
     key = ["expiry", "strike"]
     iv = inv[["date", "expiry", "strike", "call_put", "iv", "half_spread_vol"]].copy()
     iv["expiry"] = [e.date() if hasattr(e, "date") else e for e in iv["expiry"]]
-    sm = d[d["reference"] == SMILE].rename(columns={"side": "call_put", "diff": "smile"})
+    # exactly the production check (replay.check_mark): a smile row from an
+    # expiry whose curve is the wrong shape is not used
+    sm = d[(d["reference"] == SMILE) & ~d["poor_fit"].astype(bool)].rename(
+        columns={"side": "call_put", "diff": "smile"})
     iv = iv.merge(sm[key + ["call_put", "smile"]], on=key + ["call_put"], how="left")
     pr = d[d["reference"] == PAIR].rename(columns={"diff": "pair", "quote_bar": "pair_bar"})
     iv = iv.merge(pr[key + ["pair", "pair_bar"]], on=key, how="left")

@@ -23,11 +23,19 @@ two ways from the exchange's files:
 
 THE LIMIT, stated before the numbers. The basis gives funding minus dividend
 yield, and the two cannot be separated without the index's dividends over the
-contract's life. The index total-return series is not on disk. The split
-below uses XIU's distributions over the last twelve months as a stand-in for
-the index's yield, and every 10 basis points of error in that yield is 10
-basis points of error in the spread. Dividends are also seasonal, which a
-twelve-month average ignores. Treat the spread as a range, not a number.
+contract's life. Compustat carries no total-return series for the TSX 60
+(checked 12 November 2026: scripts/wrds_index_tr.py lists all 35 TSX indices
+and none has one). Two stand-ins are used and compared:
+
+  a. XIU's distributions over the last twelve months, over its price.
+  b. The S&P/TSX COMPOSITE's dividends: its total-return index less its
+     price index, day by day. A different index (about 220 names, not 60),
+     but measured daily and with nothing to do with any fund.
+
+Every 10 basis points of error in the yield is 10 basis points of error in
+the spread. For contracts that have expired, (b) also gives the dividends
+actually paid over the contract's life, which is hindsight and is labelled
+so. Treat the spread as a range, not a number.
 
 Prints DERIVED numbers only and writes them to reports/index_funding_numbers.txt.
 """
@@ -50,7 +58,6 @@ from voleng import implied_forward_european
 
 MX, BOC, WRDS = ROOT / "data/raw/mx", ROOT / "data/raw/boc", ROOT / "data/raw/wrds"
 MIN_OPEN_INTEREST, MIN_DAYS = 1000, 30
-YIELD_ERROR_BP = 30.0       # how wrong the stand-in yield could plausibly be
 
 
 def main() -> None:
@@ -71,6 +78,15 @@ def main() -> None:
     last = min(fut["date"].max(), xiu.index.max())
     year = xiu.loc[last - pd.DateOffset(days=364):last]
     yld = float(year["div"].sum() / year["prccd"].mean())
+    # the Composite's dividends each day, as a fraction of the index
+    paid, comp_yld = None, None
+    if (WRDS / "index_000193.csv").exists() and (WRDS / "index_000010.csv").exists():
+        both = pd.concat(
+            [pd.read_csv(WRDS / f"index_{g}.csv", parse_dates=["datadate"])
+             .set_index("datadate")["prccd"].rename(n)
+             for g, n in (("000010", "px"), ("000193", "tr"))], axis=1).dropna()
+        paid = np.log(both["tr"]).diff() - np.log(both["px"]).diff()
+        comp_yld = float(paid.loc[last - pd.DateOffset(days=364):last].sum())
 
     def rate(day, T):
         try:
@@ -84,6 +100,10 @@ def main() -> None:
         f"{fut['date'].min().date()} to {fut['date'].max().date()}.")
     say(f"Stand-in for the index's dividend yield: XIU's distributions over the twelve months "
         f"to {last.date()}, {yld * 100:.2f}% a year.")
+    if comp_yld is not None:
+        say(f"Second stand-in: the S&P/TSX Composite's dividends over the same twelve months "
+            f"(total-return index less price index), {comp_yld * 100:.2f}% a year. "
+            f"The two differ by {abs(comp_yld - yld) * 1e4:.0f} bp.")
 
     rows = []
     for (day, exp), g in fut.groupby(["date", "expiry"]):
@@ -96,7 +116,12 @@ def main() -> None:
         if r is None:
             continue
         net = (np.log(q["settle"] / idx[day]) / (days / 365.0) - r) * 1e4
-        rows.append(dict(date=day, expiry=exp.date(), days=days, net=net))
+        row = dict(date=day, expiry=exp.date(), days=days, net=net, realised=np.nan)
+        if paid is not None and exp <= paid.index.max():
+            # dividends the Composite went on to pay over this contract's life
+            row["realised"] = float(paid.loc[paid.index > day].loc[:exp].sum()
+                                    / (days / 365.0) * 1e4)
+        rows.append(row)
     d = pd.DataFrame(rows).sort_values("date")
 
     say()
@@ -109,16 +134,23 @@ def main() -> None:
         table.append({"contract": exp, "days": len(g),
                       "days to expiry": f"{g['days'].min()}-{g['days'].max()}",
                       "spread minus yield": m, "std_error": se, "sd": g["net"].std(),
-                      "spread at the stand-in yield": m + yld * 1e4})
+                      "spread at the stand-in yield": m + yld * 1e4,
+                      "spread at dividends paid (hindsight)": (g["net"] + g["realised"]).mean()})
     m, se = d["net"].mean(), mean_std_error(d["net"])
     table.append({"contract": "all", "days": len(d), "days to expiry": "",
                   "spread minus yield": m, "std_error": se, "sd": d["net"].std(),
-                  "spread at the stand-in yield": m + yld * 1e4})
-    say(pd.DataFrame(table).round(1).to_string(index=False))
-    centre = m + yld * 1e4
-    say(f"   Read as a range: {centre - YIELD_ERROR_BP:+.0f} to {centre + YIELD_ERROR_BP:+.0f} "
-        f"bp a year, taking the stand-in yield as good to {YIELD_ERROR_BP:.0f} bp. The "
-        f"statistical error ({se:.0f} bp) is small beside that.")
+                  "spread at the stand-in yield": m + yld * 1e4,
+                  "spread at dividends paid (hindsight)": (d["net"] + d["realised"]).mean()})
+    say(pd.DataFrame(table).round(1).to_string(index=False, na_rep="not expired"))
+    by = [t["spread at the stand-in yield"] for t in table[:-1]]
+    say(f"   By contract the spread runs from {min(by):+.0f} to {max(by):+.0f} bp. The two "
+        "yield stand-ins agree")
+    say("   closely, so that spread between contracts is in the basis itself (the future's")
+    say("   settlement against the index's close, and dividends bunching inside a contract's")
+    say("   life), not in the yield. The last column uses the Composite's dividends actually")
+    say("   paid over an expired contract's life: hindsight, shown as a check on the stand-in.")
+    say(f"   Read as a range of {min(by):+.0f} to {max(by):+.0f} bp a year, not a number. The "
+        f"statistical error on the pooled figure ({se:.0f} bp) is small beside it.")
     say("   For comparison: RY's options imply 17.7 bp (standard error 2.0) and XIU's own")
     say("   13.1 (4.2), both over the same CORRA futures curve.")
 

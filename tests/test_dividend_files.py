@@ -102,7 +102,8 @@ def test_every_schedule_can_be_rebuilt_as_it_was_known_on_the_first_day_of_data(
     name = path.stem.replace("_dividends", "")
     day = date(2026, 5, 8)
     assert has_history(divs, day, rule_for(name))
-    then = as_known_on(divs, day, rule_for(name))
+    # the rate's size does not matter here: only what was known and what was projected
+    then = as_known_on(divs, day, rule_for(name), fx=lambda d: 1.0)
     known = {x.ex_date for x in then if x.status == "declared"}
     # nothing announced after that day is in the schedule as a declared row
     assert all(x.announced is None or x.announced <= day for x in divs if x.ex_date in known)

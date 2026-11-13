@@ -34,6 +34,7 @@ import pandas as pd
 from tradingcal import TSX, trading_days
 
 STATUSES = ("declared", "projected")
+CURRENCIES = ("CAD", "USD")
 
 class Dividend(NamedTuple):
     ex_date: date
@@ -41,6 +42,7 @@ class Dividend(NamedTuple):
     status: str                     # "declared" or "projected"
     announced: date | None = None   # None: known before the data starts
     date_known: date | None = None  # the ex-DATE was published by the issuer on this day
+    currency: str = "CAD"           # the currency the dividend is DECLARED in
 
 
 PUBLISHED = "published_dates.csv"
@@ -71,9 +73,14 @@ def load_dividends(path: str | Path) -> list[Dividend]:
     missing = sorted(set(pub) - {d.date() for d in df["ex_date"]})
     if missing:
         raise ValueError(f"{path}: published ex-dates with no row in the schedule: {missing}")
+    cur = (df["currency"].fillna("CAD").str.upper() if "currency" in df.columns
+           else pd.Series("CAD", index=df.index))
+    odd = sorted(set(cur) - set(CURRENCIES))
+    if odd:
+        raise ValueError(f"{path}: unknown currency {odd}; expected one of {CURRENCIES}")
     return [Dividend(d.date(), float(c), str(s), None if pd.isna(a) else a.date(),
-                     pub.get(d.date()))
-            for d, c, s, a in zip(df["ex_date"], df["cash"], df["status"], ann)]
+                     pub.get(d.date()), str(k))
+            for d, c, s, a, k in zip(df["ex_date"], df["cash"], df["status"], ann, cur)]
 
 
 # Names whose payout varies with results or holdings: the next one is taken to
@@ -129,7 +136,34 @@ def project(known: Sequence[tuple[date, float]], rule: str,
     return out
 
 
-def as_known_on(divs: Sequence[Dividend], day: date, rule: str = "raise") -> list[Dividend]:
+def in_cad(divs: Sequence[Dividend], day: date, fx=None) -> list[Dividend]:
+    """Every dividend in Canadian dollars, as valued on `day`.
+
+    A dividend declared in US dollars takes the share price down by the
+    amount times the exchange rate on its ex-date. Seen from `day` that rate
+    is not known; the rate on `day` stands in for it (see src/fx.py), so the
+    amount is re-converted every valuation day. `fx(day)` gives Canadian
+    dollars per US dollar. With a US-dollar row and no `fx` this raises: an
+    amount in the wrong currency is never passed on as if it were right."""
+    if all(x.currency == "CAD" for x in divs):
+        return list(divs)
+    if fx is None:
+        raise ValueError("the schedule has US-dollar dividends and no exchange rate was given")
+    rate = float(fx(day))
+    return [x if x.currency == "CAD" else x._replace(cash=round(x.cash * rate, 6),
+                                                     currency="CAD") for x in divs]
+
+
+def as_known_on(divs: Sequence[Dividend], day: date, rule: str = "raise",
+                fx=None) -> list[Dividend]:
+    """Point-in-time schedule in Canadian dollars: _as_known_on, then in_cad.
+    The projection rule runs in the currency the dividends are declared in,
+    so a US-dollar payer repeats last year's US-dollar amount, and only then
+    is everything converted at `day`'s rate."""
+    return in_cad(_as_known_on(divs, day, rule), day, fx)
+
+
+def _as_known_on(divs: Sequence[Dividend], day: date, rule: str = "raise") -> list[Dividend]:
     """
     The schedule as it could have been written on `day`: point-in-time.
 
@@ -164,14 +198,16 @@ def as_known_on(divs: Sequence[Dividend], day: date, rule: str = "raise") -> lis
         return list(divs)
     hand = [x for x in divs if x.status == "projected"]
     firm = [x for x in divs if x.date_known is not None and x.date_known <= day]
+    money = known[-1].currency if known else "CAD"      # projections follow the declared ones
     out = list(known)
     for d, cash in chain:
         pub = [x for x in firm if abs((x.ex_date - d).days) <= 15]
         if pub:
-            out.append(Dividend(pub[0].ex_date, cash, "projected", None, pub[0].date_known))
+            out.append(Dividend(pub[0].ex_date, cash, "projected", None, pub[0].date_known,
+                                money))
             continue
         near = [x.ex_date for x in hand if abs((x.ex_date - d).days) <= 15]
-        out.append(Dividend(near[0] if near else d, cash, "projected", None))
+        out.append(Dividend(near[0] if near else d, cash, "projected", None, None, money))
     return sorted(out, key=lambda x: x.ex_date)
 
 

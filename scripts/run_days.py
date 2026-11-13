@@ -58,6 +58,7 @@ import pandas as pd
 from loaders.mx import load_mx_futures, load_mx_options, load_mx_underlying
 from loaders.reference import (PUBLISHED, as_known_on, first_projected, has_history,
                                load_dividends, rule_for, uncertain_ex_dates)
+from fx import USDCAD, load_usdcad, rate_on
 from rates import load_base_curve, load_curve
 from surface import (OWN, POOLED, analyse_day, choose_spread, mean_std_error,
                      pool_across_days, rejection_tally, vs_exchange)
@@ -65,7 +66,8 @@ from tradingcal import is_monthly_expiry
 
 BOC = ROOT / "data/raw/boc"
 PRICING_MODULES = ("voleng.py", "surface.py", "rates.py",
-                   "tradingcal.py", "loaders/mx.py", "loaders/reference.py")
+                   "tradingcal.py", "loaders/mx.py", "loaders/reference.py", "fx.py")
+FX = ROOT / "data/raw/fx" / USDCAD
 
 
 MX = ROOT / "data/raw/mx"
@@ -88,6 +90,9 @@ def fingerprint(underlying: str) -> str:
     files.append(ROOT / "reference" / f"{underlying.lower()}_dividends.csv")
     if (ROOT / "reference" / PUBLISHED).exists():       # ex-dates published in advance
         files.append(ROOT / "reference" / PUBLISHED)
+    schedule_file = ROOT / "reference" / f"{underlying.lower()}_dividends.csv"
+    if b",USD," in schedule_file.read_bytes():
+        files.append(FX)                                # only a US-dollar payer needs the rate
     for f in files:
         h.update(f.name.encode())
         h.update(f.read_bytes().replace(b"\r\n", b"\n"))
@@ -130,7 +135,9 @@ def one_day(task) -> dict:
     # known that day, not with amounts and dates declared later.
     rule = rule_for(opt["name"])
     out["dividend_history"] = has_history(schedule, day, rule)
-    schedule = as_known_on(schedule, day, rule)
+    rates_fx = opt.get("fx")
+    schedule = as_known_on(schedule, day, rule,
+                           fx=(lambda d: rate_on(rates_fx, d)) if rates_fx else None)
     if opt["flat"]:
         declared = [x.cash for x in schedule if x.status == "declared"]
         if declared:
@@ -315,7 +322,8 @@ def main() -> None:
                 dict(opt, spread_source=source))
 
     opt = dict(ex_shift=a.ex_shift, steps=a.steps, spot_pairs=a.spot_pairs,
-               spot_last=a.spot_last, name=name, flat=a.flat_dividends)
+               spot_last=a.spot_last, name=name, flat=a.flat_dividends,
+               fx=load_usdcad(FX) if any(x.currency != "CAD" for x in schedule) else None)
     tag = ("" if a.ex_shift is None else f"_x{a.ex_shift:g}") \
         + ("" if a.steps == 400 else f"_n{a.steps}") \
         + ("" if a.spot_pairs == 5 else f"_k{a.spot_pairs}") \

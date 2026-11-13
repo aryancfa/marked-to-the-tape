@@ -53,6 +53,12 @@ from loaders.reference import project, rule_for
 NAMES = ["TD", "BNS", "BMO", "CNQ", "SU", "MFC", "ENB", "CNR", "BCE", "ABX", "ZEB", "XEG",
          "SHOP"]
 RULES = {n: ("none" if n == "SHOP" else rule_for(n)) for n in NAMES}
+# Declared in US dollars: the amounts come from the New York listing
+# (scripts/wrds_usd_dividends.py) and the schedule carries currency USD. The
+# day runner converts at each valuation day's rate (src/fx.py). Compustat's
+# Toronto figure is the same dividend already converted at the rate of the
+# day it was paid, so projecting from it repeats last year's exchange rate.
+USD_DECLARED = {"ABX"}
 FIRST = date(2025, 1, 1)            # well over a year before the option files start
 DATA_START = date(2026, 5, 8)       # first day of the exchange option files
 HORIZON = date(2027, 12, 31)        # the longest expiry used is about 400 days out
@@ -64,8 +70,14 @@ def build(name: str) -> pd.DataFrame:
     cols = ["underlying", "ex_date", "cash", "status", "announced", "source"]
     if rule == "none":
         return pd.DataFrame(columns=cols)
-    raw = pd.read_csv(ROOT / "data/raw/wrds" / f"prices_{name}.csv", parse_dates=["datadate"])
+    usd = name in USD_DECLARED
+    raw = pd.read_csv(ROOT / "data/raw/wrds" / (f"usd_dividends_{name}.csv" if usd else
+                                                 f"prices_{name}.csv"),
+                      parse_dates=["datadate"])
     raw["div"] = pd.to_numeric(raw["div"], errors="coerce")
+    where = ("Compustat daily file, New York listing (cash dividend in US dollars on its "
+             "ex-date); read 2026-11-12." if usd else
+             f"Compustat daily file (cash dividend on its ex-date); read {READ}.")
     today = pd.Timestamp(READ)
     paid = raw[(raw["datadate"] >= pd.Timestamp(FIRST)) & (raw["datadate"] <= today)
                & (raw["div"] > 0)]
@@ -86,8 +98,7 @@ def build(name: str) -> pd.DataFrame:
             when = "" if a is None else a.announced.date()
         rows.append(dict(underlying=name, ex_date=d, cash=c, status="declared",
                          announced=when,
-                         source=f"Compustat daily file (cash dividend on its ex-date); "
-                                f"read {READ}.{note}"))
+                         source=f"{where}{note}"))
     for d, a in sorted(told.items()):               # declared, ex-date still to come
         if pd.isna(a.cash) or d <= known[-1][0]:
             raise SystemExit(f"{name}: announcement for {d} matches no dividend on file")
@@ -103,7 +114,10 @@ def build(name: str) -> pd.DataFrame:
                "same point a year earlier")
         rows.append(dict(underlying=name, ex_date=d, cash=cash, status="projected",
                          announced="", source=why))
-    return pd.DataFrame(rows, columns=cols)
+    out = pd.DataFrame(rows, columns=cols)
+    if usd:
+        out.insert(4, "currency", "USD")
+    return out
 
 
 def main(names: list[str]) -> None:

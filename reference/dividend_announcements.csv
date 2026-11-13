@@ -22,7 +22,7 @@ CNR,2026-09-08,,2026-07-24,CN release of 2026-07-24 (0.915; record date 2026-09-
 CNR,2026-12-09,0.915,2026-10-30,CN release of 2026-10-30 (0.915; record date 2026-12-09); found by web search 2026-11-12. Ex-date taken as the record date
 BCE,2026-06-15,,2026-05-06,BCE's published 2026 dividend schedule (declared 2026-05-06; record date 2026-06-15); found by web search 2026-11-12
 BCE,2026-09-15,,2026-08-06,BCE's schedule says declared 2026-08-05 and a news report says 2026-08-06; the later date is used so nothing is treated as known early; found by web search 2026-11-12
-ABX,2026-05-29,,2026-05-11,Barrick release of 2026-05-11 (US$0.175; record date 2026-05-29). Declared in US dollars; the amount on file is Compustat's Canadian-dollar figure; found by web search 2026-11-12
+ABX,2026-05-29,,2026-05-11,Barrick release of 2026-05-11 (US$0.175; record date 2026-05-29). found by web search 2026-11-12
 ZEB,2026-05-28,,2026-05-20,BMO release of 2026-05-20 (ex-date 2026-05-28); found by web search 2026-11-12
 ZEB,2026-06-29,,2026-06-22,ESTIMATE: release not found. This fund's three releases that were found came 7 to 8 days before the ex-date; 7 days is assumed
 ZEB,2026-07-30,,2026-07-23,BMO release of 2026-07-23 (ex-date 2026-07-30); found by web search 2026-11-12
@@ -31,3 +31,4 @@ ZEB,2026-09-29,,2026-09-22,ESTIMATE: release not found; 7 days before the ex-dat
 ZEB,2026-10-29,,2026-10-22,ESTIMATE: release not found; 7 days before the ex-date assumed as for June
 XEG,2026-06-25,,2026-06-18,BlackRock Canada release of 2026-06-18 (0.150; record date 2026-06-25); found by web search 2026-11-12
 XEG,2026-09-24,,2026-09-17,BlackRock Canada's 2026 Fund Distributions Schedule gives 2026-09-17 as the declaration date (0.173; record date 2026-09-24); read 2026-11-12
+ABX,2026-11-30,0.175,2026-11-09,Barrick release of 2026-11-09 (US$0.175; record date 2026-11-30; payable 2026-12-15); found by web search 2026-11-12. Ex-date taken as the record date
