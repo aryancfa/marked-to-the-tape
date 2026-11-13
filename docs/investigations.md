@@ -94,6 +94,11 @@ says nothing about illiquid series, where bad quotes are common.
   and missed the higher base dividend.
 - Changed: the schedule holds US dollars and is converted at each valuation day's
   rate. It also gained a dividend declared on 9 November that the file lacked.
+- Result: the gap barely moved, -0.82 to -0.77. The currency was a real error but
+  not the main one. The options price Barrick's coming dividends about a quarter
+  above "the same as last year": its policy pays a top-up tied to cash flow, and
+  the rule knows nothing of the gold price. This one is half explained, and the
+  rest is a projection rule that does not suit this company.
 
 ## The tool
 

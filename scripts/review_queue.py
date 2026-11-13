@@ -213,8 +213,7 @@ def draw(r, history: pd.DataFrame, path: Path) -> None:
     if len(mine):
         a1.plot(mine["strike"], mine["diff"], "o", ms=14, mfc="none", mec="#d62728", mew=2)
     if not (d["reference"] == SMILE).any():
-        a1.text(0.5, 0.5, "no smile for this expiry on this day:
-too few strikes near the "
+        a1.text(0.5, 0.5, "no smile for this expiry on this day:\ntoo few strikes near the "
                 "money to fit one", ha="center", va="center", transform=a1.transAxes,
                 fontsize=9)
     a1.axhline(0, color="black", lw=0.5)
