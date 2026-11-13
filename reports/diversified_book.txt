@@ -19,68 +19,68 @@ All figures are dollars summed over positions, or counts. Marks are the exchange
    name bucket                                           
    RY   31-90d   361,768  11,567   502   -101           0
    TD   31-90d    37,584  -5,572  -265     43           0
-   MFC  91-180d  185,399   6,666   514    -54           0
-   CNQ  91-180d  138,667   3,950   451    -63           0
+   MFC  91-180d  185,385   6,666   514    -54           0
+   CNQ  91-180d  138,660   3,950   451    -63           0
    SU   91-180d  109,094   4,280   441    -64           0
-   ENB  31-90d   162,746 -12,043  -365     35           0
+   ENB  31-90d   162,753 -12,042  -365     35           0
    CNR  91-180d  157,992   6,296   425    -41           0
    BCE  31-90d  -104,934   5,095   217    -27           0
-   ABX  91-180d   75,184   2,883   387    -68           0
+   ABX  91-180d   75,172   2,883   387    -69           0
    SHOP 31-90d   139,694     923    60    -24           0
-   XIU  91-180d -181,303  22,825 1,177    -51           0
+   XIU  91-180d -182,928  23,175 1,180    -51           0
    by maturity, all names (vega on different names added dollar for dollar, which
    treats one name's vol point as another's; no beta weighting yet):
              delta  gamma  vega  theta
    bucket                             
-   31-90d  596,857    -29   149    -74
-   91-180d 485,033 46,900 3,396   -341
+   31-90d  596,864    -29   149    -74
+   91-180d 483,376 47,249 3,399   -342
 
 3. WHY THE BOOK'S VALUE CHANGED, day by day
    127 days explained; position-days with no explanation because a mark was missing on that day or the day before: 0
               sum over the period  daily st. dev.  worst day  best day  share of daily variance %
-   carry                  -54,455             302     -1,502       736                         -0
-   dividends                 -389              23       -182        30                         -0
-   delta                   99,462           7,620    -21,069    24,937                        100
-   gamma                   46,948             412       -438     3,640                         -1
-   vol                      7,286             878     -1,903     2,613                          1
-   total                   98,852           7,594    -19,118    26,555                        100
+   carry                  -54,070             318     -1,503       736                          0
+   dividends                 -431              23       -177        36                         -0
+   delta                  -12,117           7,152    -35,502    17,066                         99
+   gamma                   46,984             412       -437     3,640                         -2
+   vol                      7,007             876     -1,901     2,603                          3
+   total                  -12,628           7,186    -33,404    17,179                        100
    carry = a day passing (decay, funding, rates); dividends = a change in the
    schedule; delta and gamma = the share moving; vol = implied vol moving. The five
    add up to the change in the marks exactly. 'share of daily variance' is each
    part's covariance with the total, so the column adds to 100.
    five worst days:
-               carry  dividends   delta  gamma  vol   total
-   day                                                     
-   2026-06-05   -208          0 -21,069  1,416  743 -19,118
-   2026-10-22   -481          0 -18,921  1,007  469 -17,927
-   2026-11-02 -1,155          0 -16,011  1,079 -946 -17,034
-   2026-09-08 -1,305          0 -16,604    468  871 -16,571
-   2026-10-07   -393          0 -16,090    707 -438 -16,213
+               carry  dividends   delta  gamma    vol   total
+   day                                                       
+   2026-11-04   -408          1 -35,502  3,640 -1,134 -33,404
+   2026-11-02 -1,155         -1 -22,638  1,095   -816 -23,514
+   2026-08-04 -1,215         -3 -19,322    710 -1,084 -20,914
+   2026-10-15   -390          4 -13,945    501   -244 -14,075
+   2026-05-25   -791          1 -13,125    596    986 -12,333
 
 4. WHICH MARKS ARE IN DISPUTE (a check fails beyond 1 quote bar(s) and the
    solver's noise floor of 0.04 vol points)
-   valued option position-days: 1503; with at least one reference: 1246 (82.9%); failed a check: 32 (2.6% of those checked)
-   failed, by check: {'pair': 24, 'smile': 10}
+   valued option position-days: 1503; with at least one reference: 1246 (82.9%); failed a check: 26 (2.1% of those checked)
+   failed, by check: {'pair': 20, 'smile': 6}
    not checkable: 257 position-days, {'outside the strikes the references cover': 257}
    marks resting on a settlement alone: 0
-   days with at least one failed mark: 29 of 128
-   dollars in dispute per day (position vega x disagreement): mean 191, median 0, largest 2,308
-   against the day's P&L (absolute): the dispute is more than 10% of it on 19 days and more than 50% on 6 of 127
+   days with at least one failed mark: 23 of 128
+   dollars in dispute per day (position vega x disagreement): mean 161, median 0, largest 2,100
+   against the day's P&L (absolute): the dispute is more than 10% of it on 18 days and more than 50% on 5 of 127
    against the day's P&L with the share move taken out (carry, gamma, vol and dividends;
-   daily st. dev. 976): the dispute is more than 10% of it on 28 days, more than 50% on 22 and larger than it on 17 of 127
-   P&L booked on marks that failed a check that day: 50,110 of 2,184,919 (sum of absolute daily option P&L)
+   daily st. dev. 969): the dispute is more than 10% of it on 22 days, more than 50% on 17 and larger than it on 14 of 127
+   P&L booked on marks that failed a check that day: 42,960 of 2,184,919 (sum of absolute daily option P&L)
    series flagged most often (vol points; dollars per flagged day):
                         days  mean_abs_pair  mean_abs_smile  mean_dispute
    series                                                                
-   ABX Mar 2027 60 C      14           1.82            0.78        909.03
-   TD Jan 2027 160 P       8           0.76            0.35        464.49
-   RY Jan 2027 270 C       3           0.65            0.32        742.06
+   ABX Mar 2027 60 C       8           1.81             NaN       1011.66
+   TD Jan 2027 160 P       7           0.80            0.41        501.42
+   RY Jan 2027 270 C       3           0.60            0.32        688.25
    MFC Mar 2027 60 C       3           1.63             NaN        989.96
+   XIU Mar 2027 52 P       2           0.79            0.40        630.51
    ENB Jan 2027 70 P       1           1.44             NaN        988.37
-   BCE Jan 2027 31 P       1           0.18            0.49        157.14
-   SHOP Jan 2027 180 P     1           0.36            2.21        824.32
    SU Mar 2027 95 C        1           1.52             NaN        883.40
-   of the P&L on failed marks, the vol step is 6,404: a mark that is
+   SHOP Jan 2027 180 P     1           0.36            2.21        824.32
+   of the P&L on failed marks, the vol step is 5,821: a mark that is
    off shows up as a vol move today and its reversal later.
 
 5. WHAT A WRONG DIVIDEND WOULD COST, dollars (vol and share price held): every
@@ -96,11 +96,11 @@ All figures are dollars summed over positions, or counts. Marks are the exchange
    ENB                   -210                             4                   -117                              0
    CNR                    -55                             9                    -48                             24
    BCE                    121                            -3                     78                             -4
-   ABX                    -74                            16                    -37                             13
+   ABX                    -74                            16                    -38                             13
    SHOP                     0                             0                      0                              0
    XIU                    309                           -23                     99                             -7
    XEG                      0                             0                      0                              0
-   BOOK                  -474                           297                   -249                            307
-   for scale: one vol point on the whole book is 3,545; one day's decay is -416
+   BOOK                  -473                           297                   -250                            308
+   for scale: one vol point on the whole book is 3,548; one day's decay is -416
    found by this project: RY's 2027 dividends 5 cents a quarter lower, as its options imply: +0
    found by this project: XIU's distribution on 19 November, not 25 (valued 2026-11-06): +0

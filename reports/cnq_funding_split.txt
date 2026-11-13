@@ -4,8 +4,8 @@ public or projected by rule, and the implied ones are computed from option price
 CNQ: 104 days, 2026-06-08 to 2026-11-04.
 
 1. FUNDING (fitted on expiries with declared dividends, earlier days only):
-   applied: 31.2 to 49.3 bp a year, last 31.2.
-   left over on the same days after applying it: -25.8 bp a year (standard error 7.6). Near zero means the spread did its job.
+   applied: 30.8 to 48.4 bp a year, last 30.8.
+   left over on the same days after applying it: -25.2 bp a year (standard error 7.6, 31 days). Near zero means the spread did its job.
 
 2. BORROW: assumed zero. It cannot be told from funding in option prices, so any
    borrow cost is inside the funding number above.
@@ -13,10 +13,10 @@ CNQ: 104 days, 2026-06-08 to 2026-11-04.
 3. DIVIDENDS the options imply, against the schedule, for each dividend that was
    not yet known on the day (projected, or announced later):
    ex_date    status  days  schedule  implied  std_error  implied minus schedule      t  expiries apart (days)
-2026-09-11  declared    41     0.625    0.611      0.007                  -0.014 -1.953                   28.0
-2026-12-15  declared   104     0.625    0.628      0.003                   0.003  1.262                   28.0
-2027-03-19 projected   104     0.662    0.651      0.010                  -0.012 -1.163                   28.0
-   Projected dividends seen on 20+ days: schedule total 0.662, implied total 0.651 (-1.7%).
+2026-09-11  declared    41     0.625    0.610      0.007                  -0.015 -2.085                   28.0
+2026-12-15  declared   104     0.625    0.628      0.003                   0.003  1.016                   28.0
+2027-03-19 projected   104     0.662    0.650      0.010                  -0.013 -1.274                   28.0
+   Projected dividends seen on 20+ days: schedule total 0.662, implied total 0.650 (-1.9%).
    Read with the limit in mind: one basis point a year of funding left out is
    one basis point of share price per year of maturity, and lands in these.
    For scale, on this name one basis point of the share price is 0.007 a share.

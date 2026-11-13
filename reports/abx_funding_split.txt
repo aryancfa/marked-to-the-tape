@@ -4,21 +4,24 @@ public or projected by rule, and the implied ones are computed from option price
 ABX: 108 days, 2026-06-08 to 2026-11-10.
 
 1. FUNDING (fitted on expiries with declared dividends, earlier days only):
-   applied: 31.1 to 49.3 bp a year, last 31.1.
-   left over on the same days after applying it: +nan bp a year (standard error nan). Near zero means the spread did its job.
+   applied: 30.6 to 48.4 bp a year, last 30.7.
+   left over on the same days after applying it: -15.9 bp a year (standard error 2.1, 2 days). Near zero means the spread did its job.
 
 2. BORROW: assumed zero. It cannot be told from funding in option prices, so any
    borrow cost is inside the funding number above.
 
+   This name declares in US dollars. Schedule amounts below are converted at
+   each valuation day's rate, as the day runner does, and averaged.
+
 3. DIVIDENDS the options imply, against the schedule, for each dividend that was
    not yet known on the day (projected, or announced later):
    ex_date    status  days  schedule  implied  std_error  implied minus schedule      t  expiries apart (days)
-2026-08-31  declared    53     0.242    0.298      0.014                   0.055  4.094                   21.0
-2026-11-27 projected   108     0.245    0.243      0.008                  -0.002 -0.270                   28.0
-2027-02-26 projected   108     0.573    0.674      0.010                   0.101 10.558                   28.0
-2027-05-28 projected   101     0.241    0.340      0.007                   0.099 14.738                   91.0
-2027-08-31 projected    39     0.242    0.314      0.015                   0.072  4.841                   91.0
-   Projected dividends seen on 20+ days: schedule total 1.302, implied total 1.571 (+20.7%).
+2026-08-31  declared    53     0.244    0.298      0.013                   0.054  4.046                   21.0
+2026-11-30  declared   106     0.244    0.264      0.003                   0.020  6.192                   28.0
+2027-02-26 projected   108     0.586    0.679      0.010                   0.093  9.590                   28.0
+2027-05-28 projected   101     0.246    0.337      0.007                   0.092 13.869                   91.0
+2027-08-31 projected    39     0.244    0.313      0.015                   0.069  4.688                   91.0
+   Projected dividends seen on 20+ days: schedule total 1.075, implied total 1.330 (+23.6%).
    Read with the limit in mind: one basis point a year of funding left out is
    one basis point of share price per year of maturity, and lands in these.
    For scale, on this name one basis point of the share price is 0.006 a share.

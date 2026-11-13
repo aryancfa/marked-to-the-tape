@@ -1,0 +1,43 @@
+Every figure here comes from invented data (scripts/demo_synthetic.py).
+Two sets of five markets, 16 days each, quotes about as wide as a liquid
+Montreal name's. Thresholds were searched on the first set; everything below
+is the SECOND set, which played no part in choosing them.
+
+1. THRESHOLDS: CHOSEN ON ONE SET, SCORED ON THE OTHER
+   share of flagged, faulty quotes whose cause was called right, averaged over
+   the kinds of fault so that no one kind decides it:
+                                      first set   second set
+   shipped defaults       (2, 0.5, 0.5)     79.6%       87.5%
+   best on the first set  (1, 0.3, 0.7)     81.8%       87.5%
+   (thresholds are min_others, shared, together; 27 combinations searched)
+   On the second set the tuned choice is +0.1 points against the defaults: not enough to change them.
+
+2. WHAT THE QUEUE CALLED EACH PLANTED FAULT (second set, shipped defaults)
+                                    quotes  flagged %  called this mark %  called partner's quote %  called an input %  called the fitted curve %  called unclear %
+   fault planted   true cause                                                                                                                                      
+   bad quote       clean              1384          1                   0                         0                  0                        100                 0
+                   partner's quote      22         50                   0                        91                  0                          0                 9
+                   this mark            22         91                  95                         0                  0                          0                 5
+   stale quote     clean              1384          0                   0                         0                  0                        100                 0
+                   partner's quote      22         23                   0                       100                  0                          0                 0
+                   this mark            22         73                 100                         0                  0                          0                 0
+   dividend date   clean              1140          0                   0                         0                  0                        100                 0
+                   an input            288         99                   0                         0                100                          0                 0
+   dividend amount clean               276          1                   0                         0                  0                        100                 0
+                   an input           1152          1                  73                         0                 27                          0                 0
+   share price     an input           1424         71                   0                         0                100                          0                 0
+   'flagged %' is how many of those quotes failed a check at all. The 'called'
+   columns split the flagged ones and add to 100. A clean row is false alarms.
+
+3. IN ONE LINE EACH
+   cause called right, averaged over kinds of fault: 87% (1365 flagged faulty quotes)
+   an input fault mistaken for a quote to re-mark (called 'this mark'): 1% of 1313
+   a bad or stale mark mistaken for an input: 0% of 36
+   false alarms: 4 per 1,000 clean quotes
+
+4. DO THE FAULTS THAT MATTER MOST COME FIRST? (bad quotes, where the size is known)
+   of the planted cost in the market, the share sitting in flagged quotes: 98%
+   each day, of the top of the queue (as many items as it holds planted quotes), the share that are planted: 60%
+   (the rest are mostly the clean quote across the same strike: the call-put check
+   flags both sides at the same size, and it is the cause label that tells them apart)
+   rank correlation between the queue's dollars and the true cost, over the 20 planted quotes flagged: +0.98

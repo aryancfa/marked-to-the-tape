@@ -82,7 +82,8 @@ def inline(text: str) -> str:
     out = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)",
                  lambda m: f'<img src="{asset(m.group(2))}" alt="{m.group(1)}">', out)
     out = re.sub(r"\[([^\]]+)\]\(([^)]+)\)",
-                 lambda m: f'<a href="{link(m.group(2))}">{m.group(1)}</a>', out)
+                 lambda m: (m.group(1) if link(m.group(2)) is None else
+                            f'<a href="{link(m.group(2))}">{m.group(1)}</a>'), out)
     out = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", out)
     out = re.sub(r"(?<![\w*])\*([^*\s][^*]*)\*(?![\w*])", r"<em>\1</em>", out)
     return out
@@ -93,13 +94,13 @@ def asset(path: str) -> str:
     return "img/" + path.split("reports/", 1)[1] if "reports/" in path else path
 
 
-def link(target: str) -> str:
-    known = {"docs/findings.md": "findings.html", "docs/investigations.md": "investigations.html"}
-    if target in known:
-        return known[target]
+def link(target: str) -> str | None:
+    known = {"findings.md": "findings.html", "investigations.md": "investigations.html"}
+    if target.split("/")[-1] in known:
+        return known[target.split("/")[-1]]
     if target.startswith("http"):
         return target
-    return "#"                      # a file in the repository, not on the site
+    return None                     # a file in the repository, not on the site: plain text
 
 
 def markdown(text: str) -> str:

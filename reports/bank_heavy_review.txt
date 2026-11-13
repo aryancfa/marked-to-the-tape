@@ -1,0 +1,109 @@
+Derived statistics only: vol-point differences, counts and dollars of dispute
+on a made-up book. No price or quote appears in this file.
+
+Review queue for bank_heavy.csv, a made-up book: 08 May 2026 to 10 Nov 2026, 128 days.
+A mark is queued when its implied vol disagrees with its call or put partner, or
+with its smile, by more than 1 quote bar(s) and the 0.04 noise floor.
+Dollars are by repricing: the mark against its value at the vol its reference
+implies. The cause is a LIKELY one, read from the neighbouring strikes by stated
+rules (src/review.py); how often those rules are right is in
+reports/review_benchmark.txt.
+
+1. HOW MUCH THERE IS TO REVIEW
+   option position-days: 1244; with no usable mark: 0; checkable: 1130; failed a check: 40 (3.5% of checkable); on watch: 115
+   failed checks a day: mean 0.31, most 3; days with none: 93 of 128
+   dollars in dispute over the period: 43,079 by repricing, 43,108 by vega times the disagreement (-0.1%)
+
+2. WHAT THE FAILED CHECKS ARE MADE OF, by likely cause
+                              items  dollars  series  longest_run  share of dollars %
+   cause                                                                             
+   input: projected dividend     10   14,457       5            4                  34
+   this mark                     21   16,967       7            3                  39
+   the fitted curve               4    2,372       2            2                   6
+   unclear                        5    9,283       3            3                  22
+   items where the position's own mark is NOT the likely fault: 14 of 40 (35%), $16,829 of $43,079.
+   Those are the ones a plain 'call and put disagree' flag would send to the wrong
+   desk: the fix is an input or someone else's quote, not a re-mark.
+
+3. BY NAME
+   cause  input: projected dividend  this mark  the fitted curve  unclear  items
+   name                                                                         
+   RY                             3          7                 4        0     14
+   BNS                            2          9                 0        1     12
+   TD                             2          5                 0        3     10
+   SU                             3          0                 0        0      3
+   CNQ                            0          0                 0        1      1
+
+4. THE 10 LARGEST FAILED CHECKS OF THE PERIOD
+   [22 Jun 2026]
+   1. RY Jan 2027 270 C   $2,832   failed check; likely cause: input: projected dividend
+      observed: call minus put -0.96 vol points against a quote bar of 0.81
+      evidence: the expiry's other 4 strike(s) with both sides have a median call minus put of -0.61; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Check the next ex-date and amount for RY against the issuer. Do not re-mark the option.
+      chart:    reports/review/bank_heavy_1.png
+   [08 Jun 2026]
+   2. TD Jan 2027 160 C   $2,438   failed check; likely cause: unclear
+      observed: call minus put -1.01 vol points against a quote bar of 0.83
+      evidence: the expiry's other 1 strike(s) with both sides have a median call minus put of -0.71; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Too few neighbouring strikes to say. Check the quote and the next dividend.
+      chart:    reports/review/bank_heavy_2.png
+   [09 Jun 2026]
+   3. TD Jan 2027 160 C   $2,172   failed check; likely cause: unclear
+      observed: call minus put -0.90 vol points against a quote bar of 0.78
+      evidence: the expiry's other 1 strike(s) with both sides have a median call minus put of -0.70; the other side at this strike has no smile residual; the expiry rests on: projected dividend; flagged 2 days running
+      next:     Too few neighbouring strikes to say. Check the quote and the next dividend.
+      chart:    reports/review/bank_heavy_3.png
+   [11 Jun 2026]
+   4. TD Jan 2027 160 C   $2,109   failed check; likely cause: input: projected dividend
+      observed: call minus put -0.88 vol points against a quote bar of 0.62
+      evidence: the expiry's other 2 strike(s) with both sides have a median call minus put of -0.75; the other side at this strike has no smile residual; the expiry rests on: projected dividend; flagged 4 days running
+      next:     Check the next ex-date and amount for TD against the issuer. Do not re-mark the option.
+      chart:    reports/review/bank_heavy_4.png
+   [10 Jun 2026]
+   5. TD Jan 2027 160 C   $2,091   failed check; likely cause: unclear
+      observed: call minus put -0.87 vol points against a quote bar of 0.73
+      evidence: the expiry's other 1 strike(s) with both sides have a median call minus put of -0.51; the other side at this strike has no smile residual; the expiry rests on: projected dividend; flagged 3 days running
+      next:     Too few neighbouring strikes to say. Check the quote and the next dividend.
+      chart:    reports/review/bank_heavy_5.png
+   [18 Jun 2026]
+   6. RY Jan 2027 270 C   $1,964   failed check; likely cause: input: projected dividend
+      observed: call minus put -0.65 vol points against a quote bar of 0.59
+      evidence: the expiry's other 4 strike(s) with both sides have a median call minus put of -0.52; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Check the next ex-date and amount for RY against the issuer. Do not re-mark the option.
+   [15 Jun 2026]
+   7. TD Jan 2027 160 C   $1,782   failed check; likely cause: input: projected dividend
+      observed: call minus put -0.75 vol points against a quote bar of 0.74
+      evidence: the expiry's other 2 strike(s) with both sides have a median call minus put of -0.61; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Check the next ex-date and amount for TD against the issuer. Do not re-mark the option.
+   [11 May 2026]
+   8. CNQ Jan 2027 60 C   $1,395   failed check; likely cause: unclear
+      observed: call minus put +2.43 vol points against a quote bar of 1.56
+      evidence: no other strike in this expiry has both a call and a put; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Too few neighbouring strikes to say. Check the quote and the next dividend.
+   [08 May 2026]
+   9. RY Jan 2027 260 P   $1,322   failed check; likely cause: input: projected dividend
+      observed: call minus put +0.57 vol points against a quote bar of 0.55
+      evidence: the expiry's other 4 strike(s) with both sides have a median call minus put of +0.51; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Check the next ex-date and amount for RY against the issuer. Do not re-mark the option.
+   [28 Oct 2026]
+   10. RY Jan 2027 260 P   $1,266   failed check; likely cause: this mark
+      observed: +1.39 from its smile against a quote bar of 0.23
+      evidence: the expiry's other 10 strike(s) with both sides have a median call minus put of -0.09; the other side at this strike sits +0.36 from its smile; the expiry rests on: declared only; first day flagged
+      next:     Get a second quote for this series, or mark it to its smile and book the difference as a reserve.
+
+5. THE QUEUE FOR 28 Oct 2026: 2 item(s), largest first, a position with no mark before everything
+   1. RY Jan 2027 260 P   $1,266   failed check; likely cause: this mark
+      observed: +1.39 from its smile against a quote bar of 0.23
+      evidence: the expiry's other 10 strike(s) with both sides have a median call minus put of -0.09; the other side at this strike sits +0.36 from its smile; the expiry rests on: declared only; first day flagged
+      next:     Get a second quote for this series, or mark it to its smile and book the difference as a reserve.
+   2. TD Jan 2027 160 C   $1,167   watch; likely cause: watch: dividend date not announced
+      observed: nothing failed; a projected ex-date falls 5 session(s) before this option's expiry
+      evidence: dollars are the position repriced with that dividend on the other side of the expiry
+      next:     Confirm TD's next ex-date with the issuer. It is a projection and it falls within a few sessions of this option's expiry.
+
+6. ON WATCH: nothing failed, but one unannounced date decides a lot
+                      days       first        last  largest  mean
+   series                                                        
+   TD Jan 2027 160 C   115  2026-05-11  2026-11-04    1,273 1,091
+   Dollars are the position repriced with that dividend on the other side of its
+   expiry: what is at stake if the projected date is a few days out.

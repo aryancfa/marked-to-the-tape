@@ -2,16 +2,22 @@ Derived statistics only. No prices appear in this file.
 
 Index funding from the exchange's SXF and SXO files, 2026-05-08 to 2026-11-04.
 Stand-in for the index's dividend yield: XIU's distributions over the twelve months to 2026-11-04, 2.26% a year.
+Second stand-in: the S&P/TSX Composite's dividends over the same twelve months (total-return index less price index), 2.22% a year. The two differ by 4 bp.
 
 1. SXF basis: ln(future / index) / T minus the CORRA futures rate, in basis points a
    year. This is the funding spread MINUS the dividend yield. The standard error
    allows a day to resemble the days before it.
-  contract  days days to expiry  spread minus yield  std_error   sd  spread at the stand-in yield
-2026-06-19     7          31-42              -202.4       10.2 36.5                          23.6
-2026-09-18    46          31-98              -154.1        8.4 39.6                          71.8
-2026-12-18    38          44-98              -190.2        5.6 28.0                          35.8
-       all    91                             -172.9        6.3 39.6                          53.1
-   Read as a range: +23 to +83 bp a year, taking the stand-in yield as good to 30 bp. The statistical error (6 bp) is small beside that.
+  contract  days days to expiry  spread minus yield  std_error   sd  spread at the stand-in yield  spread at dividends paid (hindsight)
+2026-06-19     7          31-42              -202.4       10.2 36.5                          23.6                                  30.6
+2026-09-18    46          31-98              -154.1        8.4 39.6                          71.8                                  68.4
+2026-12-18    38          44-98              -190.2        5.6 28.0                          35.8                           not expired
+       all    91                             -172.9        6.3 39.6                          53.1                                  63.4
+   By contract the spread runs from +24 to +72 bp. The two yield stand-ins agree
+   closely, so that spread between contracts is in the basis itself (the future's
+   settlement against the index's close, and dividends bunching inside a contract's
+   life), not in the yield. The last column uses the Composite's dividends actually
+   paid over an expired contract's life: hindsight, shown as a check on the stand-in.
+   Read as a range of +24 to +72 bp a year, not a number. The statistical error on the pooled figure (6 bp) is small beside it.
    For comparison: RY's options imply 17.7 bp (standard error 2.0) and XIU's own
    13.1 (4.2), both over the same CORRA futures curve.
 

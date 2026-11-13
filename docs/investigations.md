@@ -82,7 +82,7 @@ says nothing about illiquid series, where bad quotes are common.
   expiry day. The share price was then being implied from that same expiry.
 - Changed: an expiry within five sessions of an unannounced ex-date is not used
   to imply the share price and counts as resting on a projection. The gap went
-  from -0.97 to -0.12 and the book's flags from 17 days to 3.
+  from -0.97 to -0.12 and that option's flags from 17 days to 3.
 - The lesson for the queue: 14 of those 17 flags would have sent someone to
   re-mark an option whose mark was fine.
 

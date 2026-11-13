@@ -5,7 +5,7 @@ SU: 108 days, 2026-06-08 to 2026-11-10.
 
 1. FUNDING (fitted on expiries with declared dividends, earlier days only):
    applied: 45.1 to 54.3 bp a year, last 49.5.
-   left over on the same days after applying it: +1.3 bp a year (standard error 4.6). Near zero means the spread did its job.
+   left over on the same days after applying it: +1.3 bp a year (standard error 4.6, 39 days). Near zero means the spread did its job.
 
 2. BORROW: assumed zero. It cannot be told from funding in option prices, so any
    borrow cost is inside the funding number above.

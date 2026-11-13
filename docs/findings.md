@@ -388,9 +388,12 @@ input at a time, so the parts sum to the change in the marks exactly.
 
 - Once the share move is taken out, the dollars resting on marks that fail a check
   (vega times the disagreement with the call or put partner, or with the smile)
-  exceed half of the day's remaining P&L on 24 of 127 days in the bank-heavy book
-  and 22 in the diversified one, and exceed all of it on 15 and 17. (Before the
-  MFC fix in Finding 18 the diversified figures were 39 and 30.)
+  exceed half of the day's remaining P&L on 18 of 127 days in the bank-heavy book
+  and 17 in the diversified one, and exceed all of it on 10 and 14. (At first the
+  figures were 24 and 39. They fell as Manulife's and Barrick's inputs were fixed,
+  and also because the median rule for a poor fit, Finding 20, switches the smile
+  check off more often on the thin long expiries these books hold. That part is
+  fewer checks made, not better marks.)
 - The series flagged most in the diversified book was ABX, then MFC, through the
   call-put check. Both had a dividend input known to be wrong; fixing MFC's took
   its flags from 17 days to 3. A failed pair check is a wrong carry input as
@@ -442,29 +445,87 @@ window on the six months it is judged on would be fitting the rule to the sample
 What it does establish is that one constant spread per name is an approximation,
 and CNR is where it shows.
 
-**What the full re-run under the expiry rule showed** (every name re-priced;
-`reports/all_names_summary.txt`):
+**What the re-run under the expiry rule showed.** MFC went from -0.97 to -0.12
+(t -0.6, on the 9 days of declared-dividend expiries left), and its implied share
+price from 3.4 basis points below the tape to 2.3 above. In the diversified sample
+book its option was flagged on 17 days before and 3 after: fourteen days of flags
+had been the model's input, not the exchange's mark.
 
-- **MFC: -0.97 to -0.12 (t -0.6).** Its implied share price went from 3.4 basis
-  points below the tape (standard deviation 15) to 2.3 above (6). Only 9 days of
-  declared-dividend expiries remain to judge it on. In the diversified sample
-  book, MFC's option was flagged by the call-put check on 17 days before and 3
-  after, and the book's failed marks fell from 55 to 32: fourteen days of flags
-  had been the model's input, not the exchange's mark.
-- **The cost, on funds.** XIU pays within a few sessions of each quarter's monthly
-  expiry and announces a week ahead. Its only long expiry on a declared
-  distribution is therefore the one beside an unannounced date, which the rule now
-  treats as projected. XIU lost its own spread (13 basis points; 42 days of estimates
-  before, one after) and takes the pooled 31 to 49; calls went from +0.2 to +0.5 above puts
-  to -0.1 to -0.3 below. Its funding is bracketed between the two, not measured.
-  ABX lost its own spread the same way.
-- **XEG is open again: +0.24 to +0.69 (t 6.7) on 23 days.** Its own options ask for
-  about 85 basis points (standard error 9, 17 days: too few to use) and the pool
-  gives it 31 to 49.
-- **Unchanged:** RY (-0.06, 17.6 bp), the banks, SU, BCE, SHOP, ENB, CNQ, CNR.
-- **Judgement.** The rule removes a known failure and exposes how little the fund
-  results rested on. It was written after seeing MFC, with XIU's earlier wrong
-  date as the second case, so this sample does not test it.
+## Finding 19: a rule has to know which dates are guesses
+
+The expiry rule in Finding 18 treated every unannounced ex-date as uncertain. The
+re-run showed what that cost. XIU lost its own funding spread (42 days of estimates
+became one), took the pooled 31 to 49 basis points, and its calls went from above
+its puts to below. XEG went from +0.24 to +0.69.
+
+The cause was the rule, not the funds. BlackRock Canada publishes its funds'
+ex-dates for the whole year in advance (its 2026 Fund Distributions Schedule lists
+XIU's and XEG's by name) and only the amount a week ahead. Those dates are known.
+They are now recorded in `reference/published_dates.csv`; the model treats the date
+as a fact and the amount as a projection. Manulife publishes nothing in advance,
+so its dates stay guesses. With that, XIU's spread came back (13.1, 42 days), XEG
+returned to +0.25 (t 1.5), and Manulife stayed at -0.12.
+
+- The day the schedule was first posted could not be found. It is entered as the
+  start of 2026 and labelled an assumption.
+- The lesson is the general one: a fix written from one case (Manulife) was wrong
+  for a case with different facts, and only a full re-run showed it.
+
+## Finding 20: thirteen flags, and none was a bad quote
+
+Every flag in this project that was followed to a cause is recorded in
+[investigations.md](investigations.md). Seven were an input to the model (a
+dividend's date, amount, currency or timing, or funding), five were this tool, one
+was a stale price in the file, and none was a bad exchange quote.
+
+That is what the review queue is built on (`scripts/review_queue.py`,
+`src/review.py`). It keeps what was observed apart from the likely cause, and reads
+the cause from the neighbours: if every strike of an expiry disagrees the same way,
+one quote cannot be the reason.
+
+- On the two sample books, 40 and 26 marks failed a check in six months. The
+  position's own mark is not the likely fault on 35% and 65% of them.
+- On made-up data with five kinds of fault planted, the named cause is right 87% of
+  the time, averaged over the kinds, on markets that played no part in choosing the
+  thresholds. An input fault is taken for a mark to re-mark 1% of the time.
+- A dividend amount 25% out is flagged 1% of the time: it moves one option by less
+  than its quote. Only pooled statistics see it. Barrick showed this on real data.
+- Two faults in the tool were found by these tests. A second bad quote in an expiry
+  hid the first (the fit is now robust). And one quote 4 points out marked its whole
+  expiry a poor fit, switching the smile check off for every strike in it (fit
+  quality is now a median). The earlier benchmark did not apply the book report's
+  own filter, so its "100% of 4-point errors" for the smile check alone was too
+  high: it is 83% alone and 100% with the call-put check.
+- A futures position in one sample book had never been valued, and the report did
+  not say so. A position that cannot be valued now stops the report.
+
+Not measured: time saved. That needs a trial against a desk's own review.
+
+## Finding 21: the delta hedge works, and the index vega hedge does not
+
+The closing chart on the two sample books (`scripts/book_hedge.py`), every hedge
+set from what was known the evening before.
+
+- **Delta.** Selling each name's delta through the index and its sector fund, by
+  ratios from the 250 days before, removes 96% of the bank-heavy book's daily
+  variance and 62% of the diversified book's. Ratios fitted with hindsight do no
+  better. What is left is single names moving apart from the index: 89% and 94% of
+  the remainder.
+- **Vega.** An XIU straddle sized to the book's beta-weighted vega removed nothing
+  measurable and cost $12,100 and $6,400 in spread. A single name's implied vol
+  moved 0.2 to 0.7 points per point of XIU's, and for several names about zero. The
+  remainder's correlation with XIU's vol is +0.05.
+- **Read with care.** Betas fitted from noisy daily at-the-money vols are biased
+  toward zero, and these are six calm months; in a sell-off single-name and index
+  vol move together. The finding is that on this sample the index is the wrong
+  instrument for this book's vol, not that vega hedging does not work.
+- **Barrick.** Its schedule now holds US dollars, converted at each day's rate. The
+  gap on projected dividends moved only from -0.82 to -0.77: the market prices its
+  coming dividends about a quarter above "same as last year", because its policy
+  pays a top-up tied to cash flow.
+- **Index funding.** Compustat has no total-return series for the TSX 60. The
+  Composite's dividends give 2.22% against XIU's 2.26%, so the yield is not the
+  weak part. The spread still runs from 24 to 72 basis points by contract.
 
 ## What a third outside review found (12 November 2026)
 
@@ -614,13 +675,13 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
 
 - **Fifteen names, six months.** Nothing here has seen a crisis, a dividend cut or
   a hard-to-borrow share.
-- **Three names with a gap on declared dividends:** CNQ (-0.18, a date), CNR
-  (-0.11, a drifting spread, diagnosed) and XEG (+0.69, under-funded by the pool).
-  MFC and ENB are explained (Findings 16 and 18); MFC on 9 days only.
-- **The funding spread differs by name, 18 to 49 basis points.** It is one number
+- **Two names with a gap on declared dividends:** CNQ (-0.17, half explained) and
+  CNR (-0.11, a drifting spread, diagnosed and not changed). MFC is explained on 9
+  days only.
+- **The funding spread differs by name, 13 to 49 basis points.** It is one number
   standing for funding, expected dividends and borrow together.
-- **ABX's projected dividends.** It declares in US dollars; the schedule repeats last
-  year's Canadian-dollar amounts.
+- **Barrick's projected dividends.** The market prices them about a quarter above
+  the rule. The rule repeats last year; the company's top-up follows its cash flow.
 - **Analysts' consensus is dated 20 August 2026,** the latest on WRDS, and predates
   some November announcements.
 - **The funding spread's size.** It is fitted from the options it explains, and it
@@ -646,12 +707,19 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
   slope of about 0.1 vol points across strikes on the longest RY expiries.
 - **The smile under 30 days.** Misses of 0.1 to 0.6 vol points alternate in sign
   across strike bands, the same way every day: the curve's shape, not the quotes.
-- **XIU's funding spread.** Not measurable from its own options once expiries
-  beside an unannounced distribution are set aside. It takes the pooled 31 to 49
-  basis points and calls sit below puts; with its old 13 they sat above. The
-  index future is the proper source and gives only a range so far.
+- **XIU's funding spread.** Thirteen basis points from its own options, 24 to 72
+  from the index future. Bracketed, not measured.
+- **When BlackRock's schedule was first public.** Assumed the start of 2026. XIU's
+  and XEG's results rest on its dates being known on each day.
 - **The expiry rule's window.** Five sessions either side, set from two cases
   (XIU and MFC). It has not been tested on data it was not chosen on.
+- **The review queue's cause labels.** Right 87% of the time on planted faults. On
+  real marks the truth is known only for the thirteen cases investigated, all by
+  the person who built the checks.
+- **The vega hedge's betas.** Fitted from daily at-the-money vols whose own noise
+  is as large as the moves, which biases them toward zero.
+- **Poor fits on thin expiries.** The median rule drops the smile check on more
+  long, thin expiries than the rule before it. Fewer marks are judged there.
 - **The index option file.** The exchange's SXO file carries settlements only: no
   bids, asks, volume or open interest. Parity on it shows the exchange's model.
 - **The exchange's method.** Its published vol behaves like a European formula, but
@@ -669,8 +737,12 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
 
 ## What does not exist yet
 
-The option layers of the closing chart: the book's P&L with its options revalued each
-day, split into the delta the future missed and the gamma and vega it cannot touch,
-and then a vega hedge with listed options. They need implied vol history by name,
-which for the New York listings is on WRDS to August 2025 and has not been pulled.
-The front chart exists for fifteen names.
+- Live capture. The script for Interactive Brokers is written and has never run
+  against a live session; every file so far was downloaded by hand.
+- A rule for how implied vol moves when the share moves (the volatility response).
+  The P&L explain treats the two as separate steps.
+- Tail risk by position, and the VaR and expected-shortfall page with a backtest.
+- Realized against implied vol.
+- Any day before May 2026. OptionMetrics on this subscription has no Canadian
+  listings, so Montreal history cannot be extended from it.
+- A methodology note and a walkthrough. The live page is charts and reports.

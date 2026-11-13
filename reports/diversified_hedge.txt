@@ -1,0 +1,63 @@
+Derived statistics only: dollars summed over a made-up book, and ratios.
+No price, quote or per-position value appears in this file.
+
+Closing chart for diversified.csv, a made-up book: 11 May 2026 to 10 Nov 2026, 127 days.
+Dollars a day, summed over positions. Every hedge is set from what was known the
+evening before. The TSX 60 index stands in for the SXF future.
+
+1. THREE STAGES
+                                  daily st. dev. variance removed % 97.5% shortfall worst day     sum lag-1 autocorr. structure over 10 lags
+   unhedged                                7,186               0.00          25,944   -33,404 -12,628           -0.16                     no
+   delta hedged                            4,426                 62           8,695   -10,127  22,475           -0.11                    yes
+   delta hedged, hindsight ratios          4,516                 61           8,478    -9,213  22,444           -0.05                     no
+   delta + vega hedged                     4,451                 62           8,853   -10,127  17,431           -0.11                    yes
+   'variance removed' is against the unhedged book. 'hindsight ratios' are fitted on
+   every day at once: nobody could have traded them, and the gap to the row above
+   is what honesty costs.
+   On the 76 days a vega hedge was on: daily st. dev. 4,559 delta hedged, 4,608 with the vega hedge (-2% of that variance removed).
+
+2. WHAT THE DELTA HEDGE LEAVES, AND WHAT IT IS MADE OF
+                           daily st. dev.     sum  share of the residual's variance %
+   delta the hedge missed           4,271  22,986                                  94
+   gamma                              412  46,984                                  -0
+   vol                                876   7,007                                   6
+   carry                              318 -54,070                                   0
+   dividend news                       23    -431                                  -0
+   The shares add to 100. 'delta the hedge missed' is each name moving apart from
+   the index and its sector: nothing listed here hedges it. Gamma and vol are the
+   option part a future cannot reach.
+   Correlation of what is left with the day's move in XIU at-the-money vol (the instrument not yet used): +0.05; of its vol part alone: +0.31.
+
+3. THE VEGA HEDGE: XIU 19 Mar 2027 straddle
+   days with a hedge on: 76 of 127 (none until every vega held has 20 earlier days of vol moves behind its beta)
+   vol beta to the hedge, by name (mean; first and last day's value):
+         mean  first  last
+   name                   
+   ABX  -0.06  -0.11  0.15
+   BCE   0.11   0.20 -0.12
+   CNQ   0.37   0.24  0.14
+   CNR  -0.07  -0.14  0.07
+   ENB   0.04   0.04 -0.08
+   MFC  -0.26  -0.55  0.20
+   RY    0.48   0.73  0.42
+   SHOP  0.64   0.56 -0.77
+   SU   -0.15  -0.41 -0.06
+   TD    0.68   0.87  0.62
+   XIU   1.00   1.00  1.00
+   contracts held: mean -50, from -69 to +0; re-struck 0 times
+   hedge P&L +5,667; its delta's hedge -4,320; trading cost at half the quoted spread -6,391 (84 a day)
+   days the strike held had no mark: 0; hedge marks resting on a settlement alone: 0 (model-free but untraded)
+   the book's vol P&L on those days has a daily st. dev. of 841; with the hedge's P&L added, 847.
+   What it cannot reach: it sells index vol against single-name vol. A name whose
+   vol moves on its own (earnings, a dividend surprise) is not hedged by it, and a
+   beta fitted from noisy at-the-money vols is biased toward zero, so the hedge is
+   on the small side.
+
+4. THE FIVE WORST UNHEDGED DAYS, stage by stage
+               unhedged  delta hedged  delta + vega hedged
+   day                                                    
+   2026-11-04   -33,404           378                 -719
+   2026-11-02   -23,514        -2,330               -1,997
+   2026-08-04   -20,914        -3,740               -3,995
+   2026-10-15   -14,075        -6,703               -7,565
+   2026-05-25   -12,333         1,037                1,037

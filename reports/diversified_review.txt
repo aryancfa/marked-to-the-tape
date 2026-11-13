@@ -1,0 +1,113 @@
+Derived statistics only: vol-point differences, counts and dollars of dispute
+on a made-up book. No price or quote appears in this file.
+
+Review queue for diversified.csv, a made-up book: 08 May 2026 to 10 Nov 2026, 128 days.
+A mark is queued when its implied vol disagrees with its call or put partner, or
+with its smile, by more than 1 quote bar(s) and the 0.04 noise floor.
+Dollars are by repricing: the mark against its value at the vol its reference
+implies. The cause is a LIKELY one, read from the neighbouring strikes by stated
+rules (src/review.py); how often those rules are right is in
+reports/review_benchmark.txt.
+
+1. HOW MUCH THERE IS TO REVIEW
+   option position-days: 1503; with no usable mark: 0; checkable: 1246; failed a check: 26 (2.1% of checkable); on watch: 241
+   failed checks a day: mean 0.20, most 2; days with none: 105 of 128
+   dollars in dispute over the period: 20,539 by repricing, 20,595 by vega times the disagreement (-0.3%)
+
+2. WHAT THE FAILED CHECKS ARE MADE OF, by likely cause
+                              items  dollars  series  longest_run  share of dollars %
+   cause                                                                             
+   input: projected dividend     15   13,738       6            4                  67
+   this mark                      4    1,567       2            1                   8
+   the fitted curve               2    1,095       2            1                   5
+   unclear                        5    4,140       2            3                  20
+   items where the position's own mark is NOT the likely fault: 17 of 26 (65%), $14,833 of $20,539.
+   Those are the ones a plain 'call and put disagree' flag would send to the wrong
+   desk: the fix is an input or someone else's quote, not a re-mark.
+
+3. BY NAME
+   cause  input: projected dividend  this mark  the fitted curve  unclear  items
+   name                                                                         
+   ABX                            6          0                 0        2      8
+   TD                             2          2                 0        3      7
+   RY                             2          0                 1        0      3
+   MFC                            3          0                 0        0      3
+   XIU                            0          2                 0        0      2
+   ENB                            1          0                 0        0      1
+   SU                             1          0                 0        0      1
+   SHOP                           0          0                 1        0      1
+
+4. THE 10 LARGEST FAILED CHECKS OF THE PERIOD
+   [19 Jun 2026]
+   1. ABX Mar 2027 60 C   $1,126   failed check; likely cause: input: projected dividend
+      observed: call minus put -1.99 vol points against a quote bar of 1.59
+      evidence: the expiry's other 2 strike(s) with both sides have a median call minus put of -1.52; the other side at this strike has no smile residual; the expiry rests on: projected dividend; flagged 2 days running
+      next:     Check the next ex-date and amount for ABX against the issuer. Do not re-mark the option.
+      chart:    reports/review/diversified_1.png
+   [18 Jun 2026]
+   2. ABX Mar 2027 60 C   $1,067   failed check; likely cause: unclear
+      observed: call minus put -1.84 vol points against a quote bar of 1.54
+      evidence: the expiry's other 1 strike(s) with both sides have a median call minus put of -1.78; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Too few neighbouring strikes to say. Check the quote and the next dividend.
+      chart:    reports/review/diversified_2.png
+   [22 Jun 2026]
+   3. RY Jan 2027 270 C   $1,062   failed check; likely cause: input: projected dividend
+      observed: call minus put -0.96 vol points against a quote bar of 0.81
+      evidence: the expiry's other 4 strike(s) with both sides have a median call minus put of -0.61; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Check the next ex-date and amount for RY against the issuer. Do not re-mark the option.
+      chart:    reports/review/diversified_3.png
+   [22 Jun 2026]
+   4. ABX Mar 2027 60 C   $1,049   failed check; likely cause: unclear
+      observed: call minus put -1.82 vol points against a quote bar of 1.44
+      evidence: the expiry's other 1 strike(s) with both sides have a median call minus put of -1.77; the other side at this strike has no smile residual; the expiry rests on: projected dividend; flagged 3 days running
+      next:     Too few neighbouring strikes to say. Check the quote and the next dividend.
+      chart:    reports/review/diversified_4.png
+   [25 May 2026]
+   5. MFC Mar 2027 60 C   $1,043   failed check; likely cause: input: projected dividend
+      observed: call minus put +1.75 vol points against a quote bar of 1.31
+      evidence: the expiry's other 3 strike(s) with both sides have a median call minus put of +1.12; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Check the next ex-date and amount for MFC against the issuer. Do not re-mark the option.
+      chart:    reports/review/diversified_5.png
+   [16 Jun 2026]
+   6. ABX Mar 2027 60 C   $1,033   failed check; likely cause: input: projected dividend
+      observed: call minus put -1.73 vol points against a quote bar of 1.62
+      evidence: the expiry's other 2 strike(s) with both sides have a median call minus put of -1.91; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Check the next ex-date and amount for ABX against the issuer. Do not re-mark the option.
+   [09 Jun 2026]
+   7. ABX Mar 2027 60 C   $1,029   failed check; likely cause: input: projected dividend
+      observed: call minus put -1.81 vol points against a quote bar of 1.45
+      evidence: the expiry's other 2 strike(s) with both sides have a median call minus put of -1.71; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Check the next ex-date and amount for ABX against the issuer. Do not re-mark the option.
+   [23 Jun 2026]
+   8. ABX Mar 2027 60 C   $1,000   failed check; likely cause: input: projected dividend
+      observed: call minus put -1.85 vol points against a quote bar of 1.53
+      evidence: the expiry's other 3 strike(s) with both sides have a median call minus put of -1.64; the other side at this strike has no smile residual; the expiry rests on: projected dividend; flagged 4 days running
+      next:     Check the next ex-date and amount for ABX against the issuer. Do not re-mark the option.
+   [03 Jun 2026]
+   9. ENB Jan 2027 70 P   $994   failed check; likely cause: input: projected dividend
+      observed: call minus put +1.44 vol points against a quote bar of 1.33
+      evidence: the expiry's other 2 strike(s) with both sides have a median call minus put of +1.32; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Check the next ex-date and amount for ENB against the issuer. Do not re-mark the option.
+   [21 May 2026]
+   10. MFC Mar 2027 60 C   $952   failed check; likely cause: input: projected dividend
+      observed: call minus put +1.58 vol points against a quote bar of 1.48
+      evidence: the expiry's other 3 strike(s) with both sides have a median call minus put of +1.01; the other side at this strike has no smile residual; the expiry rests on: projected dividend; first day flagged
+      next:     Check the next ex-date and amount for MFC against the issuer. Do not re-mark the option.
+
+5. THE QUEUE FOR 28 Oct 2026: 2 item(s), largest first, a position with no mark before everything
+   1. TD Jan 2027 160 P   $177   failed check; likely cause: this mark
+      observed: +0.58 from its smile against a quote bar of 0.37
+      evidence: the expiry's other 7 strike(s) with both sides have a median call minus put of -0.36; the other side at this strike sits -0.16 from its smile; the expiry rests on: projected dividend; first day flagged
+      next:     Get a second quote for this series, or mark it to its smile and book the difference as a reserve.
+   2. CNQ Mar 2027 65 C   $165   watch; likely cause: watch: dividend date not announced
+      observed: nothing failed; a projected ex-date falls on this option's expiry
+      evidence: dollars are the position repriced with that dividend on the other side of the expiry
+      next:     Confirm CNQ's next ex-date with the issuer. It is a projection and it falls within a few sessions of this option's expiry.
+
+6. ON WATCH: nothing failed, but one unannounced date decides a lot
+                      days       first        last  largest  mean
+   series                                                        
+   TD Jan 2027 160 P   117  2026-05-08  2026-11-04      670   467
+   CNQ Mar 2027 65 C   124  2026-05-08  2026-11-04      273   220
+   Dollars are the position repriced with that dividend on the other side of its
+   expiry: what is at stake if the projected date is a few days out.

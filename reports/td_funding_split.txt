@@ -4,8 +4,8 @@ public or projected by rule, and the implied ones are computed from option price
 TD: 104 days, 2026-06-08 to 2026-11-04.
 
 1. FUNDING (fitted on expiries with declared dividends, earlier days only):
-   applied: 21.3 to 49.3 bp a year, last 31.5.
-   left over on the same days after applying it: +1.9 bp a year (standard error 3.5). Near zero means the spread did its job.
+   applied: 21.3 to 48.4 bp a year, last 31.5.
+   left over on the same days after applying it: +2.6 bp a year (standard error 3.2, 55 days). Near zero means the spread did its job.
 
 2. BORROW: assumed zero. It cannot be told from funding in option prices, so any
    borrow cost is inside the funding number above.
@@ -13,11 +13,11 @@ TD: 104 days, 2026-06-08 to 2026-11-04.
 3. DIVIDENDS the options imply, against the schedule, for each dividend that was
    not yet known on the day (projected, or announced later):
    ex_date    status  days  schedule  implied  std_error  implied minus schedule      t  expiries apart (days)
-2026-10-09  declared    56      1.12    1.125      0.009                   0.005  0.546                   28.0
-2027-01-08 projected   104      1.15    1.213      0.006                   0.063 11.107                   28.0
-2027-04-09 projected    97      1.15    1.163      0.006                   0.013  2.115                   91.0
+2026-10-09  declared    56      1.12    1.124      0.008                   0.004  0.439                   28.0
+2027-01-08 projected   104      1.15    1.212      0.006                   0.062 11.081                   28.0
+2027-04-09 projected    97      1.15    1.162      0.006                   0.012  2.008                   91.0
 2027-07-09 projected    35      1.19    1.180      0.010                  -0.010 -0.974                   91.0
-   Projected dividends seen on 20+ days: schedule total 3.490, implied total 3.556 (+1.9%).
+   Projected dividends seen on 20+ days: schedule total 3.490, implied total 3.555 (+1.9%).
    Read with the limit in mind: one basis point a year of funding left out is
    one basis point of share price per year of maturity, and lands in these.
    For scale, on this name one basis point of the share price is 0.017 a share.

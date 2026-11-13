@@ -24,24 +24,24 @@ All figures are dollars summed over positions, or counts. Marks are the exchange
    BNS  31-90d    741,071  13,903    528   -139           0
         91-180d   -70,666   7,922    628    -47           0
    BMO  91-180d   375,876  12,527    917   -101           0
-   CNQ  31-90d    178,757   3,385    201    -70           0
+   CNQ  31-90d    178,752   3,385    201    -70           0
    SU   91-180d    80,519  -4,750   -517     55           0
    by maturity, all names (vega on different names added dollar for dollar, which
    treats one name's vol point as another's; no beta weighting yet):
                delta  gamma  vega  theta
    bucket                               
-   31-90d  2,791,039 49,003 1,992   -525
+   31-90d  2,791,033 49,003 1,992   -525
    91-180d 1,018,717 24,095 1,422   -154
 
 3. WHY THE BOOK'S VALUE CHANGED, day by day
    127 days explained; position-days with no explanation because a mark was missing on that day or the day before: 0
               sum over the period  daily st. dev.  worst day  best day  share of daily variance %
-   carry                  -98,173             774     -2,635     4,809                          0
+   carry                  -98,113             770     -2,609     4,809                          0
    dividends               -1,000              85       -958         0                          0
-   delta                  389,252          26,520    -99,874    58,302                         99
-   gamma                   66,534           1,064       -339     8,922                         -0
-   vol                     32,199           2,037     -7,255     5,994                          1
-   total                  388,812          26,589    -93,335    60,359                        100
+   delta                  389,162          26,520    -99,874    58,303                         99
+   gamma                   66,511           1,064       -339     8,922                         -0
+   vol                     32,251           2,040     -7,255     5,995                          1
+   total                  388,812          26,589    -93,335    60,360                        100
    carry = a day passing (decay, funding, rates); dividends = a change in the
    schedule; delta and gamma = the share moving; vol = implied vol moving. The five
    add up to the change in the marks exactly. 'share of daily variance' is each
@@ -49,36 +49,36 @@ All figures are dollars summed over positions, or counts. Marks are the exchange
    five worst days:
                carry  dividends   delta  gamma    vol   total
    day                                                       
-   2026-08-19   -484          0 -99,874  4,726  2,296 -93,335
-   2026-07-29   -660          0 -82,637  3,851    997 -78,449
-   2026-10-07   -753          0 -74,251  3,655   -792 -72,140
-   2026-09-23   -371          0 -59,472  1,622 -1,316 -59,537
-   2026-07-20 -1,861          0 -59,975  1,559  1,723 -58,554
+   2026-08-19   -484          0 -99,874  4,726  2,297 -93,335
+   2026-07-29   -659          0 -82,638  3,851    997 -78,449
+   2026-10-07   -754          0 -74,251  3,655   -791 -72,140
+   2026-09-23   -370          0 -59,471  1,622 -1,317 -59,536
+   2026-07-20 -1,860          0 -59,975  1,559  1,721 -58,555
 
 4. WHICH MARKS ARE IN DISPUTE (a check fails beyond 1 quote bar(s) and the
    solver's noise floor of 0.04 vol points)
-   valued option position-days: 1244; with at least one reference: 1130 (90.8%); failed a check: 56 (5.0% of those checked)
-   failed, by check: {'pair': 15, 'smile': 42}
+   valued option position-days: 1244; with at least one reference: 1130 (90.8%); failed a check: 40 (3.5% of those checked)
+   failed, by check: {'pair': 15, 'smile': 25}
    not checkable: 114 position-days, {'outside the strikes the references cover': 114}
    marks resting on a settlement alone: 0
-   days with at least one failed mark: 41 of 128
-   dollars in dispute per day (position vega x disagreement): mean 479, median 0, largest 4,397
-   against the day's P&L (absolute): the dispute is more than 10% of it on 22 days and more than 50% on 3 of 127
+   days with at least one failed mark: 35 of 128
+   dollars in dispute per day (position vega x disagreement): mean 337, median 0, largest 3,005
+   against the day's P&L (absolute): the dispute is more than 10% of it on 18 days and more than 50% on 3 of 127
    against the day's P&L with the share move taken out (carry, gamma, vol and dividends;
-   daily st. dev. 2,345): the dispute is more than 10% of it on 39 days, more than 50% on 24 and larger than it on 15 of 127
-   P&L booked on marks that failed a check that day: 151,185 of 3,844,135 (sum of absolute daily option P&L)
+   daily st. dev. 2,346): the dispute is more than 10% of it on 33 days, more than 50% on 18 and larger than it on 10 of 127
+   P&L booked on marks that failed a check that day: 96,858 of 3,844,135 (sum of absolute daily option P&L)
    series flagged most often (vol points; dollars per flagged day):
                        days  mean_abs_pair  mean_abs_smile  mean_dispute
    series                                                               
-   BNS Jan 2027 120 C    12           0.61            0.46        782.65
-   RY Jan 2027 270 C     10           0.62            0.39       1446.89
-   TD Jan 2027 160 C     10           0.75            0.38       1488.31
-   RY Jan 2027 260 P      8           0.59            0.60        931.61
-   RY Mar 2027 280 C      6           0.91            0.53       1138.33
-   BNS Mar 2027 120 P     5           0.81            0.32        744.13
+   TD Jan 2027 160 C      9           0.75            0.36       1523.52
+   BNS Jan 2027 120 C     8           0.61            0.43        729.85
+   RY Jan 2027 260 P      8           0.57            0.63        902.63
+   RY Jan 2027 270 C      5           0.49            0.32       1464.62
+   BNS Mar 2027 120 P     4           0.90            0.33        867.99
    SU Mar 2027 90 P       3           1.11             NaN        869.46
    CNQ Jan 2027 60 C      1           2.43             NaN       1394.52
-   of the P&L on failed marks, the vol step is 29,717: a mark that is
+   RY Mar 2027 280 C      1           0.84            0.47       1030.72
+   of the P&L on failed marks, the vol step is 17,570: a mark that is
    off shows up as a vol move today and its reversal later.
 
 5. WHAT A WRONG DIVIDEND WOULD COST, dollars (vol and share price held): every
