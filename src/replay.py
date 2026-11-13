@@ -124,6 +124,14 @@ def _price(pos: Position, day: date, spot: float, rate: Rate, divs: Dated,
                         dividend_times(day, divs, pos.expiry), pos.call_put == "C", n)
 
 
+def price_at(pos: Position, inp: DayInputs, spot: float, vol: float, n: int = 400) -> float:
+    """The model's price of one share's worth of the option on inp.day, at a
+    share price and vol of the caller's choosing and the day's own rate and
+    dividends. For stress tests and scenarios: every number it returns is a
+    MODEL price, never a mark (hard rule 6)."""
+    return _price(pos, inp.day, spot, inp.rate, inp.divs, vol, n)
+
+
 def find_row(options: pd.DataFrame, pos: Position):
     """The exchange's row for this option series on the day, or None."""
     if options is None or not len(options):

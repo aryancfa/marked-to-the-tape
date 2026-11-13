@@ -105,7 +105,8 @@ def one_name(task) -> dict:
                 if prev:
                     e = explain(prev[0], v, prev[1], inp)
                     rows.append(dict(day=inp.day, name=name, i=i, kind="future",
-                                     D0=prev[0].scale * prev[1].spot, V0=0.0, expiry=None,
+                                     D0=prev[0].scale * prev[1].spot, V0=0.0, G0=0.0,
+                                     expiry=None,
                                      **{k: e[k] for k in (*STEPS, "total")}))
                 prev = (v, inp)
         return dict(name=name, rows=rows, atm=atm, chain=chain)
@@ -155,6 +156,8 @@ def one_name(task) -> dict:
                 rows.append(dict(day=day, name=name, i=i, kind=pos.kind, expiry=pos.expiry,
                                  D0=v0.scale * v0.delta * inp0.spot,
                                  V0=v0.scale * (v0.vega or 0.0),
+                                 # dollars gained per (return squared), halved: gamma
+                                 G0=0.5 * v0.scale * (v0.gamma or 0.0) * inp0.spot ** 2,
                                  **{k: e[k] for k in (*STEPS, "total")}))
             prev[i] = (v, inp)
     return dict(name=name, rows=rows, atm=atm, chain=chain)

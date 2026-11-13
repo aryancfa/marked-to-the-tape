@@ -34,7 +34,8 @@ NAMES = ["RY", "TD", "BNS", "BMO", "MFC", "CNQ", "SU", "ENB", "CNR", "BCE", "ABX
 BOOKS = [("diversified", "Diversified book"), ("bank_heavy", "Bank-heavy book")]
 PAGES = [("index.html", "Overview"), ("front.html", "Model against market"),
          ("book.html", "The book"), ("review.html", "Review queue"),
-         ("hedge.html", "After the hedge"), ("checks.html", "Checks"),
+         ("hedge.html", "After the hedge"), ("fund.html", "Stress and tail risk"),
+         ("vol.html", "Implied against realized"), ("checks.html", "Checks"),
          ("findings.html", "Findings"), ("investigations.html", "Investigations"),
          ("limits.html", "Limits")]
 NOTICE = ("Computed results only: differences in vol points, counts, ratios, and dollars on "
@@ -304,6 +305,37 @@ def build(out: Path) -> list[Path]:
              + chart("hedge_shares.png", "Index and sector hedge, share by share")
              + folded("The numbers", report("hedge_shares_numbers.txt")))
     pages["hedge.html"] = body
+
+    body = ("<h2>Stress and tail risk</h2>"
+            "<p>Everything on this page that prices a move is a <strong>model price on a "
+            "rule-based vol</strong>, not a mark. The first part of each tail report is the "
+            "exception: it uses the book's actual marked P&amp;L.</p>"
+            "<h3>The vol rule is a control</h3>"
+            "<p>A share falling 20% with its implied vol unchanged has never happened. The "
+            "same book and the same index move are repriced under four rules for what vol "
+            "does; only the last lets it rise in a fall. The rule and its size are options "
+            "of <code>scripts/stress.py</code>.</p>")
+    for stem, title in BOOKS:
+        body += f"<h3>{title}: stress</h3>" + report(f"{stem}_stress.txt")
+    body += ("<h3>The worst days, who causes them, and whether the VaR held</h3>"
+             "<p>Historical VaR and expected shortfall on the marks; a day-ahead VaR tested "
+             "against what happened, with Kupiec's test and the Basel traffic light; and each "
+             "position's share of the tail, from the book repriced under every day's moves "
+             "since 2015.</p>")
+    for stem, title in BOOKS:
+        body += (f"<h3>{title}: tail risk</h3>"
+                 + chart(f"{stem}_tail.png", f"{title}: VaR backtest and component ES")
+                 + report(f"{stem}_tail.txt"))
+    pages["fund.html"] = body
+
+    pages["vol.html"] = (
+        "<h2>Implied vol against the vol that followed</h2>"
+        "<p>Implied vol is an option's price quoted as a volatility. Realized vol is how much "
+        "the share then moved. The comparison looks forward: implied on the first day of a "
+        "window against what was realized from that day to expiry. Six months gives five "
+        "windows that do not overlap, so this describes what happened and tests nothing.</p>"
+        + chart("realized_implied.png", "Implied minus realized by expiry, and a hedged straddle")
+        + report("realized_implied.txt"))
 
     body = ("<h2>Checks on the method</h2>"
             "<h3>Does any one choice drive the result?</h3>" + report("ry_robustness.txt")
