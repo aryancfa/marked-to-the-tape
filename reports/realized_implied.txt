@@ -61,20 +61,20 @@ minus the vol the share realized from that day to expiry. Windows do not overlap
    costs more). Butterfly = average wing minus the at-the-money vol.
          days  risk_reversal  rr_low  rr_high  butterfly
    name                                                 
-   RY     124          -3.66   -4.48    -3.19       0.81
-   TD     124          -3.65   -4.42    -3.05       0.88
-   BNS    124          -3.67   -4.38    -2.84       0.80
-   BMO    124          -3.56   -4.74    -3.00       0.85
+   RY     124          -3.66   -4.48    -3.18       0.82
+   TD     124          -3.64   -4.42    -3.05       0.88
+   BNS    124          -3.69   -4.38    -2.84       0.80
+   BMO    124          -3.55   -4.74    -3.00       0.85
    MFC    124          -4.46   -5.16    -2.98       0.97
-   CNQ    122          -1.86   -2.78    -1.26       0.70
-   SU     101          -2.44   -3.25    -1.59       1.08
+   CNQ    122          -1.86   -2.78    -1.25       0.70
+   SU     101          -2.44   -3.25    -1.54       1.08
    ENB    124          -2.71   -3.50    -2.23       0.58
    CNR    124          -2.96   -3.47    -2.36       0.39
-   BCE    121          -3.67   -4.45    -2.74       0.73
-   ABX     40          -0.87   -1.72     0.01       0.41
-   SHOP    16          -1.53   -4.61     0.07      -0.81
-   XIU    126          -4.09   -4.87    -3.44       0.43
+   BCE    121          -3.68   -4.45    -2.74       0.73
+   ABX     43          -0.88   -1.68     0.00       0.41
+   SHOP    17          -1.46   -4.50     0.01      -0.73
+   XIU    126          -4.09   -4.87    -3.49       0.43
    ZEB    108          -4.18   -5.26    -3.20       0.59
-   XEG     94          -1.97   -3.16     0.13       0.39
+   XEG     93          -2.00   -3.21     0.13       0.34
    Deltas here are Black-Scholes deltas on the tree's vols, used only to find the
    25-delta strikes. A day is left out when the strikes on file do not reach them.

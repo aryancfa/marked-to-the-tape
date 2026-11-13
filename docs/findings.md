@@ -595,6 +595,12 @@ realized to expiry (`scripts/realized_implied.py`). 75 name-windows; five months
   cached vols stop seven days out, and reported the buyer at +10.7%. Hedging from
   each day's own mark took that to +2.5%. A hedged-straddle figure is mostly a
   statement about the hedge.
+- The skew table was not repeatable at first. Two runs of the same code differed
+  by up to 0.05 vol points in most cells and by 0.4 in SHOP's butterfly. The
+  script picks the monthly expiry nearest 45 days out, and when two were equally
+  far the choice depended on an ordering Python changes from run to run. The
+  nearer expiry now wins a tie, and two runs give identical output. The banks'
+  and XIU's figures above did not move at the first decimal.
 
 ## A fourth outside review (13 November 2026)
 
