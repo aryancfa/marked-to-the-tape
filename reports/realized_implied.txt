@@ -1,0 +1,80 @@
+Derived statistics only: gaps in vol points, P&L as a percentage of the premium,
+and counts. No implied vol level, premium or price appears in this file.
+
+Implied vol against the vol that followed. For each monthly expiry that has
+expired inside the data: at-the-money implied vol on the first day of the window,
+minus the vol the share realized from that day to expiry. Windows do not overlap.
+
+1. HOW MANY WINDOWS THERE ARE
+   15 names, 5 expiries, 75 name-windows with both numbers; 0 where the share price sat outside the strikes with a vol on the first day, so no at-the-money vol was read.
+   A name has at most 5 windows. Windows on different names in the same month are NOT independent: one market move reaches
+   all of them. The honest count of independent observations is nearer 5 than 75.
+
+2. THE GAP, implied minus realized, vol points
+         windows  mean  lowest  highest  implied was higher
+   name                                                    
+   RY          5   1.2    -2.3      6.5                   2
+   TD          5  -0.4    -7.4      6.6                   2
+   BNS         5  -3.4    -9.2     -0.4                   0
+   BMO         5  -0.1    -4.9      5.2                   2
+   MFC         5   1.0    -0.8      3.6                   3
+   CNQ         5  -2.2    -6.0      2.1                   1
+   SU          5  -2.4    -5.2      1.0                   1
+   ENB         5  -1.0    -2.8      2.0                   1
+   CNR         5   2.1    -2.3      7.1                   4
+   BCE         5  -3.0   -11.7      4.0                   2
+   ABX         5  -2.2   -11.1      9.6                   1
+   SHOP        5  -4.0   -12.5      9.3                   1
+   XIU         5   1.4    -2.2      5.9                   3
+   ZEB         5  -2.3    -4.9      2.1                   1
+   XEG         5  -0.3    -3.6      3.6                   1
+
+   by expiry, across names (each row is one month, the unit that is independent):
+               names  mean  median  lowest  highest  implied was higher
+   expiry                                                              
+   2026-06-19     15  -1.3    -0.9    -7.9      3.4                   5
+   2026-07-17     15  -0.4    -0.9    -8.9      9.3                   3
+   2026-08-21     15  -2.3    -2.4   -12.5      7.1                   4
+   2026-09-18     15   0.6    -0.1    -9.2      9.6                   7
+   2026-10-16     15  -1.9    -2.2   -11.7      3.6                   6
+   Over all name-windows the gap averages -1.0 points (median -0.9); implied was above what followed in 25 of 75.
+   Month by month the average runs from -2.3 to +0.6, and 1 of 5 months are positive. 5 months cannot
+   establish that options here are dear or cheap. This describes what happened.
+
+3. ONE AT-THE-MONEY STRADDLE, HELD TO EXPIRY, DELTA HEDGED EACH CLOSE
+   P&L as a percentage of the premium. The buyer pays the ask; the seller gets the
+   bid. Both lose the spread, so the two columns do not mirror each other.
+               names  buyer  seller  buyers_ahead  sellers_ahead  spread
+   expiry                                                               
+   2026-06-19     15    3.0   -14.5            10              2    10.3
+   2026-07-17     15    2.6   -13.5            10              2    10.6
+   2026-08-21     15   12.4   -25.4            10              2    11.5
+   2026-09-18     15   -5.6    -4.5             5              6    10.7
+   2026-10-16     15    0.1   -10.1             8              6     9.8
+   All 75 straddles: buyer +2.5% of premium on average, seller -13.6%; quoted spread 10.6% of the premium; the strike was 0.3% from the share price on average.
+   Leg-days where the mark gave no vol and the delta was taken as all or nothing: 481 of 2994.
+   A delta hedge at each close with the option's own implied vol is one choice of
+   several, and the result depends on it. No financing of the premium is charged.
+
+4. THE SKEW: 25-delta risk reversal and butterfly, vol points, monthly expiry
+   nearest 45 days. Risk reversal = call wing minus put wing (negative: downside
+   costs more). Butterfly = average wing minus the at-the-money vol.
+         days  risk_reversal  rr_low  rr_high  butterfly
+   name                                                 
+   RY     124          -3.66   -4.48    -3.18       0.81
+   TD     124          -3.65   -4.42    -3.05       0.88
+   BNS    124          -3.67   -4.38    -2.84       0.80
+   BMO    124          -3.56   -4.74    -3.01       0.85
+   MFC    124          -4.48   -5.16    -2.98       0.96
+   CNQ    122          -1.86   -2.78    -1.25       0.70
+   SU     100          -2.44   -3.26    -1.59       1.08
+   ENB    124          -2.71   -3.50    -2.23       0.58
+   CNR    124          -2.96   -3.47    -2.37       0.39
+   BCE    121          -3.66   -4.45    -2.74       0.73
+   ABX     42          -0.87   -1.70     0.00       0.41
+   SHOP    16          -1.53   -4.61     0.07      -0.40
+   XIU    126          -4.09   -4.85    -3.44       0.43
+   ZEB    108          -4.18   -5.26    -3.25       0.59
+   XEG     93          -1.95   -3.16     0.13       0.39
+   Deltas here are Black-Scholes deltas on the tree's vols, used only to find the
+   25-delta strikes. A day is left out when the strikes on file do not reach them.

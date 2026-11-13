@@ -185,6 +185,7 @@ Implied vol is the price of an option quoted as a volatility. Realized vol is ho
 
 - **Done when:** For the liquid names, at-the-money implied vol for the nearest monthly expiry against the realized vol over that same window (close to close, on the shared calendar, ex-dividend days adjusted). The gap's history and distribution, with the number of non-overlapping windows stated beside it, since six months gives about six. The 25-delta risk reversal and butterfly. The P&L of holding one at-the-money straddle to expiry with a daily delta hedge, entered at the quoted bid or ask and not the mid, shown per expiry as what happened and not as a strategy.
 - **Depends on:** B3, A1, A4
+- **State, 13 November 2026:** built (`src/realized.py`, `scripts/realized_implied.py`, `reports/realized_implied.txt`). Fifteen names, five non-overlapping monthly windows. Implied below realized by 1.0 point on average; a straddle at the ask, delta hedged each close, +2.5% of premium, at the bid -13.6%. Gaps and percentages are published; vol levels and premiums are not (they go to `data/derived/realized/`).
 
 ### B10. Robustness table
 
@@ -204,6 +205,7 @@ A 20% drop in the share price with implied volatility unchanged has never happen
 
 - **Done when:** A selectable rule (sticky strike, sticky delta, sticky moneyness or a custom spot-vol beta), with at-the-money vol moved by beta times the return and skew steepening in crash cases. Exposed as a control the reader can change.
 - **Depends on:** B3
+- **State, 13 November 2026:** built (`src/volrule.py`, `scripts/stress.py`, `scripts/scenarios.py`). Four rules, each option repriced in full; the rule, beta, crash threshold and steepening are options of the script, and with none given all four are shown side by side. The control is a command-line option; the live page is static and shows the four-rule table.
 
 ### C2. Bucket the vega, map the delta
 
@@ -244,6 +246,7 @@ Which position drives the worst days is what a risk head asks. Euler allocation 
 
 - **Done when:** Marginal and component ES per position, summing to the total, ranked, on the real universe.
 - **Depends on:** C4b
+- **State, 13 November 2026:** built (`src/tailrisk.py`, `scripts/tail_risk.py`). Component and marginal ES per position from the book repriced in full under every day's moves since 2015; components sum to the book's ES. Shown again with the delta hedge as positions of its own.
 
 ### C6. Interlisted volume panel  _(buy-side door)_
 
@@ -258,6 +261,7 @@ Gives a risk or pension interviewer a page of their own: same book, same prices,
 
 - **Done when:** Historical VaR and 97.5% ES on the marked P&L, with exception dates, the Kupiec test and the Basel traffic light. Never the page the demo opens on.
 - **Depends on:** C4
+- **State, 13 November 2026:** built in the same script and on the site's 'Stress and tail risk' page, which is not the opening page. Historical 99% VaR and 97.5% ES on the marked P&L; a day-ahead VaR against the next day's actual P&L with exception dates, Kupiec's test and the Basel traffic light (bank-heavy: 5 exceptions in 123 days, yellow; diversified: 2 in 120, green). The day-ahead VaR goes through delta, gamma and vega, not full revaluation.
 
 ### C8. P&L explain and limits
 

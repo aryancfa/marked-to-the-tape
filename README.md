@@ -2,7 +2,7 @@
 
 A risk system for a small book of Canadian listed options. It prices positions with its own engine for American options with discrete dividends. It compares the implied volatilities with Montreal Exchange settlements and with an independent source. Then it replays real historical days and shows what risk is left after hedging with SXF, ZEB and XIU.
 
-**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 78 steps) and 409 tests pass. Not built: the live data capture, the volatility-response control and the fund tab. The live page is built by `scripts/build_site.py` from the reports in this repository.
+**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 83 steps) and 431 tests pass. Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
 
 ## What it has found so far
 
@@ -48,6 +48,12 @@ what is still not trusted, is in [docs/findings.md](docs/findings.md).
 - **An index vega hedge did not help.** Selling XIU vol against single-name vol
   left risk unchanged and cost the spread, because a single name's implied vol
   barely follows the index's from day to day.
+
+- **A VaR set from a calm year failed when the market got livelier.** On the
+  bank-heavy book the loss went past a day-ahead 99% VaR on 5 of 123 days, where
+  1.2 are expected. On the diversified book, 2 of 120.
+- **Over five months implied vol sat about a point below what followed.** That is
+  five windows, so it describes what happened and tests nothing.
 
 Still open, and stated as open: CNQ (-0.17) and CNR (-0.11) show a gap on declared
 dividends, Barrick's projected dividends are priced a quarter higher by the market
@@ -467,6 +473,114 @@ move together far more than this.
 
 The same delta hedge on twelve years of daily share returns, without options, is
 in the next section but one.
+
+## Stress, tail risk and whether the VaR held
+
+Everything in this section that prices a move is a **model price on a rule-based
+vol**, not a mark. The parts that use the book's actual marked P&L say so.
+
+### The vol rule is a control (C1)
+
+A share falling 20% with its implied vol unchanged has never happened, so a stress
+test has to say what vol does. `scripts/stress.py` moves the index, moves each name
+by its beta to it, and reprices every option in full under one of four rules
+(`src/volrule.py`):
+
+- **Sticky strike:** each option keeps its own vol.
+- **Sticky moneyness:** the smile travels with the share, so at-the-money vol does
+  not change.
+- **Sticky delta:** the same idea measured in delta. Close to sticky moneyness.
+- **Beta:** at-the-money vol moves by a chosen number of points per 1% share move,
+  and beyond a chosen fall the skew steepens. Only this one lets vol rise in a fall.
+
+| Index -20%, book P&L | Bank-heavy | Diversified |
+|---|---|---|
+| Sticky strike | -$405,900 | +$172,400 |
+| Sticky moneyness | -$411,000 | +$171,200 |
+| Sticky delta | -$411,000 | +$171,200 |
+| Beta (-0.5 points per 1%, skew 50% steeper past -10%) | -$388,000 | +$175,200 |
+
+The diversified book gains in a fall because it carries a short index future. On
+the bank-heavy book the choice of rule is worth $23,000 on the same move. The rule
+and its size are options of the script (`--rule`, `--beta`, `--crash`,
+`--steepen`); with none given it prints all four.
+
+What the days on file show: at-the-money vol moved a median -0.13 points per 1%
+share move (between -0.03 and -0.25 by name). Those are six months with no crash,
+so that is the response to ordinary days and a floor on the size, which is why the
+number is a control and not a fit.
+
+### Which position drives the worst days (C5)
+
+Six months has three days in its 97.5% tail, too few to split among fourteen
+positions. So `scripts/tail_risk.py` reprices today's book in full under every
+day's joint moves since 2015 (about 2,900 scenarios, vol by the beta rule) and
+takes each position's average P&L on the book's worst 2.5% of them. Those
+components add up to the book's expected shortfall exactly.
+
+![Bank-heavy book: the VaR against what happened, and component ES](reports/bank_heavy_tail.png)
+
+| | Bank-heavy | Diversified |
+|---|---|---|
+| 97.5% expected shortfall, scenarios | $101,300 | $12,600 |
+| Largest contributors | RY, TD and BNS January calls: 68% | Both SHOP options: 46%; CNQ call 19% |
+| A position that pays on the bad days | The RY share position, -13% | The ABX call, -8% |
+| With the delta hedge held as positions | $20,300 | $13,700 |
+
+On the bank-heavy book the hedge cuts the scenario shortfall by four fifths. On the
+diversified book it does nothing: that book already carries a short future, so the
+hedge only swaps the index risk it has left for the risk that a sector fund and a
+single name part ways.
+
+### Has the VaR been honest? (C7)
+
+On the marks, with the delta hedge the 97.5% expected shortfall falls from $81,300
+to $12,100 (bank-heavy) and from $25,900 to $8,700 (diversified). Those rest on
+three days each.
+
+The test of a VaR is whether losses pass it as often as it says. Each evening a
+one-day 99% VaR is set from the 250 trading days before, applied to that evening's
+book through its delta, gamma and vega, and the next day's actual marked P&L is set
+against it.
+
+| | Bank-heavy | Diversified |
+|---|---|---|
+| Days tested | 123 | 120 |
+| Losses past the VaR (about 1.2 expected) | 5 | 2 |
+| Kupiec's test, p-value | 0.01 | 0.50 |
+| Basel traffic light | Yellow | Green |
+
+The bank-heavy VaR was too small. Over those days the book's actual daily standard
+deviation was about a quarter above what the trailing windows implied: a VaR built
+from the year before knows only that year's market, and July to October moved more.
+The exceptions are dated in `reports/bank_heavy_tail.txt`. Two cautions: 120 days
+cannot tell a 99% VaR from a 98% one, and this VaR prices through Greeks, not in
+full.
+
+## Implied vol against the vol that followed (B9)
+
+![Implied minus realized by expiry, and a hedged straddle](reports/realized_implied.png)
+
+Implied vol is an option's price quoted as a volatility; realized vol is how much
+the share then moved. The comparison has to look forward: at-the-money implied on
+the first day of a window against the vol realized from that day to expiry
+(`scripts/realized_implied.py`). Windows run from one monthly expiry to the next and
+do not overlap.
+
+- **How many observations.** Fifteen names and five expiries make 75 name-windows.
+  Names in the same month share one market, so the independent count is nearer five.
+- **The gap.** Implied was below what followed by 1.0 vol points on average and
+  above it in 25 of the 75. Four of the five months were negative.
+- **One straddle per name and month, bought at the ask and delta hedged at each
+  close:** +2.5% of the premium on average. **Sold at the bid:** -13.6%. The quoted
+  spread was 10.6% of the premium, which is most of the difference between them.
+- **The skew.** The 25-delta risk reversal is about -3.6 points on the banks, -4.1
+  on XIU and -1.9 to -2.4 on the energy names: downside protection costs more
+  everywhere, least on energy. Butterflies are 0.4 to 1.1 points.
+
+This is what happened in five months, shown per expiry. It is not a strategy and
+nothing in it has been tested as one. The report prints gaps and percentages; it
+does not print an implied vol level or a premium, which would be close to a price.
 
 ## Does any one choice drive the result?
 

@@ -1,0 +1,69 @@
+Derived statistics only: dollars on a made-up book, dates, counts and test
+statistics. Sections 3 and 4 are model prices on a rule-based vol. No
+price or quote appears in this file.
+
+Tail risk for bank_heavy.csv, a made-up book.
+
+1. ON THE MARKS: the book's actual daily P&L, 127 days (11 May to 10 Nov 2026), dollars
+                             unhedged  delta hedged
+   99% VaR                     93,335        12,495
+   97.5% expected shortfall    81,308        12,128
+   worst day's loss            93,335        12,495
+   daily st. dev.              26,589         5,102
+   From 127 days the 97.5% tail is 3 days and the 99% VaR is the worst day. These are real marks and a thin sample.
+
+2. HAS THE VaR BEEN HONEST? One-day 99% VaR set each evening, against the next
+   day's actual marked P&L
+   Only days on which every underlying in the book was valued are tested (123 of 127): on the
+   others some files had not started or had ended, and the book was a part of itself.
+   123 days tested; VaR averaged 48,114 (from 20,446 to 79,838).
+   Days the loss went past it: 5, where a correct 99% VaR expects 1.2.
+   Those days: 08 Jul 2026 (loss 45,460 against 41,999), 20 Jul 2026 (loss 58,555 against 44,987), 29 Jul 2026 (loss 78,449 against 44,854), 19 Aug 2026 (loss 93,335 against 51,672), 07 Oct 2026 (loss 72,140 against 57,293)
+   Kupiec's test: statistic 6.60, p-value 0.01. The count is not chance: the VaR is mis-sized.
+   Basel traffic light: YELLOW (a correct model shows this many or fewer 99.84% of the time; yellow starts at 95%, red at 99.99%).
+   Read with care: 123 days cannot tell a 99% VaR from a 98% one. The VaR here
+   prices each evening's book through its delta, gamma and vega, not in full. And a
+   window of the 250 days before knows only the market those days had: when moves
+   get larger than that year's, a historical VaR is too small until it catches up.
+   Over these days the book's actual daily st. dev. was 27,002; the windows behind the VaR implied about 20,685.
+
+3. WHICH POSITION DRIVES THE TAIL. Today's book under each of 2,974 days'
+   joint moves, 02 Jan 2015 to 10 Nov 2026, repriced in full. Vol rule: beta (-0.50 points per 1%).
+   MODEL prices on a rule-based vol: none of this is a mark.
+   Book: 97.5% expected shortfall 101,261 (the average of the worst 74 scenarios); 99% VaR 86,992.
+                       component ES  marginal ES  own ES, alone  share of the book's ES %
+   RY Jan 2027 270 C         25,699       25,699         28,553                        25
+   TD Jan 2027 160 C         22,387       22,387         26,790                        22
+   BNS Jan 2027 120 C        20,763       20,763         24,277                        21
+   RY Mar 2027 280 C         12,055       12,055         13,384                        12
+   BMO Mar 2027 230 C        11,123       11,123         12,411                        11
+   CNQ Jan 2027 60 C          6,039        6,039          9,457                         6
+   TD Mar 2027 160 P          5,466        5,466          6,646                         5
+   SU Mar 2027 90 P           4,987        4,987          7,135                         5
+   ZEB shares                 4,698        4,698          4,786                         5
+   RY Jan 2027 260 P          3,975        3,975          4,408                         4
+   BNS Mar 2027 120 P        -3,160       -3,160          2,567                        -3
+   RY shares                -12,771      -12,771         13,555                       -13
+   The components add to 101,261, the book's ES. A negative one is a position that
+   makes money on the book's worst days. 'Own ES, alone' is what the position would
+   lose in ITS worst scenarios; the gap between that and its component is what
+   holding it beside the others saves.
+   The worst scenarios fall in: 2015 (9), 2016 (8), 2017 (1), 2018 (3), 2019 (1), 2020 (25), 2021 (3), 2022 (7), 2023 (6), 2024 (2), 2025 (5), 2026 (4).
+
+4. THE SAME, WITH THE DELTA HEDGE HELD AS POSITIONS OF ITS OWN
+   Hedge sized from each name's delta and ratios on its latest day. Book and hedge: 97.5% expected shortfall 20,254, against 101,261 without.
+   St. dev. over the scenarios: 36,983 without the hedge, 8,957 with it.
+                       component ES  share %
+   TD Jan 2027 160 C         12,995       64
+   RY Jan 2027 270 C         11,950       59
+   BNS Jan 2027 120 C         6,659       33
+   RY Mar 2027 280 C          5,622       28
+   TD Mar 2027 160 P          2,956       15
+   RY Jan 2027 260 P          1,671        8
+   hedge: short index          -731       -4
+   BNS Mar 2027 120 P          -887       -4
+   RY shares                 -5,868      -29
+   hedge: short ZEB         -17,735      -88
+   (the six largest and the four smallest). A hedge leg's sign says which way it
+   was pulling on the hedged book's worst days, which are no longer the days the
+   index fell: they are the days single names moved against the book.

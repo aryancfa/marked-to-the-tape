@@ -1,0 +1,71 @@
+Derived statistics only: dollars on a made-up book, dates, counts and test
+statistics. Sections 3 and 4 are model prices on a rule-based vol. No
+price or quote appears in this file.
+
+Tail risk for diversified.csv, a made-up book.
+
+1. ON THE MARKS: the book's actual daily P&L, 127 days (11 May to 10 Nov 2026), dollars
+                             unhedged  delta hedged
+   99% VaR                     33,404        10,127
+   97.5% expected shortfall    25,944         8,695
+   worst day's loss            33,404        10,127
+   daily st. dev.               7,186         4,426
+   From 127 days the 97.5% tail is 3 days and the 99% VaR is the worst day. These are real marks and a thin sample.
+
+2. HAS THE VaR BEEN HONEST? One-day 99% VaR set each evening, against the next
+   day's actual marked P&L
+   Only days on which every underlying in the book was valued are tested (120 of 127): on the
+   others some files had not started or had ended, and the book was a part of itself.
+   120 days tested; VaR averaged 15,651 (from 11,339 to 23,603).
+   Days the loss went past it: 2, where a correct 99% VaR expects 1.2.
+   Those days: 04 Aug 2026 (loss 20,914 against 13,666), 04 Nov 2026 (loss 33,404 against 20,326)
+   Kupiec's test: statistic 0.45, p-value 0.50. Not distinguishable from a correct VaR.
+   Basel traffic light: GREEN (a correct model shows this many or fewer 88.04% of the time; yellow starts at 95%, red at 99.99%).
+   Read with care: 120 days cannot tell a 99% VaR from a 98% one. The VaR here
+   prices each evening's book through its delta, gamma and vega, not in full. And a
+   window of the 250 days before knows only the market those days had: when moves
+   get larger than that year's, a historical VaR is too small until it catches up.
+   Over these days the book's actual daily st. dev. was 7,115; the windows behind the VaR implied about 6,729.
+
+3. WHICH POSITION DRIVES THE TAIL. Today's book under each of 2,877 days'
+   joint moves, 22 May 2015 to 10 Nov 2026, repriced in full. Vol rule: beta (-0.50 points per 1%).
+   MODEL prices on a rule-based vol: none of this is a mark.
+   Book: 97.5% expected shortfall 12,627 (the average of the worst 71 scenarios); 99% VaR 12,215.
+                        component ES  marginal ES  own ES, alone  share of the book's ES %
+   SHOP Jan 2027 200 C         3,139        3,190          7,414                        25
+   SHOP Jan 2027 180 P         2,610        2,660          5,872                        21
+   CNQ Mar 2027 65 C           2,379        2,379          6,711                        19
+   SU Mar 2027 95 C            1,549        1,549          4,598                        12
+   ENB Jan 2027 70 P           1,187        1,187          8,700                         9
+   MFC Mar 2027 60 C             992          999          7,426                         8
+   BCE Jan 2027 31 P             800          800          3,189                         6
+   XEG shares                    786          786          2,480                         6
+   SXF future                    558          666         32,484                         4
+   XIU Mar 2027 52 P               3            3          3,818                         0
+   RY Jan 2027 270 C              -0          120         10,793                        -0
+   TD Jan 2027 160 P             -28          -25          2,221                        -0
+   CNR Mar 2027 170 C           -321         -308          5,019                        -3
+   ABX Mar 2027 60 C          -1,027       -1,027          3,288                        -8
+   The components add to 12,627, the book's ES. A negative one is a position that
+   makes money on the book's worst days. 'Own ES, alone' is what the position would
+   lose in ITS worst scenarios; the gap between that and its component is what
+   holding it beside the others saves.
+   The worst scenarios fall in: 2015 (9), 2016 (6), 2017 (3), 2018 (4), 2019 (5), 2020 (12), 2021 (3), 2022 (8), 2023 (2), 2024 (3), 2025 (6), 2026 (10).
+
+4. THE SAME, WITH THE DELTA HEDGE HELD AS POSITIONS OF ITS OWN
+   Hedge sized from each name's delta and ratios on its latest day. Book and hedge: 97.5% expected shortfall 13,735, against 12,627 without.
+   St. dev. over the scenarios: 6,253 without the hedge, 6,561 with it.
+                        component ES  share %
+   SXF future                  7,698       56
+   hedge: short XEG            7,367       54
+   SHOP Jan 2027 200 C         4,298       31
+   hedge: short ZEB            3,759       27
+   SHOP Jan 2027 180 P         3,292       24
+   XIU Mar 2027 52 P             864        6
+   SU Mar 2027 95 C           -1,848      -13
+   RY Jan 2027 270 C          -2,091      -15
+   CNQ Mar 2027 65 C          -2,616      -19
+   hedge: short index         -3,880      -28
+   (the six largest and the four smallest). A hedge leg's sign says which way it
+   was pulling on the hedged book's worst days, which are no longer the days the
+   index fell: they are the days single names moved against the book.

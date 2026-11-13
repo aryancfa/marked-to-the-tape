@@ -1,0 +1,42 @@
+Model prices on a rule-based vol, on a made-up book. Dollars summed over
+positions, and ratios. No price or quote appears in this file.
+
+Stress test of bank_heavy.csv, a made-up book. MODEL prices on a rule-based vol:
+nothing below is a mark. An instant move, with no day's decay.
+Valued on each name's latest day on file (04 Nov to 10 Nov 2026).
+The index moves; each name moves by its beta to it (-0.31 to 1.12 here, fitted on the last 250 days).
+
+1. THE BOOK'S P&L BY INDEX MOVE AND VOL RULE, dollars
+               sticky strike  sticky moneyness  sticky delta     beta
+   index move                                                        
+   -20%             -405,895          -411,011      -411,011 -387,980
+   -10%             -254,723          -268,235      -268,235 -244,711
+   -5%              -138,940          -145,403      -145,403 -133,972
+   +5%               155,087           160,319       160,319  154,243
+   +10%              319,628           324,400       324,400  317,467
+   At -20% the rules differ by 23,031: from sticky moneyness (-411,011) to beta (-387,980).
+   The beta rule here: -0.50 vol points per 1% move, the skew 50% steeper beyond a -10% fall. Change them with --beta, --crash, --steepen.
+   sticky strike, moneyness and delta leave at-the-money vol where the old smile
+   puts it. Only beta lets it rise in a fall, which is what a fall does.
+
+2. BY NAME, under the beta rule, dollars
+                  BMO     BNS    CNQ       RY     SU       TD     ZEB
+   index move                                                        
+   -20%       -41,428 -49,938 11,184 -122,521  3,296 -158,574 -29,999
+   -10%       -30,024 -45,937  5,400  -75,137  1,719  -85,733 -14,999
+   -5%        -17,460 -26,903  2,643  -42,234    877  -43,395  -7,500
+   +5%         21,988  31,509 -2,530   51,414   -957   45,320   7,500
+   +10%        46,746  67,033 -4,937  105,845 -1,960   89,741  14,999
+
+3. WHAT THE DAYS ON FILE SHOW: at-the-money vol points per 1% share move
+         beta  std_error  days
+   name                       
+   RY   -0.15       0.04   106
+   TD   -0.22       0.04   121
+   BNS  -0.13       0.02    94
+   BMO  -0.18       0.02   119
+   CNQ  -0.03       0.02   102
+   SU   -0.06       0.01   125
+   Median -0.14. These are six months with no crash in them, so
+   they measure the response to ordinary days. In a sell-off the response is larger;
+   that is why the rule is a control and not a fitted number.

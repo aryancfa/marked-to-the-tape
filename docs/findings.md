@@ -13,10 +13,18 @@ names; its option layers are not built.
 
 An option's price can be turned into an implied volatility, but that gives one
 number, and one number cannot be wrong. To find errors you need a second number to
-compare it with. The simplest is the put at the same strike: a call and a put on the
-same share, strike and expiry must imply the same volatility. If they don't, the
-volatility isn't what differs. One of the carry inputs is off: the share price, the
-interest rate or the dividends.
+compare it with. The simplest is the put at the same strike. Priced in the same model
+with the right inputs, a call and a put on the same share, strike and expiry should
+imply the same volatility. If they don't, the volatility isn't what differs. One of
+the carry inputs is off: the share price, the interest rate or the dividends.
+
+This is a consistency test, not a law. For European options, put-call parity is an
+exact identity that holds whatever the model. These options are American, where
+parity is only a pair of bounds, because either side may be exercised early. So the
+call and the put agree only if the model handles early exercise correctly and is fed
+the right inputs, and a gap can come from the model as well as from an input. That is
+why the engine was checked against a second implementation before the gaps were read
+as evidence about inputs.
 
 So the method throughout was to price calls and puts with the same inputs, look at
 the gap, and work out which input the gap's shape points to.
@@ -527,6 +535,67 @@ set from what was known the evening before.
   Composite's dividends give 2.22% against XIU's 2.26%, so the yield is not the
   weak part. The spread still runs from 24 to 72 basis points by contract.
 
+## Finding 22: the vol rule matters less than expected on these books, and the data cannot set it
+
+Four rules for what implied vol does when the share moves (`src/volrule.py`), with
+every option repriced in full (`scripts/stress.py`). On a 20% index fall the
+bank-heavy book loses $388,000 to $411,000 depending on the rule, a spread of
+$23,000; the diversified book, which carries a short future, gains $171,000 to
+$175,000.
+
+- The books are mostly delta, so the rule moves the answer by about 6%. On a book
+  that was long or short vega it would decide it.
+- The days on file show at-the-money vol moving a median -0.13 points per 1% share
+  move. Six months with no crash measure the response to ordinary days only. The
+  beta in the rule (-0.5 by default) is therefore a control someone sets, labelled
+  as such, and every scenario price is labelled a model price.
+
+## Finding 23: the tail is a few positions, and a hedge can add nothing
+
+Today's book repriced in full under each day's joint moves since 2015, about 2,900
+scenarios (`scripts/tail_risk.py`). Component ES is each position's average P&L on
+the book's worst 2.5%; the components sum to the book's ES.
+
+- **Bank-heavy:** ES $101,300. Three January calls (RY, TD, BNS) are 68% of it. The
+  RY share position, which is short, is -13%: it pays on the bad days.
+- **Diversified:** ES $12,600. The two SHOP options are 46% and the CNQ call 19%.
+- **The delta hedge as positions of its own** takes the bank-heavy shortfall to
+  $20,300. On the diversified book it leaves it at $13,700: that book already holds
+  a short index future, and hedging each name through the index and a sector fund
+  trades the little index risk left for sector-against-name risk of the same size.
+  A hedge is not an improvement by definition; it depends on what the book already
+  is.
+
+## Finding 24: a VaR from a calm year failed, on the book that was exposed
+
+A one-day 99% VaR set each evening from the 250 days before, against the next day's
+actual marked P&L.
+
+- **Bank-heavy:** 5 losses past it in 123 days, where 1.2 are expected. Kupiec
+  p-value 0.01; Basel yellow. The book's actual daily standard deviation over those
+  days was about a quarter above what the trailing windows implied.
+- **Diversified:** 2 in 120. Kupiec p-value 0.50; green.
+- The mechanism is the ordinary one: a historical VaR knows only the market its
+  window had. The cautions are in the report: 120 days cannot tell 99% from 98%,
+  and this VaR prices through delta, gamma and vega.
+
+## Finding 25: over five months, options were priced for a little less than came
+
+At-the-money implied vol on the first day of each monthly window against the vol
+realized to expiry (`scripts/realized_implied.py`). 75 name-windows; five months.
+
+- Implied was below realized by 1.0 point on average, and above it in 25 of 75.
+  Four of five months were negative.
+- A straddle bought at the ask and delta hedged each close made 2.5% of its premium
+  on average; sold at the bid it lost 13.6%. The quoted spread, 10.6% of the
+  premium, is most of the gap between the two.
+- Five windows do not show that options here are cheap. The same table in a month
+  of falling realized vol would read the other way.
+- The first version froze the hedge for the last week before expiry, because the
+  cached vols stop seven days out, and reported the buyer at +10.7%. Hedging from
+  each day's own mark took that to +2.5%. A hedged-straddle figure is mostly a
+  statement about the hedge.
+
 ## What a third outside review found (12 November 2026)
 
 Accepted, and acted on in the same release:
@@ -739,10 +808,11 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
 
 - Live capture. The script for Interactive Brokers is written and has never run
   against a live session; every file so far was downloaded by hand.
-- A rule for how implied vol moves when the share moves (the volatility response).
-  The P&L explain treats the two as separate steps.
-- Tail risk by position, and the VaR and expected-shortfall page with a backtest.
-- Realized against implied vol.
+- A vol rule fitted to a crash. The stress test offers four rules and a control;
+  the six months on file hold no crash to fit one to.
+- A VaR priced in full each evening. The backtest goes through delta, gamma and
+  vega.
+- Bucketed vega limits and usage bars (C8), and the interlisted volume panel (C6).
 - Any day before May 2026. OptionMetrics on this subscription has no Canadian
   listings, so Montreal history cannot be extended from it.
 - A methodology note and a walkthrough. The live page is charts and reports.

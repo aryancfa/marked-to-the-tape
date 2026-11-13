@@ -1,5 +1,13 @@
 # Work list
 
+> **Historical note, 13 November 2026.** This file is the proposal written on
+> 11 November 2026 and is kept as a record of the reasoning. It is NOT the status of
+> the project. Since it was written the closing chart, the book, the review queue,
+> stress, tail risk and the live page have all been built. The one place that says
+> what is built and what is not is the "State" line under each item in
+> `docs/build-sheet.md`. Where this file and the build sheet disagree, the build
+> sheet is right.
+
 What stands between this project and a risk system a desk would use, in the order to
 do it. Written 11 November 2026 against an outside review. Item IDs refer to
 `docs/build-sheet.md`.
