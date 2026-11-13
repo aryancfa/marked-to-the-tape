@@ -78,10 +78,15 @@ def one_name(task) -> dict:
     name, positions, bars = task
     rows, last = [], {}
     if name == "SXF":
-        fut = load_mx_futures(mx_files("SXF"))
-        fut = fut[fut["root"] == "SXF"]
+        fut = load_mx_futures(mx_files("SXF"))      # the file's own root for SXF is TX60
         for pos in positions:
             f = fut[fut["expiry"].dt.date == pos.expiry].sort_values("date")
+            if f.empty:
+                # Until 12 November 2026 this was skipped in silence: the filter
+                # asked for a root the file does not use, and the sample book had
+                # the last trading day where the file has the expiry.
+                raise SystemExit(f"SXF {pos.expiry}: no such contract in the exchange files; "
+                                 f"listed: {sorted({e.date() for e in fut['expiry']})}")
             prev = None
             for ts, px in zip(f["date"], f["settle"]):
                 inp = DayInputs(ts.date(), float(px), lambda T: 0.0, [], None)
@@ -193,6 +198,10 @@ def main() -> None:
         raise SystemExit(f"no exchange files for {', '.join(missing)}")
     with ProcessPoolExecutor(max_workers=a.workers) as pool:
         results = list(pool.map(one_name, [(n, ps, a.bars) for n, ps in names.items()]))
+    never = [res["name"] for res in results if not res["rows"]]
+    if never:
+        raise SystemExit(f"no day could be valued for {', '.join(never)}: a position that "
+                         "is never valued must not vanish from the totals")
     rows = pd.DataFrame([r for res in results for r in res["rows"]])
     rows["day"] = pd.to_datetime(rows["day"])
     opt = rows[rows["kind"] == "option"]

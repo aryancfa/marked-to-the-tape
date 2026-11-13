@@ -111,15 +111,15 @@ def one_day(task) -> pd.DataFrame | None:
     labels = res.summary["carry"].to_dict()
     exp = pd.Series([e.date() if hasattr(e, "date") else e for e in d["expiry"]], index=d.index)
     rows = []
-    for e, K, cp, bar in zip(inv["expiry"], inv["strike"], inv["call_put"],
-                             inv["half_spread_vol"] * 100.0):
+    for e, K, cp, bar, vega in zip(inv["expiry"], inv["strike"], inv["call_put"],
+                                   inv["half_spread_vol"] * 100.0, inv["vega"]):
         e = e.date() if hasattr(e, "date") else e
         here = d[(exp == e) & ((d["strike"] - K).abs() < 1e-6)]
         p = here[here["reference"] == PAIR]
         s = here[(here["reference"] == SMILE) & (here["side"] == cp) & ~here["poor_fit"]]
         ctx = review.expiry_context(d, e, K, cp)
         rows.append(dict(
-            day=day, expiry=e, strike=K, call_put=cp, bar=bar,
+            day=day, expiry=e, strike=K, call_put=cp, bar=bar, vega=vega,
             pair=float(p["diff"].iloc[0]) if len(p) else np.nan,
             pair_bar=float(p["quote_bar"].iloc[0]) if len(p) else np.nan,
             smile=float(s["diff"].iloc[0]) if len(s) else np.nan,
@@ -172,6 +172,7 @@ def market(fault: str, days: int, seed: int, workers: int) -> pd.DataFrame:
                       if quote_fault and (fault == "bad quote" or i) else 0.0
                       for i, e, K, cp in zip(q["i"], q["expiry"], q["strike"], q["call_put"])])
     q["truth"] = np.where(own != 0, MARK, np.where(other != 0, PARTNER, CLEAN))
+    q["planted"] = np.abs(own)                           # vol points, on this quote
     if not quote_fault:
         q["truth"] = np.where(q["expiry"].isin(hit), INPUT, CLEAN)
     q["fault"] = fault
@@ -195,6 +196,35 @@ def causes(q: pd.DataFrame, **thresholds) -> pd.Series:
                                 **thresholds)
         out[r.Index] = INPUT if c.startswith("input") else c
     return pd.Series(out, dtype=object)
+
+
+def ranking(q: pd.DataFrame) -> dict:
+    """Does the queue put the faults that matter most at the top? Bad quotes
+    only, where the planted size is known. Each quote is held one for one,
+    so its true cost is the planted size times its vega, and the queue's
+    figure is the failed disagreement times its vega.
+
+      top_n     each day, take as many items from the top of the queue as
+                there are planted quotes in it: the share that are planted
+      spearman  rank correlation between the queue's dollars and the true
+                cost, over the planted quotes it flagged
+      captured  the share of all planted cost that sits in flagged quotes
+    """
+    b = q[q["fault"] == "bad quote"].copy()
+    worst = np.where(b["failed_pair"] & (b["pair"].abs() > b["smile"].abs().fillna(0.0)),
+                     b["pair"].abs(), b["smile"].abs())
+    worst = np.where(b["failed_smile"] | b["failed_pair"], np.nan_to_num(worst), 0.0)
+    b["queue_dollars"], b["true_cost"] = worst * b["vega"], b["planted"] * b["vega"]
+    f = b[b["flagged"]]
+    hits = total = 0
+    for _, g in f.groupby("day"):
+        n = int((g["truth"] == MARK).sum())
+        top = g.sort_values("queue_dollars", ascending=False).head(n)
+        hits, total = hits + int((top["truth"] == MARK).sum()), total + n
+    m = f[f["truth"] == MARK]
+    return dict(top_n=hits / total if total else float("nan"),
+                spearman=float(m["queue_dollars"].rank().corr(m["true_cost"].rank())),
+                captured=float(m["true_cost"].sum() / b["true_cost"].sum()), items=len(m))
 
 
 def right_share(q: pd.DataFrame, **thresholds) -> float:
@@ -290,6 +320,17 @@ def main() -> None:
         f"{100 * (c.loc[mk.index] == INPUT).mean():.0f}% of {len(mk)}")
     clean = q2[q2["truth"] == CLEAN]
     say(f"   false alarms: {1000 * clean['flagged'].mean():.0f} per 1,000 clean quotes")
+    say()
+    rk = ranking(q2)
+    say("4. DO THE FAULTS THAT MATTER MOST COME FIRST? (bad quotes, where the size is known)")
+    say(f"   of the planted cost in the market, the share sitting in flagged quotes: "
+        f"{100 * rk['captured']:.0f}%")
+    say(f"   each day, of the top of the queue (as many items as it holds planted quotes), "
+        f"the share that are planted: {100 * rk['top_n']:.0f}%")
+    say("   (the rest are mostly the clean quote across the same strike: the call-put check")
+    say("   flags both sides at the same size, and it is the cause label that tells them apart)")
+    say(f"   rank correlation between the queue's dollars and the true cost, over the "
+        f"{rk['items']} planted quotes flagged: {rk['spearman']:+.2f}")
     out = ROOT / "reports" / "review_benchmark.txt"
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"\nsaved: {out.relative_to(ROOT)}")

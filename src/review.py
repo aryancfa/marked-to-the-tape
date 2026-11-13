@@ -55,6 +55,9 @@ MARK = "this mark"
 CURVE = "the fitted curve"
 UNCLEAR = "unclear"
 CAUSES = (INPUT_DIVIDEND, INPUT_CARRY, PARTNER, MARK, CURVE, UNCLEAR)
+# Two kinds of item that are not a failed check:
+NO_MARK = "no usable mark"                      # could not be marked or inverted
+WATCH_DATE = "watch: dividend date not announced"   # nothing failed; one date decides a lot
 
 # Thresholds, each a judgement stated once:
 MIN_OTHERS = 2          # other strikes needed before "the whole expiry" means anything:
@@ -139,6 +142,10 @@ NEXT = {
     CURVE: "Look at the expiry's fitted curve before the mark: the call and the put sit "
            "off it together.",
     UNCLEAR: "Too few neighbouring strikes to say. Check the quote and the next dividend.",
+    NO_MARK: "Find a price for this series: it has no mark that gives a vol, so it has no "
+             "Greeks and no place in the P&L explain.",
+    WATCH_DATE: "Confirm {name}'s next ex-date with the issuer. It is a projection and it "
+                "falls within a few sessions of this option's expiry.",
 }
 
 

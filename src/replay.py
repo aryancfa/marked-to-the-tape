@@ -300,6 +300,20 @@ def dividend_exposure(v: Valued, inp: DayInputs, bump: float = 0.05,
         date=v.scale * (_price(pos, inp.day, inp.spot, inp.rate, later, v.iv, n) - base))
 
 
+def reprice_at_vol(v: Valued, inp: DayInputs, vol_points_off: float,
+                   n: int = 400) -> float | None:
+    """Dollars between the position's mark and its value at a vol
+    `vol_points_off` lower: what a disagreement of that many vol points is
+    worth by REPRICING. Vega times the disagreement is the straight-line
+    version of this; far from the money, or for a large disagreement, the
+    two differ. None for anything but a valued option."""
+    pos = v.position
+    if pos.kind != "option" or not v.ok:
+        return None
+    vol = max(v.iv - vol_points_off / 100.0, 1e-4)
+    return v.scale * (v.price - _price(pos, inp.day, inp.spot, inp.rate, inp.divs, vol, n))
+
+
 def reprice_with(v: Valued, inp: DayInputs, divs: Dated, n: int = 400) -> float | None:
     """Dollars the position gains if the dividend schedule were `divs`
     instead of the day's, vol and share price held. For pricing one named
