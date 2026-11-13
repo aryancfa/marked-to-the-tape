@@ -65,3 +65,20 @@ def test_text_is_escaped_not_trusted():
 def test_a_missing_section_stops_the_build():
     with pytest.raises(SystemExit):
         bs.section("## One\ntext\n", "Two")
+
+
+def test_the_desk_summary_shows_only_figures_the_reports_hold(site):
+    text = (site / "index.html").read_text(encoding="utf-8")
+    assert "Desk summary" in text and text.count('class="tile"') == 6 * len(bs.BOOKS)
+    for stem, _ in bs.BOOKS:
+        f = bs.desk_figures(stem)
+        review = (bs.REPORTS / f"{stem}_review.txt").read_text(encoding="utf-8")
+        assert f"failed a check: {f['failed']} (" in review
+        assert f"${f['one_day']}" in text and f"{f['removed']}%" in text
+
+
+def test_a_figure_the_reports_do_not_hold_stops_the_build():
+    with pytest.raises(SystemExit):
+        bs.figure("all_names_summary.txt", r"no such line (\d+)")
+    with pytest.raises(SystemExit):
+        bs.figure("no_such_report.txt", r"(\d+)")

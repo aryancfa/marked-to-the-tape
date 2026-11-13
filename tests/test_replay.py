@@ -112,6 +112,25 @@ def test_a_share_move_lands_in_delta_and_gamma_and_a_vol_move_in_vol():
     assert abs(e["delta"]) < 1e-9
 
 
+def test_the_other_order_keeps_the_total_and_moves_only_the_interaction():
+    # one input moves: the order cannot matter
+    for kw in (dict(spot1=103.0), dict(vol1=0.28)):
+        pos, v0, v1, a, b = both_days(**kw)
+        e = explain(v0, v1, a, b, other_order=True)
+        assert e["vol_first"] == pytest.approx(e["vol"], abs=0.02)
+    # both move, on an out-of-the-money call whose vega grows as the share
+    # rises: vol counts for more when it is stepped at the higher share price
+    pos, rows = option(K=110.0), (("C", 110.0), ("P", 110.0))
+    a, b = inputs(D0, 100.0, 0.25, rows=rows), inputs(D1, 106.0, 0.30, rows=rows)
+    v0, v1 = value_position(pos, a), value_position(pos, b)
+    plain = explain(v0, v1, a, b)
+    e = explain(v0, v1, a, b, other_order=True)
+    assert {k: e[k] for k in plain} == plain                  # nothing else changes
+    assert e["vol"] - e["vol_first"] > 1.0
+    share_second = e["delta"] + e["gamma"] + e["vol"] - e["vol_first"]
+    assert e["carry"] + e["dividends"] + e["vol_first"] + share_second         == pytest.approx(e["total"], abs=1e-6)
+
+
 def test_an_expected_ex_dividend_drop_is_carry_not_a_share_move():
     divs = [(D1, 1.00)]
     pos, v0, v1, a, b = both_days(spot1=99.0, divs0=divs)     # share opens 1.00 lower

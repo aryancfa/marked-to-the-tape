@@ -36,6 +36,7 @@ import numpy as np
 import pandas as pd
 
 from run_days import fingerprint, groups, mx_files, one_per_day, tested_rows
+from multitest import survives, two_sided_p
 from surface import mean_std_error
 
 DECLARED = "monthly over 60d, declared dividends"
@@ -80,6 +81,46 @@ def one(name: str) -> dict | None:
     return row
 
 
+def many_tests(t: pd.DataFrame, level: float = 0.05) -> list[str]:
+    """The table above holds about thirty t statistics. This says which gaps
+    are still significant once that is allowed for (src/multitest.py)."""
+    tests = [(name, kind, float(t.loc[name, f"{kind} t"]), float(t.loc[name, f"{kind} gap"]),
+              float(t.loc[name, f"{kind} days"]))
+             for kind in ("declared", "projected") for name in t.index
+             if pd.notna(t.loc[name, f"{kind} t"])]
+    p = [two_sided_p(x[2]) for x in tests]
+    plain = [abs(x[2]) > 1.96 for x in tests]
+    bh = survives(p, level)
+    by = survives(p, level, any_dependence=True)
+
+    def names(keep, kind):
+        got = [f"{x[0]} ({x[3]:+.2f})" for x, k in zip(tests, keep) if k and x[1] == kind]
+        return ", ".join(got) if got else "none"
+
+    out = [f"MANY TESTS AT ONCE. The table holds {len(tests)} t statistics. If every true gap "
+           "were zero,",
+           f"about {level * len(tests):.1f} of them would still pass |t| > 1.96 by chance. "
+           f"{sum(plain)} pass it.",
+           "Allowing for the number of tests (Benjamini-Hochberg, false discoveries held to "
+           f"{100 * level:.0f}%),",
+           f"{int(bh.sum())} remain; under the stricter rule that assumes nothing about how the "
+           "tests move together",
+           f"(Benjamini-Yekutieli), {int(by.sum())}.",
+           f"  declared dividends, still significant:  {names(by, 'declared')}",
+           f"  projected dividends, still significant: {names(by, 'projected')}"]
+    lost = [f"{x[0]} {x[1]} ({x[3]:+.2f}, t {x[2]:+.1f})"
+            for x, a, b in zip(tests, plain, by) if a and not b]
+    out.append("  passed |t| > 1.96 alone but not the stricter rule: "
+               + (", ".join(lost) if lost else "none"))
+    thin = [f"{x[0]} {x[1]} ({x[4]:.0f} days)" for x, k in zip(tests, by) if k and x[4] < 30]
+    if thin:
+        out.append("  CAUTION, fewer than 30 days behind the mean, so its p-value is too small: "
+                   + ", ".join(thin))
+    out += ["Significant is not the same as large. A gap can survive here and still be smaller",
+            "than the quote's own half-spread; the front charts show both bars."]
+    return out
+
+
 def main(names: list[str]) -> None:
     rows = [r for r in (one(n) for n in names if mx_files(n)) if r]
     if not rows:
@@ -96,6 +137,7 @@ def main(names: list[str]) -> None:
     lines += [f"Funding spread across {len(est)} names: median {est.median():.1f} bp a year, "
               f"range {est.min():.1f} to {est.max():.1f}, precision-weighted mean "
               f"{(est * w).sum() / w.sum():.1f}."]
+    lines += ["", *many_tests(t)]
     text = "\n".join(lines) + "\n"
     print(text)
     path = ROOT / "reports" / "all_names_summary.txt"

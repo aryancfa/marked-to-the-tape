@@ -70,6 +70,12 @@ th{font-weight:600}
 .pick{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 18px}
 .pick a{border:1px solid var(--line);border-radius:4px;padding:2px 9px;text-decoration:none;
 font-size:14px;background:var(--card)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;
+margin:10px 0 18px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.tile .k{font-size:13px;color:var(--mute)}
+.tile .v{font-size:24px;font-weight:600;margin:2px 0;font-variant-numeric:tabular-nums}
+.tile .n{font-size:12.5px;color:var(--mute);line-height:1.4}
 details{margin:10px 0}summary{cursor:pointer;color:var(--acc)}
 footer{border-top:1px solid var(--line);padding:14px 0 30px;color:var(--mute);font-size:13px}
 """
@@ -216,6 +222,98 @@ def page(file: str, body: str, stamp: str) -> str:
 """
 
 
+# ---------------------------------------------------------------- desk summary
+
+def figure(file: str, pattern: str, group: int = 1) -> str:
+    """One figure read out of a committed report. Stops the build if the
+    report or the line is missing: a summary must never show a number the
+    reports do not hold."""
+    p = REPORTS / file
+    if not p.exists():
+        raise SystemExit(f"desk summary: reports/{file} has not been produced")
+    m = re.search(pattern, p.read_text(encoding="utf-8"))
+    if not m:
+        raise SystemExit(f"desk summary: no match for {pattern!r} in reports/{file}")
+    return m.group(group)
+
+
+def number(text: str) -> float:
+    return float(text.replace(",", ""))
+
+
+def desk_figures(stem: str) -> dict[str, str]:
+    """The handful of figures a desk would ask for first, for one book."""
+    rv, hg, tl = f"{stem}_review.txt", f"{stem}_hedge.txt", f"{stem}_tail.txt"
+    return dict(
+        failed=figure(rv, r"failed a check: (\d+) \("),
+        failed_pct=figure(rv, r"failed a check: \d+ \(([\d.]+)% of checkable"),
+        gross=figure(rv, r"over the period: ([\d,]+) by repricing"),
+        positions=figure(rv, r"(\d+) distinct positions failed"),
+        once=figure(rv, r"at its largest: ([\d,]+)\."),
+        one_day=figure(rv, r"Open on any one day: median [\d,]+, largest ([\d,]+);"),
+        not_mark=figure(rv, r"NOT the likely fault: \d+ of \d+ \((\d+)%\)"),
+        removed=figure(hg, r"\n\s+delta hedged\s+[\d,]+\s+(\d+)\s"),
+        vol_before=figure(hg, r"daily st\. dev\. of ([\d,]+); with the hedge's P&L added"),
+        vol_after=figure(hg, r"with the hedge's P&L added, ([\d,]+)\."),
+        vega_cost=figure(hg, r"half the quoted spread -([\d,]+) "),
+        var_days=figure(tl, r"(\d+) days tested"),
+        var_breaks=figure(tl, r"went past it: (\d+),"),
+        var_expected=figure(tl, r"99% VaR expects ([\d.]+)"),
+        light=figure(tl, r"Basel traffic light: (\w+)"),
+    )
+
+
+def desk_summary() -> str:
+    """Tiles and three decisions, written from the figures and nothing else."""
+    def tile(label: str, value: str, note: str) -> str:
+        return (f'<div class="tile"><div class="k">{html.escape(label)}</div>'
+                f'<div class="v">{html.escape(value)}</div>'
+                f'<div class="n">{html.escape(note)}</div></div>')
+
+    out, got = "", {}
+    for stem, title in BOOKS:
+        f = got[stem] = desk_figures(stem)
+        helped = number(f["vol_after"]) < number(f["vol_before"])
+        out += f"<h3>{title}</h3>" + '<div class="tiles">' + "".join([
+            tile("Marks that failed a check", f["failed"],
+                 f"{f['failed_pct']}% of checkable position-days, on {f['positions']} positions"),
+            tile("Most in dispute on one day", f"${f['one_day']}",
+                 f"${f['gross']} if every failed day is added up; ${f['once']} counting each "
+                 "position once"),
+            tile("Failed, but the mark was not the likely fault", f"{f['not_mark']}%",
+                 "an input or the partner's quote is the first thing to check"),
+            tile("Delta hedge", f"{f['removed']}%",
+                 "of daily variance removed, ratios from earlier days only"),
+            tile("Index vega hedge", "Helped" if helped else "No benefit",
+                 f"vol P&L st. dev. ${f['vol_before']} before, ${f['vol_after']} after; cost "
+                 f"${f['vega_cost']}"),
+            tile("Day-ahead 99% VaR", f"{f['var_breaks']} breaks in {f['var_days']} days",
+                 f"{f['var_expected']} expected; Basel light {f['light'].lower()}"),
+        ]) + "</div>"
+
+    every = list(got.values())
+    decide = []
+    if all(number(f["not_mark"]) >= 30 for f in every):
+        decide.append("Before challenging a flagged mark, check the projected dividend and the "
+                      "other side's quote: on these books a third or more of failed checks "
+                      "point there, not at the mark.")
+    if all(number(f["vol_after"]) >= number(f["vol_before"]) for f in every):
+        decide.append("Do not put on the index vega hedge tested here. It cost money and did "
+                      "not reduce the vol part of the P&amp;L on either book.")
+    late = [t for (s, t), f in zip(BOOKS, every) if f["light"].upper() != "GREEN"]
+    if late:
+        decide.append(f"Treat the {' and '.join(t.lower() for t in late)}'s VaR as too small "
+                      "until it has taken in the recent moves: it was broken more often than a "
+                      "correct one would be.")
+    decide.append("What is left after the delta hedge is single-name risk. An index and a "
+                  "sector fund cannot remove it; it has to be limited by name.")
+    return ('<h2>Desk summary</h2><p class="note">Two made-up books marked at the exchange\'s '
+            "prices over six months. Historical results, not live risk. Every figure is read "
+            "from the reports on the other pages.</p>" + out
+            + "<h3>What a desk would do with this</h3><ul>"
+            + "".join(f"<li>{d}</li>" for d in decide) + "</ul>")
+
+
 # ---------------------------------------------------------------- pages
 
 def build(out: Path) -> list[Path]:
@@ -235,7 +333,8 @@ def build(out: Path) -> list[Path]:
         "each position with its own engine, tests each exchange mark against two references "
         "before its P&amp;L is believed, and shows what risk is left after a hedge that could "
         "actually have been put on.</p>"
-        "<h2>Model against market</h2>"
+        + desk_summary()
+        + "<h2>Model against market</h2>"
         + chart("ry_front_chart.png", "Royal Bank: implied vol against three references")
         + '<p class="note">Royal Bank options, six months. Each cell is a difference in vol '
           'points; bold means more than two standard errors from zero. '

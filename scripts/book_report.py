@@ -132,8 +132,9 @@ def one_name(task) -> dict:
                        series=(f"{name} {pos.expiry:%b %Y} {pos.strike:g} {pos.call_put}"
                                if pos.kind == "option" else f"{name} shares"))
             if i in prev and prev[i][0].ok and v.ok:
-                e = explain(prev[i][0], v, prev[i][1], inp)
+                e = explain(prev[i][0], v, prev[i][1], inp, other_order=pos.kind == "option")
                 row.update({k: e[k] for k in (*STEPS, "total")})
+                row["vol_first"] = e.get("vol_first", e["vol"])
                 row["gap_days"] = (day - prev[i][1].day).days
             rows.append(row)
             prev[i] = (v, inp)
@@ -267,6 +268,25 @@ def main() -> None:
     say("   schedule; delta and gamma = the share moving; vol = implied vol moving. The five")
     say("   add up to the change in the marks exactly. 'share of daily variance' is each")
     say("   part's covariance with the total, so the column adds to 100.")
+    if "vol_first" in ex:
+        # the same split with the vol step taken BEFORE the share step
+        alt = ex.groupby("day")["vol_first"].sum()
+        cross = daily["vol"] - alt
+        say("   THE ORDER OF THE STEPS. Above, the share moves first and the vol second. Taken")
+        say("   the other way round the total is unchanged, and this much changes bucket:")
+        both = pd.DataFrame({"share first": [daily["vol"].sum(), daily["vol"].std()],
+                             "vol first": [alt.sum(), alt.std()],
+                             "moves between buckets": [cross.sum(), cross.std()]},
+                            index=["vol, sum over the period", "vol, daily st. dev."])
+        say(both.pipe(whole).replace("\n", "\n   ").join(["   ", ""]))
+        size = cross.abs()
+        say(f"   On a typical day {size.median():,.0f} moves between 'vol' and the share steps "
+            f"(largest {size.max():,.0f}), against a daily")
+        say(f"   st. dev. of {daily['vol'].std():,.0f} for vol and {daily['total'].std():,.0f} "
+            f"for the total. The two orders' daily vol figures correlate "
+            f"{daily['vol'].corr(alt):.3f}.")
+        say("   That amount is the part of the change that needs BOTH the share and the vol to")
+        say("   move. It belongs to neither alone, and no order is the right one.")
     worst = daily.sort_values("total").head(5)
     say("   five worst days:")
     say(worst.pipe(whole).replace("\n", "\n   ").join(["   ", ""]))

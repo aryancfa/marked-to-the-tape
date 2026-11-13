@@ -26,6 +26,12 @@ time, from yesterday's state to today's:
                 this step: curvature and everything of higher order).
   4. vol        the vol moves to today's, which reproduces today's mark.
 
+The order is a convention, and it matters for steps 3 and 4. The part of the
+change that needs both the share and the vol to move belongs to neither
+alone; it falls to whichever step is taken second. `explain(...,
+other_order=True)` also prices the vol step first, so a report can show how
+much moves between the two buckets when the order is reversed.
+
 The four steps add up to today's mark minus yesterday's exactly, because
 step 4 ends on the mark itself. There is no unexplained part to hide in;
 what cannot be explained is a position with no mark, and that is counted.
@@ -184,10 +190,19 @@ STEPS = ("carry", "dividends", "delta", "gamma", "vol")
 
 
 def explain(v0: Valued, v1: Valued, inp0: DayInputs, inp1: DayInputs,
-            n: int = 400) -> dict[str, float] | None:
+            n: int = 400, other_order: bool = False) -> dict[str, float] | None:
     """Why the position's value changed from day0 to day1, in dollars, by
     the steps in the module note. None when either day has no usable mark.
-    The steps sum to the change in the mark."""
+    The steps sum to the change in the mark.
+
+    The ORDER of the steps is a convention. The share moves before the vol,
+    so the vol step is priced at today's share price. Done the other way
+    round the total is the same but the amount called "vol" is not: the
+    part of the change that needs BOTH moves (vanna, in desk language) goes
+    to whichever step comes second. With `other_order` the result also
+    carries `vol_first`, the vol step priced before the share moves; the
+    interaction is `vol - vol_first`, and the share step in that order is
+    `delta + gamma + vol - vol_first`."""
     pos = v0.position
     if not (v0.ok and v1.ok):
         return None
@@ -205,9 +220,16 @@ def explain(v0: Valued, v1: Valued, inp0: DayInputs, inp1: DayInputs,
     share = moved - news
     delta = v0.delta * (inp1.spot - s_expected)
     k = v0.scale
-    return dict(carry=k * (aged - v0.price), dividends=k * (news - aged),
-                delta=k * delta, gamma=k * (share - delta), vol=k * (v1.price - moved),
-                total=k * (v1.price - v0.price))
+    out = dict(carry=k * (aged - v0.price), dividends=k * (news - aged),
+               delta=k * delta, gamma=k * (share - delta), vol=k * (v1.price - moved),
+               total=k * (v1.price - v0.price))
+    if other_order:
+        # the same two steps the other way round: vol first, at the share
+        # price before it moved, then the share. What lands in "vol" differs
+        # from the figure above by the share-and-vol interaction.
+        volled = _price(pos, inp1.day, s_expected, inp1.rate, inp1.divs, v1.iv, n)
+        out["vol_first"] = k * (volled - news)
+    return out
 
 
 # --------------------------------------------------------------------------

@@ -296,6 +296,22 @@ def main() -> None:
     say(f"   dollars in dispute over the period: {q['dollars'].sum():,.0f} by repricing, "
         f"{lin:,.0f} by vega times the disagreement "
         f"({100 * (q['dollars'].sum() / lin - 1):+.1f}%)")
+    if len(q):
+        # That total counts a mark again on every day it stays failed. It is
+        # a measure of work, not of money at risk at any one time.
+        once = q.groupby("key")["dollars"].max()
+        episodes = int((q["run"] == 1).sum())
+        by_day = q.groupby("day")["dollars"].sum().reindex(days, fill_value=0.0)
+        last = days[-1]
+        say(f"   THAT TOTAL COUNTS A MARK AGAIN ON EACH DAY IT STAYS FAILED. Counted once:")
+        say(f"   {len(once)} distinct positions failed at some point, in {episodes} separate "
+            f"episodes (a run of consecutive days is one episode);")
+        say(f"   the longest ran {int(q['run'].max())} days. Each position taken once, at its "
+            f"largest: {once.sum():,.0f}.")
+        say(f"   Open on any one day: median {by_day.median():,.0f}, largest "
+            f"{by_day.max():,.0f}; on the last day ({last:%d %b %Y}): {by_day.loc[last]:,.0f}.")
+        say("   The one-day figures are what a desk would hold a reserve against; the period")
+        say("   total says how much reviewing there was to do.")
     say()
     say("2. WHAT THE FAILED CHECKS ARE MADE OF, by likely cause")
     by = q.groupby("cause").agg(items=("dollars", "size"), dollars=("dollars", "sum"),
