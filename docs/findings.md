@@ -596,6 +596,54 @@ realized to expiry (`scripts/realized_implied.py`). 75 name-windows; five months
   each day's own mark took that to +2.5%. A hedged-straddle figure is mostly a
   statement about the hedge.
 
+## A fourth outside review (13 November 2026)
+
+A reviewer read the live page as an equity derivatives desk would. It ran nothing,
+so its scores are an opinion on the write-up. Its points were checked against the
+code before any was acted on.
+
+Accepted and done:
+
+- **The plan for the next month is fixed in advance** (`docs/frozen-test-plan.md`).
+  Every rule here was chosen on the same six months, so none has had a clean test.
+  The code, the thresholds and the pass marks were committed before any later file
+  was downloaded.
+- **Calls and puts agreeing is a consistency test, not an identity.** The opening of
+  this note said they "must" agree. For American options parity is a pair of
+  bounds; they agree only inside a model that handles early exercise correctly.
+  Reworded.
+- **The order of the P&L split is a convention, and now it is measured.** The split
+  moves the share before the vol. Reversed, the total is identical and the part
+  that needs both moves changes bucket. On the diversified book that is $24 on a
+  typical day and $424 at most, against a daily standard deviation of $876 for the
+  vol step; the two orders' daily vol figures correlate 0.997. The convention does
+  not drive any conclusion here. It would on a book with large positions far from
+  the money, where the interaction is bigger.
+- **Many tests at once.** Sixteen of 28 gaps pass two standard errors; twelve
+  survive a false-discovery correction. RY's and CNQ's declared-dividend gaps do
+  not survive, CNR's does. CNQ was listed as an open miss; it is now better
+  described as not distinguishable from chance on this sample, and the next month
+  decides.
+- **Dollars in dispute, counted once.** The period totals count a mark on every day
+  it stays failed. Per position, once, they are about a third as large, and the
+  most open on one day was $3,012 and $2,111.
+- **A desk summary opens the page**, with every figure read from the reports by the
+  build, which stops if one is missing.
+- **The work list was stale** and is now marked as a historical proposal.
+
+Already on the plan: residual gamma and vega by name and maturity (C2), and stress
+with the share and the vol moving together (built the same day).
+
+Not done, and why:
+
+- **Owners, assignment and sign-off for each review item.** There is no desk to
+  assign to. It would be decoration.
+- **Rebalancing schedules, slippage and market impact.** An execution model is out
+  of scope. Scoring the hedge on the SXF future's own prices with whole contracts
+  is feasible on the files on disk and is an open decision.
+- **A set of independently labelled real cases.** It cannot be produced from here.
+  The thirteen investigations are a small, selected set and are described that way.
+
 ## What a third outside review found (12 November 2026)
 
 Accepted, and acted on in the same release:

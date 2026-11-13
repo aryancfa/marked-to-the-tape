@@ -46,6 +46,15 @@ All figures are dollars summed over positions, or counts. Marks are the exchange
    schedule; delta and gamma = the share moving; vol = implied vol moving. The five
    add up to the change in the marks exactly. 'share of daily variance' is each
    part's covariance with the total, so the column adds to 100.
+   THE ORDER OF THE STEPS. Above, the share moves first and the vol second. Taken
+   the other way round the total is unchanged, and this much changes bucket:
+                             share first  vol first  moves between buckets
+   vol, sum over the period       32,251     32,842                   -590
+   vol, daily st. dev.             2,040      2,045                     98
+   On a typical day 23 moves between 'vol' and the share steps (largest 641), against a daily
+   st. dev. of 2,040 for vol and 26,589 for the total. The two orders' daily vol figures correlate 0.999.
+   That amount is the part of the change that needs BOTH the share and the vol to
+   move. It belongs to neither alone, and no order is the right one.
    five worst days:
                carry  dividends   delta  gamma    vol   total
    day                                                       

@@ -2,7 +2,7 @@
 
 A risk system for a small book of Canadian listed options. It prices positions with its own engine for American options with discrete dividends. It compares the implied volatilities with Montreal Exchange settlements and with an independent source. Then it replays real historical days and shows what risk is left after hedging with SXF, ZEB and XIU.
 
-**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 83 steps) and 431 tests pass. Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
+**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 83 steps) and 442 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
 
 ## What it has found so far
 
@@ -245,6 +245,16 @@ What it shows:
 - **Projected dividends are the weak input, as expected.** The gaps there are larger
   and of both signs: the bank raise rule is too low for TD and BNS, and "same as
   last year" is too low for ZEB and Barrick and too high for XIU.
+- **Thirty tests at once, allowed for.** The table holds 28 t statistics, and about
+  1.4 would pass two standard errors by chance if every true gap were zero. Sixteen
+  pass. After a correction for the number of tests (Benjamini-Hochberg, and the
+  stricter Benjamini-Yekutieli, which assumes nothing about how the names move
+  together; `src/multitest.py`), twelve remain. On declared dividends only CNR
+  (-0.11) and Barrick (-0.23, on two days, so not to be leaned on) survive. RY's
+  -0.06 and CNQ's -0.17 do not: on this evidence they could be chance. Ten of the
+  thirteen projected-dividend gaps survive, which says again that the projection is
+  the weak input. Surviving is not the same as large: CNR's gap is real and still
+  about a tenth of a vol point.
 
 ### Next year's dividends, three ways
 
@@ -291,6 +301,14 @@ dividend schedule changes, the share moves (delta, then gamma), vol moves. The p
 sum to the change in the marks exactly. What is left once the share move is taken
 out has a daily standard deviation of $2,300 (bank-heavy) and $970 (diversified).
 
+The order of those steps is a convention: the share moves before the vol. Taken the
+other way round the total is the same, and the part of the change that needs both
+moves lands in the other bucket. The report prices both orders. On the diversified
+book $24 changes bucket on a typical day ($424 at most) against $876 a day for the
+vol step, and the two orders' daily vol figures correlate 0.997. On the bank-heavy
+book it is $23 a day ($641 at most) against $2,040, correlation 0.999. The
+convention does not drive anything here.
+
 **Which marks are in dispute.** A mark fails when its implied vol disagrees with its
 call or put partner, or with the smile of its neighbours, by more than its own
 quote bar. The dispute is sized in dollars.
@@ -329,6 +347,14 @@ its expiry). It is valued now, and that book's totals include it.
 through (`reports/<book>_review.txt`, charts under `reports/review/`). For each
 item: what was observed, the dollars at stake by repricing, a likely cause, the
 evidence behind that call, and one next check.
+
+The dollars are reported two ways, because they answer two questions. Added up over
+every failed day they are $43,079 (bank-heavy) and $20,539 (diversified): that
+counts a mark again on each day it stays failed, so it measures how much reviewing
+there was to do. Counted once per position at its largest they are $12,610 on 9
+positions and $7,466 on 8. The most open on any single day was $3,012 and $2,111,
+and on most days nothing was. The one-day figure is the one a desk would hold a
+reserve against.
 
 Observation and cause are kept apart on purpose. "The call and the put disagree by
 1.6 vol points" is an observation. A wrong dividend date explains it; so does one

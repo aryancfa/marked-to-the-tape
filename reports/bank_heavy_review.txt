@@ -13,6 +13,12 @@ reports/review_benchmark.txt.
    option position-days: 1244; with no usable mark: 0; checkable: 1130; failed a check: 40 (3.5% of checkable); on watch: 115
    failed checks a day: mean 0.31, most 3; days with none: 93 of 128
    dollars in dispute over the period: 43,079 by repricing, 43,108 by vega times the disagreement (-0.1%)
+   THAT TOTAL COUNTS A MARK AGAIN ON EACH DAY IT STAYS FAILED. Counted once:
+   9 distinct positions failed at some point, in 31 separate episodes (a run of consecutive days is one episode);
+   the longest ran 4 days. Each position taken once, at its largest: 12,610.
+   Open on any one day: median 0, largest 3,012; on the last day (10 Nov 2026): 0.
+   The one-day figures are what a desk would hold a reserve against; the period
+   total says how much reviewing there was to do.
 
 2. WHAT THE FAILED CHECKS ARE MADE OF, by likely cause
                               items  dollars  series  longest_run  share of dollars %

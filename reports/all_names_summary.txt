@@ -24,3 +24,15 @@ ZEB    128                   0.37   5.89         NaN    NaN          0       13.
 XEG    128                   4.56  13.12       44.59  16.15         33       14.89          0.25        1.47           42.0           0.22         2.21           108.0        pooled spread
 
 Funding spread across 14 names: median 30.2 bp a year, range 13.1 to 48.9, precision-weighted mean 28.8.
+
+MANY TESTS AT ONCE. The table holds 28 t statistics. If every true gap were zero,
+about 1.4 of them would still pass |t| > 1.96 by chance. 16 pass it.
+Allowing for the number of tests (Benjamini-Hochberg, false discoveries held to 5%),
+13 remain; under the stricter rule that assumes nothing about how the tests move together
+(Benjamini-Yekutieli), 12.
+  declared dividends, still significant:  CNR (-0.11), ABX (-0.23)
+  projected dividends, still significant: TD (-0.16), BNS (-0.21), BMO (-0.08), CNQ (-0.29), ENB (+0.36), CNR (-0.14), BCE (+0.22), ABX (-0.77), XIU (+0.25), ZEB (-0.35)
+  passed |t| > 1.96 alone but not the stricter rule: RY declared (-0.06, t -2.2), CNQ declared (-0.17, t -2.7), MFC projected (-0.06, t -2.1), XEG projected (+0.22, t +2.2)
+  CAUTION, fewer than 30 days behind the mean, so its p-value is too small: ABX declared (2 days)
+Significant is not the same as large. A gap can survive here and still be smaller
+than the quote's own half-spread; the front charts show both bars.
