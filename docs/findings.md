@@ -669,6 +669,28 @@ What is not in it: funding moves for 2020 and 2022 (no published Canadian rate;
 shown as a stated shock instead), the smile beyond the 25-delta points (held flat),
 and a real Montreal settlement for any episode.
 
+## Finding 27: the Greeks explain the book, once theta is measured the desk's way
+
+Each day's change in the marks, split through the previous evening's Greeks, leaves
+a typical residual of $51 (bank-heavy) and $32 (diversified) against typical days
+of $14,600 and $4,400 (`scripts/limits.py`, C8). No day is flagged.
+
+- **One-day theta times days passed is wrong across a weekend ex-date.** It left
+  about -$17,000 to -$19,000 of residual on the two Mondays the banks went
+  ex-dividend. Friday's one-day theta holds the jump as the dividend leaves the
+  option's life, and three days counted it three times. Repricing theta to the
+  next session at the expected share price removed it.
+- **What is left is dividend news,** which Greeks cannot see: the residual
+  correlates +0.52 with the repricing split's dividend step on the bank-heavy book.
+- **Limits from one stated tolerance** ($50,000 on a 1-in-100 day) put the
+  bank-heavy book in breach on mapped delta (105%) and expected shortfall (130%)
+  on the latest day, and on 10 and 44 of 123 days over the period. The
+  diversified book uses 20% and 38%. Vega uses 13 to 14% on both.
+- **Bucketed vega limits need more history than six months.** Per bucket, one
+  name's earnings day (Shopify, -12.7 vol points on 3 November) set a limit by
+  itself, so one vol move size from every bucket is used, measured on the days on
+  file.
+
 ## A fourth outside review (13 November 2026)
 
 A reviewer read the live page as an equity derivatives desk would. It ran nothing,

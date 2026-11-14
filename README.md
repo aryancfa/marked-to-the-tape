@@ -2,7 +2,7 @@
 
 A risk system for a small book of Canadian listed options. It prices positions with its own engine for American options with discrete dividends. It compares the implied volatilities with Montreal Exchange settlements and with an independent source. Then it replays real historical days and shows what risk is left after hedging with SXF, ZEB and XIU.
 
-**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 89 steps) and 496 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
+**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 91 steps) and 513 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
 
 ## What it has found so far
 
@@ -742,6 +742,60 @@ from the year before knows only that year's market, and July to October moved mo
 The exceptions are dated in `reports/bank_heavy_tail.txt`. Two cautions: 120 days
 cannot tell a 99% VaR from a 98% one, and this VaR prices through Greeks, not in
 full.
+
+### The morning's P&L explain, and the limits (C8)
+
+![Limit usage on the bank-heavy book](reports/bank_heavy_limits.png)
+
+`scripts/limits.py` (`reports/<book>_limits.txt/.png`) does what a desk's risk
+system does each morning. It splits the day's change in the marks through the
+previous evening's Greeks, `replay.greek_explain`:
+- **delta and gamma** on the share's move away from its expected price;
+- **vega** on the change in the position's own implied vol;
+- **rho** on the rate's change at its maturity;
+- **theta**, repriced to the next session at the expected share price.
+
+What the Greeks miss is the **residual**. The repricing split in the book report
+adds up exactly by construction; this one does not, and the residual is the point.
+
+| Over 127 days | Bank-heavy | Diversified |
+|---|---|---|
+| Typical daily change in the marks | $14,600 | $4,400 |
+| Typical residual (median) | $51 | $32 |
+| Days flagged (residual over 20% of the day and over $1,000) | 0 | 0 |
+
+The first version took one-day theta times the days passed. On the two Mondays the
+banks went ex-dividend, 27 July and 26 October, that left about -$17,000 to -$19,000
+of residual. Friday's one-day theta already holds the jump as the dividend leaves
+the option's life, so three days counted it three times. Repricing theta to the
+next session, as desks do, removed it. What is left lines up with dividend news
+(correlation +0.52 on the bank-heavy book), which Greeks cannot see.
+
+**Limits** come from one stated number: the desk accepts losing at most $50,000 on
+a 1-in-100 day (made up, like the books). Each limit is the exposure that loses
+that much on a 1-in-100 day move of its own factor:
+
+| Limit | How it is set | Size |
+|---|---|---|
+| Mapped delta | index dollars; the TSX 60's 99th-percentile daily move, 2.02%, from the 250 sessions before the first day | $2.47 million |
+| Vega, per maturity bucket and in total | dollars per vol point; the 99th-percentile daily change in the book's at-the-money vols | $31,400 (bank-heavy), $27,000 (diversified) |
+| One-day 97.5% expected shortfall | the tolerance itself (for a normal, 97.5% ES equals 99% VaR) | $50,000 |
+
+| Usage on 4 November | Bank-heavy | Diversified |
+|---|---|---|
+| Mapped delta | 105%, a breach (10 days in breach of 123, 86 amber) | 20% |
+| Expected shortfall | 130%, a breach (44 days in breach) | 38% |
+| Vega, all buckets | 14% | 13% |
+
+The bank-heavy book is a directional bet on the banks, and its limits say so. Its
+vega is small next to its delta, as the closing chart found.
+
+One vol move size serves every bucket. Bucket by bucket there are too few changes
+to tell them apart: on the diversified book the 31-to-90-day bucket has 69, and
+Shopify's earnings (its short-dated vol +9.3 points on 2 November, -12.7 the next
+day) would have set that bucket's limit by itself. Montreal vol history starts in
+May 2026, so the vega limit is measured on the days on file. It is the one limit
+set with some hindsight.
 
 ## Implied vol against the vol that followed (B9)
 

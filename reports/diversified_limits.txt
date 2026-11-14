@@ -1,0 +1,66 @@
+Derived statistics only: dollars summed over a made-up book, limits made from
+one stated tolerance, usage and counts. No price or quote appears here.
+
+P&L explain and limits for diversified.csv, a made-up book: 11 May to 10 Nov 2026, 127 days.
+Mark history: the Montreal files on disk (the Interactive Brokers capture has not run).
+
+1. P&L EXPLAIN: each day's change in the marks through the evening's Greeks, dollars
+                sum  daily st. dev.  share of the day's variance %
+   delta    -12,117           7,152                             99
+   gamma     47,210             405                             -2
+   vega       8,271             877                              3
+   theta    -56,748             290                              0
+   rho        2,647             163                              0
+   residual  -1,891              67                              0
+   total    -12,628           7,186                            100
+   The residual's typical size: 32 a day (median), against a typical day's change of 4,396.
+   Days flagged (residual over 20% of the day's change and over $1,000): 0 of 127.
+   Correlation of the residual with the repricing split's dividend news: +0.20.
+   The five largest residuals:
+               change in marks  residual  dividend news (repriced)  positions going ex
+   day                                                                                
+   2026-10-09            8,795      -414                        -2                   1
+   2026-11-03            2,898       243                       -59                   0
+   2026-05-28            4,246      -182                      -173                   0
+   2026-05-11            4,791      -154                      -177                   0
+   2026-05-14           -7,322      -141                        -3                   0
+   Read: the Greeks are a second-order local picture. They miss moves large enough
+   for the third order to matter, vol and share moving together (vanna), a dividend
+   whose amount or date changed, and a mark that jumped for reasons of its own. The
+   review queue (scripts/review_queue.py) is where a flagged day's marks are checked.
+
+2. LIMITS, from one stated tolerance: the desk accepts losing at most $50,000 on a 1-in-100 day.
+   Each limit is the exposure that loses that much on a 1-in-100 day move of its own
+   factor, everything else still. The tolerance is made up, like the book.
+   mapped delta       limit   2,469,825   index dollars; the index's 99th-percentile daily move 2.02%, from the 250 sessions before 11 May 2026
+   ES                 limit      50,000   one-day 97.5% expected shortfall, dollars; equal to the tolerance (for a normal, 97.5% ES = 99% VaR)
+   vega, all buckets  limit      26,962   dollars per vol point, net; the 99th-percentile daily change in the book's at-the-money vols, 1.85 points (1222 changes, every name and bucket)
+   vega 31-90d        limit      26,962   the same, per bucket
+   vega 91-180d       limit      26,962   the same, per bucket
+   vega 181-400d      limit      26,962   the same, per bucket
+   One vol move size for every bucket. Measured bucket by bucket (changes, 99th
+   percentile in points): 181-400d 642, 1.52; 31-90d 69, 10.39; 91-180d 511, 1.87.
+   Too few changes per bucket to tell them apart, and one name's event sets a thin
+   bucket: the largest single change is SHOP on 03 Nov 2026, -12.7 points.
+   Vol history on disk starts in May 2026, so this move size is measured on the days
+   on file: the one limit set with some hindsight.
+
+3. USAGE on the latest day the whole book was valued, 04 Nov 2026 (green under 75%, amber to 100%, then a breach)
+   mapped delta          -494,333 of 2,469,825     20%  ####                 green
+   ES                      19,201 of    50,000     38%  ########             green
+   vega, all buckets        3,472 of    26,962     13%  ###                  green
+   vega 31-90d                129 of    26,962      0%                       green
+   vega 91-180d             3,343 of    26,962     12%  ##                   green
+   vega 181-400d                0 of    26,962      0%                       green
+
+4. USAGE OVER TIME: 120 days the whole book was valued
+                      latest %  highest %  days amber  days in breach
+   mapped delta             20         28           0               0
+   ES                       38         42           0               0
+   vega, all buckets        13         20           0               0
+   vega 31-90d               0          1           0               0
+   vega 91-180d             12         16           0               0
+   vega 181-400d             0         20           0               0
+   A vega bucket's usage is its net vega: long and short vega in one bucket offset.
+   That is the convention, and it hides a book long one name's vol and short
+   another's; the C2 grid (reports/<book>_grid.txt) shows them by name.

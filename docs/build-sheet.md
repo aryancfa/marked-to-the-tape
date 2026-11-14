@@ -273,6 +273,7 @@ Desks split daily P&L into its sources and watch what's left unexplained.
 
 - **Done when:** Attribution to delta, gamma, vega, theta, rho and residual, from the mark history the capture has built up. Limits on mapped delta, bucketed vega and ES, with usage bars.
 - **Depends on:** SRC, C2
+- **State, 14 November 2026:** built on the Montreal mark history on disk (the Interactive Brokers capture has not run). `replay.greek_explain` splits each day's change in the marks into delta, gamma, vega, theta (repriced to the next session at the expected share price), rho and residual; `src/limits.py` and `scripts/limits.py` → `reports/<book>_limits.txt/.png` set limits on mapped delta, vega by maturity bucket and in total, and one-day 97.5% ES from one stated $50,000 tolerance, with usage on every whole-book day and bars for the latest. Typical residual $51 / $32 a day, no day flagged. Bank-heavy in breach on mapped delta (105%) and ES (130%); diversified 20% and 38%. The vega move size is measured on the days on file (no earlier vol history).
 
 ### C9. Ship it
 
