@@ -41,7 +41,7 @@ import pandas as pd
 
 from book import load_book
 from book_report import cached_days
-from scenarios import index_betas, reprice, returns_table
+from scenarios import CRASH_SHARE, crash_betas, index_betas, reprice, returns_table
 from volrule import BETA, RULES, STICKY_STRIKE, fitted_beta
 
 ATM_BAND = 0.03
@@ -81,6 +81,9 @@ def main() -> None:
     ap.add_argument("--steepen", type=float, default=0.5)
     ap.add_argument("--moves", default="-20,-10,-5,5,10",
                     help="index moves in percent, comma-separated")
+    ap.add_argument("--betas", choices=("crash", "recent"), default="crash",
+                    help="for index FALLS: betas from the index's worst days since 2014 "
+                         "(default), or the last 250 days' as for rises")
     ap.add_argument("--workers", type=int, default=6)
     a = ap.parse_args()
     path = Path(a.book)
@@ -95,9 +98,17 @@ def main() -> None:
     names: dict[str, list] = {}
     for p in load_book(path):
         names.setdefault(p.underlying, []).append(p)
-    betas = index_betas(returns_table(list(names)))
+    returns = returns_table(list(names))
+    betas = index_betas(returns)
+    crash = crash_betas(returns)["crash_beta"].to_dict()
+    crash["SXF"] = 1.0
+    fall = crash if a.betas == "crash" else betas
+
+    def beta_for(n: str, m: float) -> float:
+        return fall[n] if m < 0 else betas[n]
+
     rules = [a.rule] if a.rule else list(RULES)
-    tasks = [(n, ps, [betas[n] * m for m in moves], rule, params)
+    tasks = [(n, ps, [beta_for(n, m) * m for m in moves], rule, params)
              for rule in rules for n, ps in names.items()]
     with ProcessPoolExecutor(max_workers=a.workers) as pool:
         res = list(pool.map(reprice, tasks))
@@ -111,8 +122,20 @@ def main() -> None:
     say("nothing below is a mark. An instant move, with no day's decay.")
     days = sorted({x["day"] for x in res})
     say(f"Valued on each name's latest day on file ({days[0]:%d %b} to {days[-1]:%d %b %Y}).")
-    say(f"The index moves; each name moves by its beta to it ({min(betas.values()):.2f} to "
-        f"{max(betas.values()):.2f} here, fitted on the last 250 days).")
+    if a.betas == "crash":
+        say("The index moves; each name moves by its beta to it. In a FALL the beta is how")
+        say(f"the name moved on the index's worst {100 * CRASH_SHARE:.0f}% of days since 2014 "
+            "(scripts/scenarios.crash_betas); in a")
+        say("rise, its beta over the last 250 days. A calm year's beta understates how names")
+        say("fall together: CNQ's and Suncor's were negative, which moved them UP in a crash.")
+    else:
+        say("The index moves; each name moves by its beta to it over the last 250 days, in a")
+        say("rise and in a fall alike (--betas recent).")
+    shown = pd.DataFrame({"fall": [fall[n] for n in names], "rise": [betas[n] for n in names]},
+                         index=list(names))
+    shown.index.name = "beta in a"
+    say(shown.drop(index=[n for n in ("SXF",) if n in shown.index]).T.round(2).to_string()
+        .replace("\n", "\n   ").join(["   ", ""]))
     for x in res[:len(names)]:
         for note in x["notes"]:
             say("NOTE: " + note)

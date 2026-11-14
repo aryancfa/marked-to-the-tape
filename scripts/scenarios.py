@@ -69,6 +69,42 @@ def index_betas(table: pd.DataFrame, window: int = 250) -> dict[str, float]:
     return out
 
 
+CRASH_SHARE = 0.05          # the index's worst 5% of days count as a sell-off
+
+
+def crash_betas(table: pd.DataFrame, share: float = CRASH_SHARE) -> pd.DataFrame:
+    """How each name moved on the index's WORST days: the name's average
+    return on the index's worst `share` of days on file, divided by the
+    index's average return on those days.
+
+    A beta fitted on the last 250 days says how a name moved in that year.
+    In a sell-off names move together more than in a calm year, so a stress
+    fall should not use a calm-year beta: CNQ's and Suncor's were negative
+    in 2026, which moved them UP in an index crash. These betas come from
+    every bad day since 2014 (the 2015 oil collapse, March 2020, 2022), and
+    no number is typed in. A ratio of averages, not a regression: on a few
+    extreme days a regression line is pulled about by one point, and the
+    question asked is simply "when the index fell, how far did this fall".
+
+    Returns, per name: crash_beta, days (the sell-off days the name has a
+    return on) and fell (the share of them on which it fell too)."""
+    if INDEX not in table:
+        raise ValueError("the returns table has no index column")
+    idx = table[INDEX].dropna()
+    cut = idx.quantile(share)
+    bad = idx[idx <= cut]
+    out = {}
+    for n in table.columns:
+        if n == INDEX:
+            continue
+        r = table.loc[bad.index, n].dropna()
+        if len(r) < 20:
+            raise ValueError(f"{n}: {len(r)} sell-off days with a return, too few for a beta")
+        out[n] = dict(crash_beta=float(r.mean() / bad.loc[r.index].mean()), days=len(r),
+                      fell=float((r < 0).mean()))
+    return pd.DataFrame(out).T
+
+
 def latest_inputs(name: str):
     """One underlying's latest cached day: (day, DayInputs, the day runner's
     inverted table). The rate curve carries the funding spread the day was
