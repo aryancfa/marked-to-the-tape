@@ -1,6 +1,6 @@
 {
- "started": "2026-11-14T13:27:17",
- "commit": "78866d2f701233da10f2a5144d8faa580604b76f",
+ "started": "2026-11-14T15:30:30",
+ "commit": "60fb3d65868eb5dbc81268a75fc1e4004e20231f",
  "uncommitted_changes": false,
  "versions": {
   "python": "3.13.17",
@@ -455,7 +455,7 @@
   {
    "step": "base_RY",
    "command": "scripts/run_days.py RY --base-only",
-   "seconds": 1.3,
+   "seconds": 1.4,
    "exit_code": 0
   },
   {
@@ -491,19 +491,19 @@
   {
    "step": "base_BCE",
    "command": "scripts/run_days.py BCE --base-only",
-   "seconds": 1.3,
+   "seconds": 1.4,
    "exit_code": 0
   },
   {
    "step": "base_ABX",
    "command": "scripts/run_days.py ABX --base-only",
-   "seconds": 1.4,
+   "seconds": 1.5,
    "exit_code": 0
   },
   {
    "step": "base_CNR",
    "command": "scripts/run_days.py CNR --base-only",
-   "seconds": 1.3,
+   "seconds": 1.2,
    "exit_code": 0
   },
   {
@@ -545,7 +545,7 @@
   {
    "step": "days_RY",
    "command": "scripts/reproduce.py RY",
-   "seconds": 125.6,
+   "seconds": 125.0,
    "exit_code": 0
   },
   {
@@ -557,7 +557,7 @@
   {
    "step": "chart_TD",
    "command": "scripts/front_chart.py TD",
-   "seconds": 150.1,
+   "seconds": 149.5,
    "exit_code": 0
   },
   {
@@ -569,19 +569,19 @@
   {
    "step": "chart_BNS",
    "command": "scripts/front_chart.py BNS",
-   "seconds": 99.4,
+   "seconds": 98.2,
    "exit_code": 0
   },
   {
    "step": "days_BMO",
    "command": "scripts/run_days.py BMO",
-   "seconds": 2.7,
+   "seconds": 2.6,
    "exit_code": 0
   },
   {
    "step": "chart_BMO",
    "command": "scripts/front_chart.py BMO",
-   "seconds": 159.7,
+   "seconds": 157.7,
    "exit_code": 0
   },
   {
@@ -593,19 +593,19 @@
   {
    "step": "chart_SHOP",
    "command": "scripts/front_chart.py SHOP",
-   "seconds": 475.8,
+   "seconds": 461.2,
    "exit_code": 0
   },
   {
    "step": "days_SU",
    "command": "scripts/run_days.py SU",
-   "seconds": 2.7,
+   "seconds": 2.8,
    "exit_code": 0
   },
   {
    "step": "chart_SU",
    "command": "scripts/front_chart.py SU",
-   "seconds": 170.2,
+   "seconds": 172.8,
    "exit_code": 0
   },
   {
@@ -617,19 +617,19 @@
   {
    "step": "chart_BCE",
    "command": "scripts/front_chart.py BCE",
-   "seconds": 113.8,
+   "seconds": 116.5,
    "exit_code": 0
   },
   {
    "step": "days_ABX",
    "command": "scripts/run_days.py ABX",
-   "seconds": 2.7,
+   "seconds": 2.8,
    "exit_code": 0
   },
   {
    "step": "chart_ABX",
    "command": "scripts/front_chart.py ABX",
-   "seconds": 186.5,
+   "seconds": 189.0,
    "exit_code": 0
   },
   {
@@ -641,7 +641,7 @@
   {
    "step": "chart_CNR",
    "command": "scripts/front_chart.py CNR",
-   "seconds": 162.8,
+   "seconds": 165.6,
    "exit_code": 0
   },
   {
@@ -653,7 +653,7 @@
   {
    "step": "chart_XIU",
    "command": "scripts/front_chart.py XIU",
-   "seconds": 469.5,
+   "seconds": 476.1,
    "exit_code": 0
   },
   {
@@ -665,7 +665,7 @@
   {
    "step": "chart_CNQ",
    "command": "scripts/front_chart.py CNQ",
-   "seconds": 152.0,
+   "seconds": 149.5,
    "exit_code": 0
   },
   {
@@ -677,7 +677,7 @@
   {
    "step": "chart_MFC",
    "command": "scripts/front_chart.py MFC",
-   "seconds": 125.6,
+   "seconds": 131.4,
    "exit_code": 0
   },
   {
@@ -689,7 +689,7 @@
   {
    "step": "chart_ENB",
    "command": "scripts/front_chart.py ENB",
-   "seconds": 149.6,
+   "seconds": 151.0,
    "exit_code": 0
   },
   {
@@ -701,7 +701,7 @@
   {
    "step": "chart_ZEB",
    "command": "scripts/front_chart.py ZEB",
-   "seconds": 786.5,
+   "seconds": 801.9,
    "exit_code": 0
   },
   {
@@ -713,7 +713,7 @@
   {
    "step": "chart_XEG",
    "command": "scripts/front_chart.py XEG",
-   "seconds": 405.9,
+   "seconds": 410.0,
    "exit_code": 0
   },
   {
@@ -773,7 +773,7 @@
   {
    "step": "split_XIU",
    "command": "scripts/funding_split.py XIU",
-   "seconds": 1.0,
+   "seconds": 0.9,
    "exit_code": 0
   },
   {
@@ -821,103 +821,103 @@
   {
    "step": "robustness",
    "command": "scripts/robustness.py RY",
-   "seconds": 13.1,
+   "seconds": 17.9,
    "exit_code": 0
   },
   {
    "step": "engine_RY",
    "command": "scripts/engine_check.py RY",
-   "seconds": 62.1,
+   "seconds": 62.6,
    "exit_code": 0
   },
   {
    "step": "engine_TD",
    "command": "scripts/engine_check.py TD",
-   "seconds": 76.0,
+   "seconds": 75.6,
    "exit_code": 0
   },
   {
    "step": "engine_BNS",
    "command": "scripts/engine_check.py BNS",
-   "seconds": 64.1,
+   "seconds": 63.0,
    "exit_code": 0
   },
   {
    "step": "engine_BMO",
    "command": "scripts/engine_check.py BMO",
-   "seconds": 105.2,
+   "seconds": 104.0,
    "exit_code": 0
   },
   {
    "step": "engine_CM",
    "command": "scripts/engine_check.py CM",
-   "seconds": 53.8,
+   "seconds": 53.0,
    "exit_code": 0
   },
   {
    "step": "engine_CNQ",
    "command": "scripts/engine_check.py CNQ",
-   "seconds": 204.0,
+   "seconds": 201.9,
    "exit_code": 0
   },
   {
    "step": "engine_SU",
    "command": "scripts/engine_check.py SU",
-   "seconds": 387.8,
+   "seconds": 390.3,
    "exit_code": 0
   },
   {
    "step": "demo",
    "command": "scripts/demo_synthetic.py",
-   "seconds": 335.6,
+   "seconds": 330.9,
    "exit_code": 0
   },
   {
    "step": "book_bank_heavy",
    "command": "scripts/book_report.py books/bank_heavy.csv",
-   "seconds": 63.5,
+   "seconds": 58.5,
    "exit_code": 0
   },
   {
    "step": "book_diversified",
    "command": "scripts/book_report.py books/diversified.csv",
-   "seconds": 79.8,
+   "seconds": 78.5,
    "exit_code": 0
   },
   {
    "step": "benchmark",
    "command": "scripts/mark_benchmark.py",
-   "seconds": 245.5,
+   "seconds": 237.4,
    "exit_code": 0
   },
   {
    "step": "review_bank_heavy",
    "command": "scripts/review_queue.py books/bank_heavy.csv",
-   "seconds": 59.3,
+   "seconds": 55.2,
    "exit_code": 0
   },
   {
    "step": "review_diversified",
    "command": "scripts/review_queue.py books/diversified.csv",
-   "seconds": 76.8,
+   "seconds": 77.8,
    "exit_code": 0
   },
   {
    "step": "review_benchmark",
    "command": "scripts/review_benchmark.py",
-   "seconds": 471.4,
+   "seconds": 457.5,
    "exit_code": 0
   },
   {
    "step": "hedge_bank_heavy",
    "command": "scripts/book_hedge.py books/bank_heavy.csv",
-   "seconds": 117.4,
+   "seconds": 117.1,
    "exit_code": 0
   },
   {
    "step": "hedge_diversified",
    "command": "scripts/book_hedge.py books/diversified.csv",
-   "seconds": 139.1,
+   "seconds": 137.9,
    "exit_code": 0
   },
   {
@@ -935,7 +935,7 @@
   {
    "step": "realized",
    "command": "scripts/realized_implied.py",
-   "seconds": 53.0,
+   "seconds": 51.9,
    "exit_code": 0
   },
   {
@@ -947,59 +947,59 @@
   {
    "step": "stress_diversified",
    "command": "scripts/stress.py books/diversified.csv",
-   "seconds": 13.8,
+   "seconds": 14.0,
    "exit_code": 0
   },
   {
    "step": "tail_bank_heavy",
    "command": "scripts/tail_risk.py books/bank_heavy.csv",
-   "seconds": 66.8,
+   "seconds": 71.9,
    "exit_code": 0
   },
   {
    "step": "tail_diversified",
    "command": "scripts/tail_risk.py books/diversified.csv",
-   "seconds": 70.2,
+   "seconds": 67.2,
    "exit_code": 0
   },
   {
    "step": "episodes_bank_heavy",
    "command": "scripts/replay_episodes.py books/bank_heavy.csv",
-   "seconds": 69.4,
+   "seconds": 69.9,
    "exit_code": 0
   },
   {
    "step": "episodes_diversified",
    "command": "scripts/replay_episodes.py books/diversified.csv",
-   "seconds": 71.0,
+   "seconds": 71.6,
    "exit_code": 0
   },
   {
    "step": "oil_bank_heavy",
    "command": "scripts/oil_spread.py books/bank_heavy.csv",
-   "seconds": 15.9,
+   "seconds": 16.0,
    "exit_code": 0
   },
   {
    "step": "oil_diversified",
    "command": "scripts/oil_spread.py books/diversified.csv",
-   "seconds": 16.2,
+   "seconds": 16.1,
    "exit_code": 0
   },
   {
    "step": "limits_bank_heavy",
    "command": "scripts/limits.py books/bank_heavy.csv",
-   "seconds": 45.6,
+   "seconds": 44.1,
    "exit_code": 0
   },
   {
    "step": "limits_diversified",
    "command": "scripts/limits.py books/diversified.csv",
-   "seconds": 45.2,
+   "seconds": 44.3,
    "exit_code": 0
   }
  ],
- "finished": "2026-11-14T15:21:33",
+ "finished": "2026-11-14T17:24:33",
  "status": "ok",
  "cache_fingerprints": {
   "RY": "a897affb4148",
