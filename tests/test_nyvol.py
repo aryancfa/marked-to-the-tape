@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nyvol import atm_usd_vol, cad_vol, fx_terms, usdcad_from_gbp
+from nyvol import (atm_usd_vol, cad_vol, fx_terms, smile_usd_vol,
+                   strike_call_delta, usdcad_from_gbp)
 
 
 def test_the_formula_inverts_the_build_sheets():
@@ -52,6 +53,43 @@ def test_fx_terms_use_only_days_up_to_the_day():
     vol, rho = fx_terms(share, usdcad, days[40].date(), window=20)
     assert math.isfinite(vol) and math.isfinite(rho)
     assert math.isnan(fx_terms(share, usdcad, days[90].date(), window=20)[0])
+
+
+def skew_surface():
+    rows = []
+    for days, low, mid, high in ((30, 0.30, 0.20, 0.18), (91, 0.28, 0.22, 0.21)):
+        rows += [dict(days=days, delta=-25, cp_flag="P", impl_volatility=low),
+                 dict(days=days, delta=50, cp_flag="C", impl_volatility=mid),
+                 dict(days=days, delta=-50, cp_flag="P", impl_volatility=mid),
+                 dict(days=days, delta=25, cp_flag="C", impl_volatility=high)]
+    return pd.DataFrame(rows).assign(date=pd.Timestamp("2020-03-02"))
+
+
+def test_a_low_strike_reads_the_put_wing_and_a_high_strike_the_call_wing():
+    s, d = skew_surface(), date(2020, 3, 2)
+    assert smile_usd_vol(s, d, 30, 0.75) == pytest.approx(0.30)
+    assert smile_usd_vol(s, d, 30, 0.50) == pytest.approx(0.20)
+    assert smile_usd_vol(s, d, 30, 0.25) == pytest.approx(0.18)
+    assert smile_usd_vol(s, d, 30, 0.625) == pytest.approx(0.25)     # halfway down the put wing
+    assert smile_usd_vol(s, d, 30, 0.95) == pytest.approx(0.30)      # flat beyond the wing
+    assert smile_usd_vol(s, d, 60.5, 0.75) == pytest.approx(0.29)    # between maturities
+
+
+def test_at_the_money_ignores_the_wings():
+    assert atm_usd_vol(skew_surface(), date(2020, 3, 2), 30) == pytest.approx(0.20)
+
+
+def test_a_strike_slides_along_the_smile_as_the_share_moves():
+    at = strike_call_delta(100.0, 100.0, 0.25, 0.20)
+    assert at == pytest.approx(0.52, abs=0.01)                     # a touch over half
+    assert strike_call_delta(80.0, 100.0, 0.25, 0.20) < 0.05       # share fell: now a high strike
+    assert strike_call_delta(120.0, 100.0, 0.25, 0.20) > 0.95
+    assert math.isnan(strike_call_delta(100.0, 100.0, 0.0, 0.2))
+
+
+def test_a_missing_wing_gives_nothing():
+    s = skew_surface()
+    assert math.isnan(smile_usd_vol(s[s["delta"] != 25], date(2020, 3, 2), 30, 0.5))
 
 
 def test_atm_vol_reads_between_maturities_and_averages_call_and_put():

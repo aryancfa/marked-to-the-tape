@@ -6,8 +6,8 @@ episode, and the exchange rate to take the currency out of them (C3).
 
 Saves, under data/raw/wrds/ (gitignored, never committed, never
 redistributed):
-  vsurfd_episodes.csv   OptionMetrics' standardized at-the-money implied vol
-                        (call delta 50, put delta -50) at 30 to 365 days, for
+  vsurfd_skew.csv       OptionMetrics' standardized implied vol at delta 50
+                        (both sides) and the 25-delta put and call at 30 to 365 days, for
                         each New York listing, over each episode in
                         src/episodes.py plus 90 days before it
   fx_gbp_daily.csv      Compustat's daily rates from pounds to CAD and USD,
@@ -54,17 +54,23 @@ def main() -> None:
     for ep in EPISODES:
         lo, hi = ep.start - LEAD, ep.end
         for year in range(lo.year, hi.year + 1):
+            # delta 50 (both sides) is at the money; the 25-delta put is a low
+            # strike and the 25-delta call a high one, which together show the skew
             sql = (f"select secid, date, days, delta, cp_flag, impl_volatility "
                    f"from optionm.vsurfd{year} where secid in ({ids}) and days in ({days}) "
-                   f"and abs(delta) = 50 and date between '{lo}' and '{hi}'")
+                   f"and abs(delta) in (25, 50) and date between '{lo}' and '{hi}'")
             parts.append(db.raw_sql(sql).assign(episode=ep.key))
     vs = pd.concat(parts, ignore_index=True)
     vs["name"] = vs["secid"].map({v: k for k, v in SECIDS.items()})
-    vs.to_csv(OUT / "vsurfd_episodes.csv", index=False)
-    print(f"vsurfd_episodes.csv: {len(vs)} rows; columns {list(vs.columns)}")
+    vs.to_csv(OUT / "vsurfd_skew.csv", index=False)
+    print(f"vsurfd_skew.csv: {len(vs)} rows; columns {list(vs.columns)}")
     print("rows by name and episode:")
     print(vs.groupby(["episode", "name"]).size().unstack(0).fillna(0).astype(int).to_string())
 
+    if (OUT / "fx_gbp_daily.csv").exists():
+        print("fx_gbp_daily.csv: on disk already, left as it is")
+        db.close()
+        return
     fx = db.raw_sql("select datadate, fromcurd, tocurd, exratd from comp.g_exrt_dly "
                     "where tocurd in ('CAD', 'USD') "
                     "and datadate between '2014-01-01' and '2023-12-31'")

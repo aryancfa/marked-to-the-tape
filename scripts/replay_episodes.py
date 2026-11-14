@@ -20,8 +20,10 @@ from:
   real settlement             the exchange's own mark on that day. None here:
                               Montreal history on disk starts in May 2026.
   model on observed NY vol    the change in the vol the New York listing
-                              showed, currency taken out (src/nyvol.py),
-                              pulled by scripts/wrds_episode_vols.py.
+                              showed at the option's maturity and strike
+                              (25-delta wings and the money), currency taken
+                              out (src/nyvol.py), pulled by
+                              scripts/wrds_episode_vols.py.
   model on rule-based vol     the C1 beta rule (src/volrule.py): a number
                               someone chose, used where nothing was observed.
 The report counts each.
@@ -57,7 +59,7 @@ from book import load_book
 from episodes import EPISODES, curve_move, path, sessions, shift_function
 from horizon import carry_parts, end_of_horizon, share_parts, shocked
 from loaders.mx import load_mx_futures
-from nyvol import atm_usd_vol, cad_vol, fx_terms, usdcad_from_gbp
+from nyvol import atm_usd_vol, cad_vol, fx_terms, smile_usd_vol, strike_call_delta, usdcad_from_gbp
 from rates import read_boc_series
 from replay import value_position
 from run_days import mx_files
@@ -76,21 +78,25 @@ BILL_FILES = {30: "TB.CDN.30D.MID.csv", 90: "TB.CDN.90D.MID.csv",
               180: "TB.CDN.180D.MID.csv", 365: "TB.CDN.1Y.MID.csv"}
 
 
-def observed_vols(surface: pd.DataFrame | None, share_tr: pd.Series | None,
-                  usdcad: pd.Series | None, days: list, tau: float) -> dict:
-    """The New York at-the-money vol at `tau` days to expiry, currency taken
-    out, on each of `days`. Missing where any input is missing or the
+def has_skew(surface: pd.DataFrame | None) -> bool:
+    """True when the surface carries the 25-delta wings as well as the money."""
+    return surface is not None and "delta" in surface and bool((surface["delta"].abs() == 25).any())
+
+
+def observed_vol(surface: pd.DataFrame | None, share_tr: pd.Series | None,
+                 usdcad: pd.Series | None, d, tau: float, cdelta: float) -> float | None:
+    """The New York vol on day `d` at `tau` days to expiry, currency taken
+    out: at the strike whose call delta is `cdelta` where the wings were
+    pulled, at the money otherwise. None where any input is missing or the
     formula has no answer."""
-    out = {}
     if surface is None or share_tr is None or usdcad is None:
-        return out
-    for d in days:
-        usd = atm_usd_vol(surface, d, tau)
-        fx_vol, rho = fx_terms(share_tr, usdcad, d)
-        cad = cad_vol(usd, fx_vol, rho) if np.isfinite(usd) else None
-        if cad is not None:
-            out[d] = cad
-    return out
+        return None
+    usd = (smile_usd_vol(surface, d, tau, cdelta) if has_skew(surface) and np.isfinite(cdelta)
+           else atm_usd_vol(surface, d, tau))
+    if not np.isfinite(usd):
+        return None
+    fx_vol, rho = fx_terms(share_tr, usdcad, d)
+    return cad_vol(usd, fx_vol, rho)
 
 
 def one_name(task) -> dict:
@@ -127,11 +133,13 @@ def one_name(task) -> dict:
             smile = smile_from_points(chain["strike"], chain["iv"])
             own = smile(pos.strike)
         for key, m in moves.items():
-            seen = {}
+            base = None
             if pos.kind == "option":
                 tau = float((pos.expiry - day).days)
-                seen = observed_vols(surface, share_tr, usdcad, [starts[key], *m.index], tau)
-            base = seen.get(starts[key])
+                # where this strike sat on the smile when the episode began
+                T0 = year_fraction(day, pos.expiry)
+                base = observed_vol(surface, share_tr, usdcad, starts[key], tau,
+                                    strike_call_delta(inp.spot, pos.strike, T0, v.iv))
             for k, (d, x) in enumerate(m.items(), start=1):
                 end = end_of_horizon(day, k) if aged[key] else day
                 if pos.kind != "option":
@@ -143,10 +151,16 @@ def one_name(task) -> dict:
                 c = carry_parts(pos, day, end, inp.spot, inp.rate, inp.divs, v.iv)
                 s1 = c["expected_spot"] * (1.0 + x)
                 T = year_fraction(end, pos.expiry)
-                if base is not None and d in seen:
-                    # what the market's vol at this maturity did since the
-                    # episode began, added to the option's own vol today
-                    vol, where = max(v.iv + seen[d] - base, 0.01), NY_VOL
+                # the same strike on day d sits elsewhere on the smile: the
+                # share has moved, so read the smile at its new call delta
+                now = (observed_vol(surface, share_tr, usdcad, d, tau,
+                                    strike_call_delta(s1, pos.strike, T, v.iv))
+                       if base is not None else None)
+                if now is not None:
+                    # what the market's vol at this maturity and this strike
+                    # did since the episode began, added to the option's own
+                    # vol today
+                    vol, where = max(v.iv + now - base, 0.01), NY_VOL
                 else:
                     vol = max(v.iv + shocked_vol(BETA, smile, pos.strike, inp.spot, s1, T,
                                                  **params) - own, 0.01)
@@ -204,11 +218,16 @@ def main() -> None:
         room, d = room + 1, nxt
     aged = {ep.key: len(sessions(ep)) <= room for ep in EPISODES}
 
-    vs_path, fx_path = WRDS / "vsurfd_episodes.csv", WRDS / "fx_gbp_daily.csv"
+    # the skew file has the 25-delta wings AND the money; the older file the
+    # money only, used if the skew pull has not been run
+    fx_path = WRDS / "fx_gbp_daily.csv"
+    vs_path = next((p for p in (WRDS / "vsurfd_skew.csv", WRDS / "vsurfd_episodes.csv")
+                    if p.exists()), None)
     surfaces, usdcad = {}, None
-    if vs_path.exists() and fx_path.exists():
+    if vs_path is not None and fx_path.exists():
         vs = pd.read_csv(vs_path, parse_dates=["date"])
-        surfaces = {n: g.drop_duplicates(["date", "days", "cp_flag"]) for n, g in vs.groupby("name")}
+        surfaces = {n: g.drop_duplicates(["date", "days", "delta", "cp_flag"])
+                    for n, g in vs.groupby("name")}
         usdcad = usdcad_from_gbp(pd.read_csv(fx_path))
     starts = {ep.key: ep.start for ep in EPISODES}
     # the Bank of Canada bill curve's move on each session of each episode,
@@ -311,18 +330,24 @@ def main() -> None:
                 f"average that day, where the market's moved {at['vol_change'].mean():+.1f})")
         say()
 
-    say("WHERE THE VOL COMES FROM. For names listed in New York, the change in the at-the-")
-    say("money vol their New York options showed at the position's own maturity since the")
-    say("episode's first close (OptionMetrics), with the Canadian dollar's part taken out")
-    say("(src/nyvol.py), added to the option's own vol today. It moves the whole smile in")
-    say("parallel, so a steepening skew is not captured. Where no New York vol exists (the")
-    say("Toronto funds, a New York holiday), the C1 beta rule: "
-        f"{a.beta:+.2f} vol points per 1% move, skew")
-    say(f"{100 * a.steepen:.0f}% steeper past a {100 * a.crash:.0f}% fall. No real settlement "
-        "exists for any episode:")
-    say("Montreal history on disk starts in May 2026. The WCS-WTI oil spread factor is not")
-    say("built: no price series for it is on disk. The rate move is the bill curve's, added")
-    say("to today's curve; the funding spread on top of it is held where it is today.")
+    skew = vs_path is not None and vs_path.name == "vsurfd_skew.csv"
+    say("WHERE THE VOL COMES FROM. For names listed in New York, the change in the vol their")
+    say("New York options showed since the episode's first close (OptionMetrics), at the")
+    if skew:
+        say("position's own maturity AND its own strike: the strike is placed on the smile by")
+        say("the delta a call there would have, recomputed each day from the moved share price,")
+        say("and read between the 25-delta put, the money and the 25-delta call (flat beyond).")
+        say("A skew that steepened moves a low strike more than the money.")
+    else:
+        say("position's own maturity, at the money only: the whole smile moves in parallel.")
+    say("The Canadian dollar's part is taken out (src/nyvol.py) and the change is added to the")
+    say("option's own vol today. Where no New York vol exists (the Toronto funds, a New York")
+    say(f"holiday), the C1 beta rule: {a.beta:+.2f} vol points per 1% move, skew "
+        f"{100 * a.steepen:.0f}% steeper past a")
+    say(f"{100 * a.crash:.0f}% fall. No real settlement exists for any episode: Montreal history")
+    say("on disk starts in May 2026. The WCS-WTI discount is measured apart (the _oil report):")
+    say("no name's sensitivity to it is distinguishable from zero. The rate move is the bill")
+    say("curve's, added to today's curve; the funding spread on top is held at today's level.")
 
     out = ROOT / "reports" / f"{path_.stem}_episodes.txt"
     out.write_text("Model prices on a made-up book, and moves derived from historical prices.\n"
