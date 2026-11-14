@@ -34,7 +34,12 @@ Rates: today's curve, shifted on each session by how far the Bank of
 Canada's Treasury bill curve (1, 3, 6 and 12 months) had moved since the
 episode's first close, read at each option's maturity
 (data/raw/boc_history, episodes.curve_move). What that adds is its own part,
-"rates", priced last.
+"rates". Then the funding spread on top of the curve moves by as much as the
+3-month bankers' acceptance less bill spread had moved (Statistics Canada
+vector 80691320, weekly, data/raw/statcan): "funding moves", priced last.
+That rate is not published after 2018, so only January 2015 has it; every
+episode also reports, outside the total, what a stated +100 basis point
+funding shock would add (episodes.FUNDING_SHOCK, a chosen size).
 """
 
 from __future__ import annotations
@@ -56,7 +61,8 @@ import numpy as np
 import pandas as pd
 
 from book import load_book
-from episodes import EPISODES, curve_move, path, sessions, shift_function
+from episodes import (EPISODES, FUNDING_SHOCK, curve_move, funding_move, funding_spread, path,
+                      sessions, shift_function)
 from horizon import carry_parts, end_of_horizon, share_parts, shocked
 from loaders.mx import load_mx_futures
 from nyvol import atm_usd_vol, cad_vol, fx_terms, smile_usd_vol, strike_call_delta, usdcad_from_gbp
@@ -72,10 +78,21 @@ RULE_VOL = "model on rule-based vol"
 NY_VOL = "model on observed NY vol"
 SETTLED = "real settlement"
 LABELS = (SETTLED, NY_VOL, RULE_VOL)
-PARTS = ("decay", "funding", "dividends", "shock", "rates")
+PARTS = ("decay", "funding", "dividends", "shock", "rates", "funding moves")
 BILLS = ROOT / "data/raw/boc_history"
+STATCAN = ROOT / "data/raw/statcan"
+BA_3M = "v80691320_ba_3m.json"      # 3-month bankers' acceptances, weekly; blank after 2018
 BILL_FILES = {30: "TB.CDN.30D.MID.csv", 90: "TB.CDN.90D.MID.csv",
               180: "TB.CDN.180D.MID.csv", 365: "TB.CDN.1Y.MID.csv"}
+
+
+def read_statcan_vector(path: Path) -> pd.Series:
+    """A Statistics Canada web-service reply for one vector -> its observed
+    values by date, as decimals. Blank observations are left out."""
+    import json
+    pts = json.loads(path.read_text(encoding="utf-8"))[0]["object"]["vectorDataPoint"]
+    return pd.Series({pd.Timestamp(x["refPer"]): float(x["value"]) / 100.0
+                      for x in pts if x["value"] is not None}, dtype=float).sort_index()
 
 
 def has_skew(surface: pd.DataFrame | None) -> bool:
@@ -102,7 +119,7 @@ def observed_vol(surface: pd.DataFrame | None, share_tr: pd.Series | None,
 def one_name(task) -> dict:
     """Runs in a worker. One underlying's positions through every episode.
     Returns rows: episode, session, position, the four parts, and a label."""
-    name, positions, moves, aged, params, surface, share_tr, usdcad, starts, curves = task
+    name, positions, moves, aged, params, surface, share_tr, usdcad, starts, curves, funding = task
     rows = []
     if name == "SXF":
         fut = load_mx_futures(mx_files("SXF"))
@@ -115,7 +132,8 @@ def one_name(task) -> dict:
                 for d, x in m.items():
                     rows.append(dict(episode=key, session=d, position=label(pos), kind=pos.kind,
                                      decay=0.0, funding=0.0, dividends=0.0, rates=0.0,
-                                     shock=pos.quantity * pos.multiplier * level * x))
+                                     shock=pos.quantity * pos.multiplier * level * x,
+                                     **{"funding moves": 0.0}, funding_shock=0.0))
         return dict(name=name, rows=rows, day=None)
 
     day, inp, inv = latest_inputs(name)
@@ -146,7 +164,8 @@ def one_name(task) -> dict:
                     sp = share_parts(v.scale, inp.spot, inp.divs, day, end, [x])
                     rows.append(dict(episode=key, session=d, position=label(pos), kind=pos.kind,
                                      decay=0.0, funding=0.0, dividends=0.0, rates=0.0,
-                                     shock=sp["shock"][0]))
+                                     shock=sp["shock"][0], **{"funding moves": 0.0},
+                                     funding_shock=0.0))
                     continue
                 c = carry_parts(pos, day, end, inp.spot, inp.rate, inp.divs, v.iv)
                 s1 = c["expected_spot"] * (1.0 + x)
@@ -169,16 +188,30 @@ def one_name(task) -> dict:
                 # last, the rate curve moves as the bill curve did since the
                 # episode began; what that adds is the "rates" part
                 move = (curves or {}).get(key, {}).get(d)
-                rates = 0.0
+                rate_fn, with_rates = inp.rate, after
                 if move is not None:
                     shift = shift_function(*move)
-                    moved = lambda T, s=shift: inp.rate(T) + s(T)   # noqa: E731
-                    rates = v.scale * (shocked(pos, end, c["expected_spot"], x, moved, inp.divs,
-                                               vol) - after)
+                    rate_fn = lambda T, s=shift: inp.rate(T) + s(T)   # noqa: E731
+                    with_rates = shocked(pos, end, c["expected_spot"], x, rate_fn, inp.divs, vol)
+                rates = v.scale * (with_rates - after)
+                # then the funding spread: measured where Canadian data exist,
+                # and a stated shock on every day, kept out of the total. A
+                # funding move shifts the carry exactly as a rate move does
+                fmove = (funding or {}).get(key, {}).get(d)
+                fund = 0.0
+                if fmove is not None:
+                    f_fn = lambda T, f=rate_fn, m=fmove: f(T) + m   # noqa: E731
+                    fund = v.scale * (shocked(pos, end, c["expected_spot"], x, f_fn, inp.divs,
+                                              vol) - with_rates)
+                s_fn = lambda T, f=rate_fn: f(T) + FUNDING_SHOCK   # noqa: E731
+                fshock = v.scale * (shocked(pos, end, c["expected_spot"], x, s_fn, inp.divs,
+                                            vol) - with_rates)
                 rows.append(dict(episode=key, session=d, position=label(pos), kind=pos.kind,
                                  decay=v.scale * c["decay"], funding=v.scale * c["funding"],
                                  dividends=v.scale * c["dividends"],
                                  shock=v.scale * (after - c["aged"]), rates=rates, label=where,
+                                 **{"funding moves": fund}, funding_shock=fshock,
+                                 funding_measured=fmove is not None,
                                  vol_change=100 * (vol - v.iv), rate_moved=move is not None))
     return dict(name=name, rows=rows, day=day)
 
@@ -242,15 +275,25 @@ def main() -> None:
             bills[t] = s
         curves = {ep.key: {d: curve_move(bills, ep.start, d) for d in sessions(ep)}
                   for ep in EPISODES}
+    # the funding spread's move since each episode began, where Canadian data
+    # exist (Statistics Canada's bankers' acceptances stop after 2018)
+    funding: dict = {}
+    if (STATCAN / BA_3M).exists() and (BILLS / BILL_FILES[90]).exists():
+        b90 = pd.Series(read_boc_series(BILLS / BILL_FILES[90])).sort_index()
+        b90.index = pd.to_datetime(b90.index)
+        spread = funding_spread(read_statcan_vector(STATCAN / BA_3M), b90)
+        funding = {ep.key: {d: funding_move(spread, ep.start, d) for d in sessions(ep)}
+                   for ep in EPISODES}
     tasks = []
     for n, ps in names.items():
         col = INDEX if n == "SXF" else n
         moves = {k: paths[k][col] for k in paths if col in paths[k]}
         tr = returns[n] if n in returns else None
-        tasks.append((n, ps, moves, aged, params, surfaces.get(n), tr, usdcad, starts, curves))
+        tasks.append((n, ps, moves, aged, params, surfaces.get(n), tr, usdcad, starts, curves,
+                      funding))
     # the same replay with the C1 rule everywhere: what the rule alone would
     # have said, set beside what the market's own vols say
-    rule_tasks = [t[:5] + (None, None, None, starts, curves) for t in tasks]
+    rule_tasks = [t[:5] + (None, None, None, starts, curves, funding) for t in tasks]
     with ProcessPoolExecutor(max_workers=a.workers) as pool:
         res = list(pool.map(one_name, tasks))
         res_rule = list(pool.map(one_name, rule_tasks))
@@ -317,6 +360,17 @@ def main() -> None:
         say("   the options' vol change on that day, vol points (* = from the C1 rule): "
             + ", ".join(f"{n} {r['points']:+.1f}{'*' if r['source'] == RULE_VOL else ''}"
                         for n, r in moved.iterrows()))
+        measured = opt["funding_measured"].eq(True)
+        if measured.all():
+            fm = funding[ep.key].get(worst)
+            say(f"   funding: the 3-month bankers' acceptance less bill spread had moved "
+                f"{1e4 * fm:+.0f} bp by that day (measured; 'funding moves' above)")
+        else:
+            say(f"   funding: measured on {int(measured.sum())} of {len(measured)} option-days; "
+                "no Canadian funding rate is published after 2018")
+        fs = e.groupby("session")["funding_shock"].sum()
+        say(f"   a stated +{1e4 * FUNDING_SHOCK:.0f} bp funding shock (a chosen size, not history) "
+            f"would add {money(fs.loc[worst])} that day, {money(fs.iloc[-1])} at the end")
         counts = opt["label"].value_counts().reindex(LABELS, fill_value=0)
         say("   option-days by where the vol came from: "
             + ", ".join(f"{k} {v}" for k, v in counts.items()))
@@ -347,7 +401,9 @@ def main() -> None:
     say(f"{100 * a.crash:.0f}% fall. No real settlement exists for any episode: Montreal history")
     say("on disk starts in May 2026. The WCS-WTI discount is measured apart (the _oil report):")
     say("no name's sensitivity to it is distinguishable from zero. The rate move is the bill")
-    say("curve's, added to today's curve; the funding spread on top is held at today's level.")
+    say("curve's, added to today's curve. The funding spread on top moves by the 3-month")
+    say("bankers' acceptance less bill spread where Statistics Canada publishes it (to the end")
+    say("of 2018); elsewhere it is held at today's level and a stated shock shows its size.")
 
     out = ROOT / "reports" / f"{path_.stem}_episodes.txt"
     out.write_text("Model prices on a made-up book, and moves derived from historical prices.\n"

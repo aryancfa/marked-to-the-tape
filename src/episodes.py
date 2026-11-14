@@ -119,3 +119,35 @@ def path(returns: pd.DataFrame, ep: Episode, venue: str = "TSX") -> tuple[pd.Dat
     keep = [c for c in r.columns if c not in missing]
     moves = (1.0 + r[keep]).cumprod() - 1.0
     return moves, missing
+
+
+FUNDING_SHOCK = 0.01        # the stated funding shock, +100 basis points: a chosen size, not history
+
+
+def funding_spread(ba: pd.Series, bills: pd.Series) -> pd.Series:
+    """Bank funding over government funding: the 3-month bankers' acceptance
+    rate less the 3-month Treasury bill yield, on the days the acceptance
+    rate is observed (Statistics Canada publishes it weekly, Wednesdays, and
+    not after 2018), as a decimal. The bill is read on the same day or the
+    last session before it."""
+    b = bills.sort_index()
+    rows = {}
+    for d, x in ba.dropna().sort_index().items():
+        prior = b[b.index <= d]
+        if len(prior) and (d - prior.index[-1]).days <= 5:
+            rows[d] = x - float(prior.iloc[-1])
+    return pd.Series(rows, dtype=float).sort_index()
+
+
+def funding_move(spread: pd.Series, start: date, day: date, stale_days: int = 10) -> float | None:
+    """How far the funding spread had moved since the episode's first close,
+    or None where either end has no observation within `stale_days`
+    (a weekly series, so a week and a half): never a guess."""
+    def asof(d: date) -> float | None:
+        s = spread[spread.index <= pd.Timestamp(d)]
+        if s.empty or (pd.Timestamp(d) - s.index[-1]).days > stale_days:
+            return None
+        return float(s.iloc[-1])
+
+    a, b = asof(start), asof(day)
+    return None if a is None or b is None else b - a

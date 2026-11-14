@@ -73,3 +73,21 @@ def test_the_named_episodes_are_in_order_and_have_sessions():
     assert [e.key for e in EPISODES] == ["jan2015", "covid2020", "wti2020", "boc2022"]
     for e in EPISODES:
         assert e.start < e.end and len(sessions(e)) >= 5
+
+
+def test_the_funding_spread_is_acceptances_less_bills_on_the_same_day():
+    from episodes import funding_spread
+    days = pd.to_datetime(["2015-01-07", "2015-01-14"])
+    ba = pd.Series([0.0130, 0.0140], index=days)
+    bills = pd.Series([0.0090, 0.0091, 0.0095], index=pd.to_datetime(["2015-01-06", "2015-01-07", "2015-01-13"]))
+    s = funding_spread(ba, bills)
+    assert s.iloc[0] == pytest.approx(0.0039)          # same-day bill
+    assert s.iloc[1] == pytest.approx(0.0045)          # the session before
+
+
+def test_the_funding_move_needs_a_recent_reading_at_both_ends():
+    from episodes import funding_move
+    s = pd.Series([0.003, 0.005], index=pd.to_datetime(["2015-01-07", "2015-01-28"]))
+    assert funding_move(s, date(2015, 1, 7), date(2015, 1, 30)) == pytest.approx(0.002)
+    assert funding_move(s, date(2015, 1, 7), date(2015, 3, 30)) is None   # stale: nothing
+    assert funding_move(s, date(2014, 12, 1), date(2015, 1, 30)) is None  # before it starts
