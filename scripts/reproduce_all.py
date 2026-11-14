@@ -80,7 +80,8 @@ def steps() -> list[tuple[str, list[str]]]:
             for b in ("bank_heavy", "diversified")]
     out.append(("realized", [S + "realized_implied.py"]))
     out += [(f"{what}_{b}", [S + script, f"books/{b}.csv"])
-            for what, script in (("stress", "stress.py"), ("tail", "tail_risk.py"))
+            for what, script in (("stress", "stress.py"), ("tail", "tail_risk.py"),
+                                 ("episodes", "replay_episodes.py"))
             for b in ("bank_heavy", "diversified")]
     return out
 

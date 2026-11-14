@@ -125,6 +125,63 @@ def latest_inputs(name: str):
     return day, DayInputs(day, r["spot"], curve, r["divs"], opts), r["inverted"]
 
 
+def reprice_horizon(task) -> dict:
+    """Runs in a worker. Like `reprice`, but the moves happen over `sessions`
+    trading sessions (B6): each option is priced at the end of the window,
+    and decay, funding and dividends come back apart from the shock
+    (src/horizon.py). Returns, per position, a dict of the three carry parts
+    (dollars, the same for every move) and the shock (one per move).
+
+    task = (name, positions, returns, rule, params, sessions)."""
+    from horizon import carry_parts, end_of_horizon, share_parts, shocked
+    name, positions, moves, rule, params, sessions = task
+    moves = np.asarray(moves, dtype=float)
+    out, notes = {}, []
+    if name == "SXF":
+        fut = load_mx_futures(mx_files("SXF"))
+        for pos in positions:
+            f = fut[fut["expiry"].dt.date == pos.expiry].sort_values("date")
+            if f.empty:
+                raise SystemExit(f"SXF {pos.expiry}: no such contract in the exchange files")
+            level = float(f["settle"].iloc[-1])
+            out[label(pos)] = dict(decay=0.0, funding=0.0, dividends=0.0,
+                                   shock=pos.quantity * pos.multiplier * level * moves)
+        notes.append("the index future is charged no carry over the horizon: its basis is not "
+                     "modelled here")
+        return dict(name=name, parts=out, notes=notes)
+
+    day, inp, inv = latest_inputs(name)
+    end = end_of_horizon(day, sessions)
+    inv = inv[inv["iv"].notna()]
+    exp = pd.Series([e.date() if hasattr(e, "date") else e for e in inv["expiry"]],
+                    index=inv.index)
+    for pos in positions:
+        v = value_position(pos, inp)
+        if pos.kind != "option":
+            s = share_parts(v.scale, inp.spot, inp.divs, day, end, moves)
+            out[label(pos)] = dict(decay=0.0, funding=0.0, dividends=0.0,
+                                   shock=np.asarray(s["shock"]))
+            continue
+        if not v.ok:
+            notes.append(f"{label(pos)}: not valued ({v.reason}); left out")
+            continue
+        chain = inv[exp == pos.expiry]
+        smile = smile_from_points(chain["strike"], chain["iv"])
+        own = smile(pos.strike)
+        c = carry_parts(pos, day, end, inp.spot, inp.rate, inp.divs, v.iv)
+        T = year_fraction(end, pos.expiry)
+        shock = np.empty(len(moves))
+        for i, m in enumerate(moves):
+            s1 = c["expected_spot"] * (1.0 + m)
+            vol = max(v.iv + shocked_vol(rule, smile, pos.strike, inp.spot, s1, T, **params)
+                      - own, 0.01)
+            shock[i] = v.scale * (shocked(pos, end, c["expected_spot"], m, inp.rate, inp.divs,
+                                          vol) - c["aged"])
+        out[label(pos)] = dict(decay=v.scale * c["decay"], funding=v.scale * c["funding"],
+                               dividends=v.scale * c["dividends"], shock=shock)
+    return dict(name=name, parts=out, notes=notes)
+
+
 def reprice(task) -> dict:
     """Runs in a worker. One underlying's positions under an array of
     returns: dollars of P&L, one row per scenario and one column per position.

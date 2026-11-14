@@ -426,6 +426,15 @@ def build(out: Path) -> list[Path]:
             "of <code>scripts/stress.py</code>.</p>")
     for stem, title in BOOKS:
         body += f"<h3>{title}: stress</h3>" + report(f"{stem}_stress.txt")
+    body += ("<h3>Real episodes, replayed on today's book</h3>"
+             "<p>January 2015, February to March 2020, April 2020 and the 2022 to 2023 rate "
+             "cycle: every name moves as it really moved, together, with time passing as it "
+             "did. Vols come from the New York listings, currency taken out, where one "
+             "exists; each option-day is labelled by where its vol came from.</p>")
+    for stem, title in BOOKS:
+        body += (f"<h3>{title}: episodes</h3>"
+                 + chart(f"{stem}_episodes.png", f"{title}: historical episodes")
+                 + folded("The numbers", report(f"{stem}_episodes.txt")))
     body += ("<h3>The worst days, who causes them, and whether the VaR held</h3>"
              "<p>Historical VaR and expected shortfall on the marks; a day-ahead VaR tested "
              "against what happened, with Kupiec's test and the Basel traffic light; and each "

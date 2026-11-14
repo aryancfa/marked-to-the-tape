@@ -41,7 +41,8 @@ import pandas as pd
 
 from book import load_book
 from book_report import cached_days
-from scenarios import CRASH_SHARE, crash_betas, index_betas, reprice, returns_table
+from scenarios import (CRASH_SHARE, crash_betas, index_betas, reprice, reprice_horizon,
+                       returns_table)
 from volrule import BETA, RULES, STICKY_STRIKE, fitted_beta
 
 ATM_BAND = 0.03
@@ -81,6 +82,9 @@ def main() -> None:
     ap.add_argument("--steepen", type=float, default=0.5)
     ap.add_argument("--moves", default="-20,-10,-5,5,10",
                     help="index moves in percent, comma-separated")
+    ap.add_argument("--horizon", type=int, default=5,
+                    help="trading sessions the move takes, for the carry table (default 5; "
+                         "0 leaves the table out)")
     ap.add_argument("--betas", choices=("crash", "recent"), default="crash",
                     help="for index FALLS: betas from the index's worst days since 2014 "
                          "(default), or the last 250 days' as for rises")
@@ -159,6 +163,32 @@ def main() -> None:
         say("   puts it. Only beta lets it rise in a fall, which is what a fall does.")
     say()
     show = a.rule or BETA
+    if a.horizon > 0:
+        htasks = [(n, ps, [beta_for(n, m) * m for m in moves], show, params, a.horizon)
+                  for n, ps in names.items()]
+        with ProcessPoolExecutor(max_workers=a.workers) as pool:
+            hres = list(pool.map(reprice_horizon, htasks))
+        parts = [p for x in hres for p in x["parts"].values()]
+        carry = {k: sum(p[k] for p in parts) for k in ("decay", "funding", "dividends")}
+        shock = np.sum([p["shock"] for p in parts], axis=0)
+        h = pd.DataFrame({"decay": carry["decay"], "funding": carry["funding"],
+                          "dividends": carry["dividends"], "the move": shock}, index=table.index)
+        h["total"] = h.sum(axis=1)
+        h["instant"] = table[show].to_numpy()
+        say(f"1b. THE SAME MOVES TAKING {a.horizon} TRADING SESSIONS, under the {show} rule, "
+            "dollars")
+        say(h.to_string(float_format=lambda x: f"{x:,.0f}").replace("\n", "\n   ")
+            .join(["   ", ""]))
+        say(f"   Each option is priced at the end of the {a.horizon} sessions (B6, "
+            "src/horizon.py). decay = the days passing")
+        say("   at a zero rate; funding = what the rate curve adds; dividends = ex-dates inside")
+        say("   the window; the move = the shock on the share price expected at the end, which")
+        say("   is today's less those dividends. The four add up to 'total'. 'instant' is table")
+        say(f"   1's {show} column, the same move this second. Change the window with --horizon.")
+        for x in hres:
+            for note in x["notes"]:
+                say("   NOTE: " + note)
+        say()
     t = total(show)
     t.index = table.index
     say(f"2. BY NAME, under the {show} rule, dollars")
