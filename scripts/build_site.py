@@ -452,6 +452,15 @@ def build(out: Path) -> list[Path]:
         body += (f"<h3>{title}: tail risk</h3>"
                  + chart(f"{stem}_tail.png", f"{title}: VaR backtest and component ES")
                  + report(f"{stem}_tail.txt"))
+    body += ("<h3>The morning's P&amp;L explain, and the limits</h3>"
+             "<p>Each day's change in the marks through the previous evening's Greeks "
+             "(delta, gamma, vega, theta, rho) and the residual they leave; then limits on "
+             "mapped delta, vega by maturity and one-day expected shortfall, all made from "
+             "one stated loss tolerance, with usage on every day.</p>")
+    for stem, title in BOOKS:
+        body += (f"<h3>{title}: P&amp;L explain and limits</h3>"
+                 + chart(f"{stem}_limits.png", f"{title}: limit usage")
+                 + folded("The numbers", report(f"{stem}_limits.txt")))
     pages["fund.html"] = body
 
     pages["vol.html"] = (
