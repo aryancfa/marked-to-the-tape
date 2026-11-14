@@ -28,8 +28,11 @@ The report counts each.
 
 Every dollar figure is a MODEL price (hard rule 6) on a made-up book. The
 moves are derived from Compustat prices; no price appears in the output.
-Rates are today's curve throughout: the rate history the 2022-23 episode
-would need is not on disk.
+Rates: today's curve, shifted on each session by how far the Bank of
+Canada's Treasury bill curve (1, 3, 6 and 12 months) had moved since the
+episode's first close, read at each option's maturity
+(data/raw/boc_history, episodes.curve_move). What that adds is its own part,
+"rates", priced last.
 """
 
 from __future__ import annotations
@@ -51,10 +54,11 @@ import numpy as np
 import pandas as pd
 
 from book import load_book
-from episodes import EPISODES, path, sessions
+from episodes import EPISODES, curve_move, path, sessions, shift_function
 from horizon import carry_parts, end_of_horizon, share_parts, shocked
 from loaders.mx import load_mx_futures
 from nyvol import atm_usd_vol, cad_vol, fx_terms, usdcad_from_gbp
+from rates import read_boc_series
 from replay import value_position
 from run_days import mx_files
 from scenarios import INDEX, label, latest_inputs, returns_table
@@ -66,7 +70,10 @@ RULE_VOL = "model on rule-based vol"
 NY_VOL = "model on observed NY vol"
 SETTLED = "real settlement"
 LABELS = (SETTLED, NY_VOL, RULE_VOL)
-PARTS = ("decay", "funding", "dividends", "shock")
+PARTS = ("decay", "funding", "dividends", "shock", "rates")
+BILLS = ROOT / "data/raw/boc_history"
+BILL_FILES = {30: "TB.CDN.30D.MID.csv", 90: "TB.CDN.90D.MID.csv",
+              180: "TB.CDN.180D.MID.csv", 365: "TB.CDN.1Y.MID.csv"}
 
 
 def observed_vols(surface: pd.DataFrame | None, share_tr: pd.Series | None,
@@ -89,7 +96,7 @@ def observed_vols(surface: pd.DataFrame | None, share_tr: pd.Series | None,
 def one_name(task) -> dict:
     """Runs in a worker. One underlying's positions through every episode.
     Returns rows: episode, session, position, the four parts, and a label."""
-    name, positions, moves, aged, params, surface, share_tr, usdcad, starts = task
+    name, positions, moves, aged, params, surface, share_tr, usdcad, starts, curves = task
     rows = []
     if name == "SXF":
         fut = load_mx_futures(mx_files("SXF"))
@@ -101,7 +108,7 @@ def one_name(task) -> dict:
             for key, m in moves.items():
                 for d, x in m.items():
                     rows.append(dict(episode=key, session=d, position=label(pos), kind=pos.kind,
-                                     decay=0.0, funding=0.0, dividends=0.0,
+                                     decay=0.0, funding=0.0, dividends=0.0, rates=0.0,
                                      shock=pos.quantity * pos.multiplier * level * x))
         return dict(name=name, rows=rows, day=None)
 
@@ -130,7 +137,7 @@ def one_name(task) -> dict:
                 if pos.kind != "option":
                     sp = share_parts(v.scale, inp.spot, inp.divs, day, end, [x])
                     rows.append(dict(episode=key, session=d, position=label(pos), kind=pos.kind,
-                                     decay=0.0, funding=0.0, dividends=0.0,
+                                     decay=0.0, funding=0.0, dividends=0.0, rates=0.0,
                                      shock=sp["shock"][0]))
                     continue
                 c = carry_parts(pos, day, end, inp.spot, inp.rate, inp.divs, v.iv)
@@ -145,11 +152,20 @@ def one_name(task) -> dict:
                                                  **params) - own, 0.01)
                     where = RULE_VOL
                 after = shocked(pos, end, c["expected_spot"], x, inp.rate, inp.divs, vol)
+                # last, the rate curve moves as the bill curve did since the
+                # episode began; what that adds is the "rates" part
+                move = (curves or {}).get(key, {}).get(d)
+                rates = 0.0
+                if move is not None:
+                    shift = shift_function(*move)
+                    moved = lambda T, s=shift: inp.rate(T) + s(T)   # noqa: E731
+                    rates = v.scale * (shocked(pos, end, c["expected_spot"], x, moved, inp.divs,
+                                               vol) - after)
                 rows.append(dict(episode=key, session=d, position=label(pos), kind=pos.kind,
                                  decay=v.scale * c["decay"], funding=v.scale * c["funding"],
                                  dividends=v.scale * c["dividends"],
-                                 shock=v.scale * (after - c["aged"]), label=where,
-                                 vol_change=100 * (vol - v.iv)))
+                                 shock=v.scale * (after - c["aged"]), rates=rates, label=where,
+                                 vol_change=100 * (vol - v.iv), rate_moved=move is not None))
     return dict(name=name, rows=rows, day=day)
 
 
@@ -195,15 +211,27 @@ def main() -> None:
         surfaces = {n: g.drop_duplicates(["date", "days", "cp_flag"]) for n, g in vs.groupby("name")}
         usdcad = usdcad_from_gbp(pd.read_csv(fx_path))
     starts = {ep.key: ep.start for ep in EPISODES}
+    # the Bank of Canada bill curve's move on each session of each episode,
+    # from data/raw/boc_history (kept apart from data/raw/boc, whose files are
+    # in every name's cache key)
+    curves: dict = {}
+    if all((BILLS / f).exists() for f in BILL_FILES.values()):
+        bills = {}
+        for t, f in BILL_FILES.items():
+            s = pd.Series(read_boc_series(BILLS / f)).sort_index()
+            s.index = pd.to_datetime(s.index)
+            bills[t] = s
+        curves = {ep.key: {d: curve_move(bills, ep.start, d) for d in sessions(ep)}
+                  for ep in EPISODES}
     tasks = []
     for n, ps in names.items():
         col = INDEX if n == "SXF" else n
         moves = {k: paths[k][col] for k in paths if col in paths[k]}
         tr = returns[n] if n in returns else None
-        tasks.append((n, ps, moves, aged, params, surfaces.get(n), tr, usdcad, starts))
+        tasks.append((n, ps, moves, aged, params, surfaces.get(n), tr, usdcad, starts, curves))
     # the same replay with the C1 rule everywhere: what the rule alone would
     # have said, set beside what the market's own vols say
-    rule_tasks = [t[:5] + (None, None, None, starts) for t in tasks]
+    rule_tasks = [t[:5] + (None, None, None, starts, curves) for t in tasks]
     with ProcessPoolExecutor(max_workers=a.workers) as pool:
         res = list(pool.map(one_name, tasks))
         res_rule = list(pool.map(one_name, rule_tasks))
@@ -218,7 +246,10 @@ def main() -> None:
         lines.append(text)
 
     say(f"Historical replay of {path_.name}, a made-up book, as it stands on each name's")
-    say(f"latest day on file. MODEL prices: nothing below is a mark. Rates are today's curve.")
+    say("latest day on file. MODEL prices: nothing below is a mark. Rates are today's curve")
+    say("moved as the Treasury bill curve moved in each episode ('rates', priced last).")
+    if not curves:
+        say("NOTE: no bill history in data/raw/boc_history, so rates did NOT move: 'rates' is 0.")
     if "not_valued" in rows:
         nv = rows[rows["not_valued"].notna()]
         for r in nv.itertuples():
@@ -289,8 +320,9 @@ def main() -> None:
         f"{a.beta:+.2f} vol points per 1% move, skew")
     say(f"{100 * a.steepen:.0f}% steeper past a {100 * a.crash:.0f}% fall. No real settlement "
         "exists for any episode:")
-    say("Montreal history on disk starts in May 2026. Rates are today's curve throughout, and")
-    say("the WCS-WTI oil spread factor is not built: no price series for either is on disk.")
+    say("Montreal history on disk starts in May 2026. The WCS-WTI oil spread factor is not")
+    say("built: no price series for it is on disk. The rate move is the bill curve's, added")
+    say("to today's curve; the funding spread on top of it is held where it is today.")
 
     out = ROOT / "reports" / f"{path_.stem}_episodes.txt"
     out.write_text("Model prices on a made-up book, and moves derived from historical prices.\n"

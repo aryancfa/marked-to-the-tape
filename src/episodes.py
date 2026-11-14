@@ -26,6 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+import numpy as np
 import pandas as pd
 
 from tradingcal import trading_days
@@ -54,6 +55,48 @@ EPISODES = (
             date(2022, 3, 1), date(2023, 7, 12),
             "Ten hikes from 0.25% to 5.00%, 2 March 2022 to 12 July 2023."),
 )
+
+
+BILL_DAYS = (30, 90, 180, 365)       # the Treasury bill tenors on file, in days
+
+
+def curve_shift(bills: dict[int, pd.Series], start: date, day: date, stale_days: int = 5):
+    """How far the Treasury bill curve moved from `start` to `day`: a function
+    of T in years giving the change in yield (decimal) at that maturity,
+    read linearly between the tenors on file and flat beyond them. None when
+    any tenor has no observation within `stale_days` before either date:
+    never a guessed rate.
+
+    It is added to TODAY's curve, so the replay keeps today's level of rates
+    and takes the episode's MOVE in them, as it does with share prices."""
+    m = curve_move(bills, start, day, stale_days)
+    return None if m is None else shift_function(*m)
+
+
+def shift_function(tenor_days, moves):
+    """The shift as a function of T in years, from curve_move's numbers."""
+    x, y = np.asarray(tenor_days, dtype=float), np.asarray(moves, dtype=float)
+    return lambda T: float(np.interp(T * 365.0, x, y))
+
+
+def curve_move(bills: dict[int, pd.Series], start: date, day: date, stale_days: int = 5):
+    """curve_shift's numbers: (tenors in days, yield moves), or None. Plain
+    numbers, so they can be sent to a worker process, which a function
+    cannot."""
+    def asof(s: pd.Series, d: date) -> float | None:
+        s = s[s.index <= pd.Timestamp(d)]
+        if s.empty or (pd.Timestamp(d) - s.index[-1]).days > stale_days:
+            return None
+        return float(s.iloc[-1])
+
+    tenors, moves = [], []
+    for t in sorted(bills):
+        a, b = asof(bills[t], start), asof(bills[t], day)
+        if a is None or b is None:
+            return None
+        tenors.append(float(t))
+        moves.append(b - a)
+    return tenors, moves
 
 
 def sessions(ep: Episode, venue: str = "TSX") -> list[date]:
