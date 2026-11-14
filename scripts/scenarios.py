@@ -69,6 +69,26 @@ def index_betas(table: pd.DataFrame, window: int = 250) -> dict[str, float]:
     return out
 
 
+def latest_inputs(name: str):
+    """One underlying's latest cached day: (day, DayInputs, the day runner's
+    inverted table). The rate curve carries the funding spread the day was
+    priced with, if any, so a position valued here matches the book report's
+    mark on that day."""
+    days = cached_days(name)
+    day = max(days)
+    r = days[day]
+    opts = load_mx_options(mx_files(name))
+    opts = opts[(opts["underlying"] == name) & (opts["date"].dt.date == day)]
+    fut = load_mx_futures(mx_files("CRA"))
+    fut = fut[fut["root"] == "CRA"]
+    cra = [(d.date(), e.date(), float(px))
+           for d, e, px in zip(fut["date"], fut["expiry"], fut["settle"])]
+    curve = load_base_curve(BOC, day, cra)
+    if r.get("spread_used") is not None:
+        curve = curve.plus(r["spread_used"])
+    return day, DayInputs(day, r["spot"], curve, r["divs"], opts), r["inverted"]
+
+
 def reprice(task) -> dict:
     """Runs in a worker. One underlying's positions under an array of
     returns: dollars of P&L, one row per scenario and one column per position.
@@ -88,20 +108,7 @@ def reprice(task) -> dict:
             cols[label(pos)] = pos.quantity * pos.multiplier * level * moves
         return dict(name=name, pnl=cols, notes=notes, day=f["date"].iloc[-1].date())
 
-    days = cached_days(name)
-    day = max(days)
-    r = days[day]
-    opts = load_mx_options(mx_files(name))
-    opts = opts[(opts["underlying"] == name) & (opts["date"].dt.date == day)]
-    fut = load_mx_futures(mx_files("CRA"))
-    fut = fut[fut["root"] == "CRA"]
-    cra = [(d.date(), e.date(), float(px))
-           for d, e, px in zip(fut["date"], fut["expiry"], fut["settle"])]
-    curve = load_base_curve(BOC, day, cra)
-    if r.get("spread_used") is not None:
-        curve = curve.plus(r["spread_used"])
-    inp = DayInputs(day, r["spot"], curve, r["divs"], opts)
-    inv = r["inverted"]
+    day, inp, inv = latest_inputs(name)
     inv = inv[inv["iv"].notna()]
     exp = pd.Series([e.date() if hasattr(e, "date") else e for e in inv["expiry"]],
                     index=inv.index)

@@ -76,6 +76,8 @@ def steps() -> list[tuple[str, list[str]]]:
     out.append(("review_benchmark", [S + "review_benchmark.py"]))
     out += [(f"hedge_{b}", [S + "book_hedge.py", f"books/{b}.csv"])
             for b in ("bank_heavy", "diversified")]
+    out += [(f"grid_{b}", [S + "risk_grid.py", f"books/{b}.csv"])
+            for b in ("bank_heavy", "diversified")]
     out.append(("realized", [S + "realized_implied.py"]))
     out += [(f"{what}_{b}", [S + script, f"books/{b}.csv"])
             for what, script in (("stress", "stress.py"), ("tail", "tail_risk.py"))

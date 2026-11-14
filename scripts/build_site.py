@@ -369,6 +369,16 @@ def build(out: Path) -> list[Path]:
     for stem, title in BOOKS:
         body += (f"<h3>{title}</h3>" + chart(f"{stem}_book.png", f"{title}: daily P&L explained")
                  + folded("The numbers", report(f"{stem}_book.txt")))
+    body += ("<h2>Where the vega sits, and the delta in index terms</h2>"
+             "<p>Vega by days to expiry and strike over share price, on the front chart's own "
+             "cells, by name: a one-month vol point on one name is not a six-month vol point "
+             "on another. Vega is counted in a cell only where the exchange quotes a smile "
+             "around it. Each name's option delta is also mapped to the TSX 60 by its beta, "
+             "with its correlation beside it, because a beta is worth something only where the "
+             "index explains the name.</p>")
+    for stem, title in BOOKS:
+        body += (f"<h3>{title}</h3>" + chart(f"{stem}_grid.png", f"{title}: vega by cell")
+                 + folded("The numbers", report(f"{stem}_grid.txt")))
     pages["book.html"] = body
 
     body = ("<h2>Review queue</h2>"
