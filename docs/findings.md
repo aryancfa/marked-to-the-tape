@@ -519,6 +519,13 @@ set from what was known the evening before.
   variance and 62% of the diversified book's. Ratios fitted with hindsight do no
   better. What is left is single names moving apart from the index: 89% and 94% of
   the remainder.
+- **Through the real future.** With the index leg in SXF itself (whole contracts,
+  rolled 5 days before expiry, its own settlements, half the quoted spread on each
+  trade), 96% and 60% of the variance is removed, against 96% and 62% through the
+  index. The future's basis, the rounding and the cost add a daily st. dev. of
+  $1,200 and $1,500; trading cost $260 and $2,180 over the period. On the
+  bank-heavy book the index leg is under one contract on average (the banks go
+  through ZEB), so rounding is most of the gap. The index was a fair stand-in.
 - **Vega.** An XIU straddle sized to the book's beta-weighted vega removed nothing
   measurable and cost $12,100 and $6,400 in spread. A single name's implied vol
   moved 0.2 to 0.7 points per point of XIU's, and for several names about zero. The
@@ -698,7 +705,7 @@ Not done, and why:
   assign to. It would be decoration.
 - **Rebalancing schedules, slippage and market impact.** An execution model is out
   of scope. Scoring the hedge on the SXF future's own prices with whole contracts
-  is feasible on the files on disk and is an open decision.
+  is now done (14 November): see the closing chart's SXF row.
 - **A set of independently labelled real cases.** It cannot be produced from here.
   The thirteen investigations are a small, selected set and are described that way.
 

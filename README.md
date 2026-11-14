@@ -2,7 +2,7 @@
 
 A risk system for a small book of Canadian listed options. It prices positions with its own engine for American options with discrete dividends. It compares the implied volatilities with Montreal Exchange settlements and with an independent source. Then it replays real historical days and shows what risk is left after hedging with SXF, ZEB and XIU.
 
-**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 89 steps) and 491 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
+**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 89 steps) and 496 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
 
 ## What it has found so far
 
@@ -451,13 +451,20 @@ names is added dollar for dollar in the Greeks table.
 
 `scripts/book_hedge.py` runs each sample book through three stages
 (`reports/<book>_hedge.txt`). Every hedge is set from what was known the evening
-before. The TSX 60 index stands in for the SXF future.
+before. The TSX 60 index stands in for the SXF future, and a fourth row puts the
+index leg in the future itself.
 
 - **Unhedged:** the book's daily change in value at the exchange's marks.
 - **Delta hedged:** each name's dollar delta sold through the index and, for banks
   and energy names, the sector fund, by ratios fitted on the 250 trading days
   before. The same hedge with ratios fitted on every day at once is shown beside
   it; nobody could have traded those.
+- **Delta hedged, index leg in SXF:** the same ratios, with the index part put on
+  in the SXF future: whole contracts of $200 a point, the nearest contract more
+  than 5 days from expiry (rolled then), scored on the future's own settlements,
+  half the quoted spread paid on every contract traded. The gap to the row above
+  is what the real instrument adds: the future's basis to the index, rounding to
+  whole contracts, and cost.
 - **Delta and vega hedged:** on top of that, an XIU straddle in one stated expiry,
   sized each evening so the book's beta-weighted vega is zero, with half the
   quoted spread charged on every contract traded. The rule is fixed in the script
@@ -468,6 +475,7 @@ before. The TSX 60 index stands in for the SXF future.
 | Unhedged | $26,600 | $7,200 |
 | Delta hedged, ratios from earlier days | $5,100 (96% of variance removed) | $4,400 (62%) |
 | Delta hedged, hindsight ratios | $5,200 (96%) | $4,500 (61%) |
+| Delta hedged, index leg in SXF | $5,400 (96%) | $4,500 (60%) |
 | Delta and vega hedged | $5,100 (96%) | $4,450 (62%) |
 | Worst day, unhedged | -$93,300 | -$33,400 |
 | Worst day, delta hedged | -$12,500 | -$10,100 |
@@ -476,8 +484,11 @@ The three questions the chart has to answer:
 
 1. **How much does each hedge remove?** The delta hedge removes 96% of the
    bank-heavy book's daily variance and 62% of the diversified book's. Honest
-   ratios do as well as hindsight ones. The vega hedge removes nothing
-   measurable.
+   ratios do as well as hindsight ones. Putting the index leg in the SXF future
+   costs little: what is left widens by 5% (bank-heavy) and 2% (diversified).
+   The bank-heavy book's index leg averages under one contract, because its
+   banks are hedged mostly through ZEB, so rounding to whole contracts leaves it
+   unhedged on many days. The vega hedge removes nothing measurable.
 2. **What is the remainder made of?** Single names moving apart from the index and
    their sector: 89% of what is left on the bank-heavy book and 94% on the
    diversified one. Vol is 11% and 6%. Gamma, carry and dividend news are about

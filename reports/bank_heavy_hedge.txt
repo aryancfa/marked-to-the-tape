@@ -3,17 +3,26 @@ No price, quote or per-position value appears in this file.
 
 Closing chart for bank_heavy.csv, a made-up book: 11 May 2026 to 10 Nov 2026, 127 days.
 Dollars a day, summed over positions. Every hedge is set from what was known the
-evening before. The TSX 60 index stands in for the SXF future.
+evening before. The TSX 60 index stands in for the SXF future, except in the row
+that puts the index leg in the future itself.
 
 1. THREE STAGES
                                   daily st. dev. variance removed % 97.5% shortfall worst day     sum lag-1 autocorr. structure over 10 lags
    unhedged                               26,589               0.00          81,308   -93,335 388,812           -0.02                     no
    delta hedged                            5,102                 96          12,128   -12,495  87,833            0.02                     no
    delta hedged, hindsight ratios          5,182                 96          12,319   -12,980  80,379            0.05                     no
+   delta hedged, index leg in SXF          5,375                 96          12,626   -13,167  76,941           -0.01                     no
    delta + vega hedged                     5,072                 96          12,207   -12,495  80,414            0.04                     no
    'variance removed' is against the unhedged book. 'hindsight ratios' are fitted on
    every day at once: nobody could have traded them, and the gap to the row above
    is what honesty costs.
+   'index leg in SXF' is the same ratios with the index part put on in the nearest SXF
+   future more than 5 days from expiry, in whole contracts of 200 dollars a point, scored
+   on the future's own settlements, every contract traded paying half the quoted
+   spread. Against the index row it adds the future's basis to the index, the
+   rounding to whole contracts, and the cost: daily st. dev. 1,155, sum -10,892,
+   of which trading cost -260. Contracts held: mean 0.6;
+   rolls 1; days with no settlement on both closes, earning nothing: 4.
    On the 68 days a vega hedge was on: daily st. dev. 5,208 delta hedged, 5,168 with the vega hedge (+2% of that variance removed).
 
 2. WHAT THE DELTA HEDGE LEAVES, AND WHAT IT IS MADE OF
