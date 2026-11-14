@@ -108,6 +108,7 @@ class Valued:
     gamma: float | None = None
     vega: float | None = None           # per vol point
     theta: float | None = None          # per calendar day
+    rho: float | None = None            # per percentage point of the rate
     T: float | None = None
 
     @property
@@ -154,7 +155,7 @@ def value_position(pos: Position, inp: DayInputs, n: int = 400) -> Valued:
     out = Valued(pos, inp.day, pos.quantity * pos.multiplier)
     if pos.kind != "option":
         out.price, out.source, out.tier, out.delta = inp.spot, "share", "quoted", 1.0
-        out.gamma = out.vega = out.theta = 0.0
+        out.gamma = out.vega = out.theta = out.rho = 0.0
         return out
     row = find_row(inp.options, pos)
     if row is None:
@@ -178,6 +179,56 @@ def value_position(pos: Position, inp: DayInputs, n: int = 400) -> Valued:
     out.iv = res.iv
     g = greeks_american(inp.spot, pos.strike, T, inp.rate(T), 0.0, res.iv, dts, is_call, n)
     out.delta, out.gamma, out.vega, out.theta = g.delta, g.gamma, g.vega, g.theta
+    out.rho = g.rho
+    return out
+
+
+GREEK_TERMS = ("delta", "gamma", "vega", "theta", "rho", "residual")
+
+
+def greek_explain(v0: Valued, v1: Valued, inp0: DayInputs, inp1: DayInputs,
+                  n: int = 400) -> dict | None:
+    """The desk's P&L explain (C8): the evening's Greeks times the next day's
+    moves, and what they leave.
+
+        theta     the position repriced to the next session at the EXPECTED
+                  share price (less any dividend going ex), today's vol, rates
+                  and dividends: the desk's "theta to tomorrow". Not one-day
+                  theta times days passed, which on a Monday ex-date counts the
+                  dividend leaving the option's life three times.
+        delta     delta x the share's move away from that expected price
+        gamma     half gamma x that move squared
+        vega      vega x the change in the position's own implied vol (points)
+        rho       rho x the change in the rate at the option's maturity (points)
+        residual  the change in the mark less all of the above
+
+    Only theta is repriced; the rest is what a risk system's Greeks show, and
+    the residual is what they cannot account for (moves too big for a
+    second-order sum, vol and share moving together, a dividend whose amount
+    or date changed, a mark that jumped). A large residual is a reason to
+    look at the mark or the model. None when either day has no usable mark."""
+    if not (v0.ok and v1.ok):
+        return None
+    pos, k = v0.position, v0.scale
+    gone = dividends_gone_ex(inp0.divs, inp0.day, inp1.day)
+    expected = inp0.spot - gone
+    dS = inp1.spot - expected
+    if pos.kind != "option":
+        # the holder receives the dividend, so the expected drop nets to zero
+        total = k * (inp1.spot - inp0.spot + gone)
+        out = dict(delta=k * dS, gamma=0.0, vega=0.0, theta=0.0, rho=0.0)
+    else:
+        total = k * (v1.price - v0.price)
+        T0 = v0.T
+        today = _price(pos, inp0.day, inp0.spot, inp0.rate, inp0.divs, v0.iv, n)
+        tomorrow = _price(pos, inp1.day, expected, inp0.rate, inp0.divs, v0.iv, n)
+        out = dict(delta=k * v0.delta * dS,
+                   gamma=0.5 * k * v0.gamma * dS * dS,
+                   vega=k * v0.vega * 100.0 * (v1.iv - v0.iv),
+                   theta=k * (tomorrow - today),
+                   rho=k * (v0.rho or 0.0) * 100.0 * (inp1.rate(T0) - inp0.rate(T0)))
+    out["residual"] = total - sum(out.values())
+    out["total"] = total
     return out
 
 

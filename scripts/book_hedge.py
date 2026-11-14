@@ -67,7 +67,8 @@ from hedge import (autocorrelation, expected_shortfall, full_sample_ratio, ljung
 from loaders.compustat import load_index_returns, load_total_returns
 from loaders.mx import load_mx_futures, load_mx_options
 from rates import load_base_curve
-from replay import STEPS, DayInputs, explain, value_position
+from replay import (GREEK_TERMS, STEPS, DayInputs, dividends_gone_ex, explain,
+                    greek_explain, value_position)
 from run_days import BOC, mx_files
 from surface import dividend_times
 from tradingcal import is_monthly_expiry, year_fraction
@@ -108,10 +109,12 @@ def one_name(task) -> dict:
                 v = value_position(pos, inp)
                 if prev:
                     e = explain(prev[0], v, prev[1], inp)
+                    ge = greek_explain(prev[0], v, prev[1], inp)
                     rows.append(dict(day=inp.day, name=name, i=i, kind="future",
                                      D0=prev[0].scale * prev[1].spot, V0=0.0, G0=0.0,
-                                     expiry=None,
-                                     **{k: e[k] for k in (*STEPS, "total")}))
+                                     expiry=None, ex=False,
+                                     **{k: e[k] for k in (*STEPS, "total")},
+                                     **{f"g_{k}": ge[k] for k in GREEK_TERMS}))
                 prev = (v, inp)
         return dict(name=name, rows=rows, atm=atm, chain=chain)
 
@@ -157,7 +160,10 @@ def one_name(task) -> dict:
             if i in prev and prev[i][0].ok and v.ok:
                 v0, inp0 = prev[i]
                 e = explain(v0, v, inp0, inp)
+                ge = greek_explain(v0, v, inp0, inp)
                 rows.append(dict(day=day, name=name, i=i, kind=pos.kind, expiry=pos.expiry,
+                                 ex=dividends_gone_ex(inp0.divs, inp0.day, inp.day) > 0,
+                                 **{f"g_{k}": ge[k] for k in GREEK_TERMS},
                                  D0=v0.scale * v0.delta * inp0.spot,
                                  V0=v0.scale * (v0.vega or 0.0),
                                  # dollars gained per (return squared), halved: gamma

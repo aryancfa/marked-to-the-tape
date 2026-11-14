@@ -249,3 +249,59 @@ def test_greeks_add_up_by_name_and_bucket_and_count_what_could_not_be_valued():
     assert opt["vega"] == pytest.approx(vs[0].dollars("vega") + vs[1].dollars("vega"))
     assert t.loc[("ZZZ", "shares"), "delta"] == pytest.approx(-20_000.0)
     assert maturity_bucket(D0, EXPIRY) == "91-180d"
+
+
+# ---- the desk's Greek explain (C8) -----------------------------------------
+
+def test_greek_terms_and_residual_add_to_the_change_in_the_mark():
+    from replay import GREEK_TERMS, greek_explain
+    pos, v0, v1, a, b = both_days(spot1=101.5, vol1=0.27)
+    g = greek_explain(v0, v1, a, b)
+    assert sum(g[k] for k in GREEK_TERMS) == pytest.approx(g["total"])
+    assert g["total"] == pytest.approx(explain(v0, v1, a, b)["total"])
+
+
+def test_small_moves_leave_a_small_residual():
+    from replay import greek_explain
+    pos, v0, v1, a, b = both_days(spot1=100.3, vol1=0.251)
+    g = greek_explain(v0, v1, a, b)
+    assert g["delta"] > 0 and g["vega"] > 0 and g["theta"] < 0
+    assert abs(g["residual"]) < 0.05 * abs(g["total"])
+
+
+def test_a_big_move_leaves_more_than_a_second_order_sum_explains():
+    from replay import greek_explain
+    small = greek_explain(*both_days(spot1=100.5)[1:])
+    big = greek_explain(*both_days(spot1=112.0, vol1=0.35)[1:])
+    assert abs(big["residual"]) > 10 * abs(small["residual"])
+
+
+def test_a_rate_move_lands_in_rho():
+    from replay import greek_explain
+    pos = option()
+    a = inputs(D0, 100.0, 0.25)
+    b = DayInputs(D1, 100.0, lambda T: RATE + 0.01, [], chain(D1, 100.0, 0.25, ()))
+    g = greek_explain(value_position(pos, a), value_position(pos, b), a, b)
+    assert g["rho"] > 0                                  # a call gains when rates rise
+
+
+def test_a_share_that_drops_by_its_dividend_has_nothing_to_explain():
+    from replay import greek_explain
+    divs = [(D1, 1.00)]
+    pos, v0, v1, a, b = both_days(spot1=99.0, divs0=divs,
+                                  pos=Position("equity", "ZZZ", 100.0, 1.0, "TSX"))
+    g = greek_explain(v0, v1, a, b)
+    assert g["total"] == pytest.approx(0.0) and g["delta"] == pytest.approx(0.0)
+    assert g["residual"] == pytest.approx(0.0)
+
+
+def test_an_expected_ex_dividend_drop_over_a_weekend_is_not_left_in_the_residual():
+    from replay import greek_explain
+    fri, mon = date(2026, 6, 5), date(2026, 6, 8)
+    divs = [(mon, 1.50)]
+    pos = option()
+    a = DayInputs(fri, 100.0, flat, divs, chain(fri, 100.0, 0.25, divs))
+    b = DayInputs(mon, 98.5, flat, divs, chain(mon, 98.5, 0.25, divs))
+    g = greek_explain(value_position(pos, a), value_position(pos, b), a, b)
+    assert abs(g["residual"]) < 0.02 * abs(g["theta"]) + 1.0
+    assert abs(g["delta"]) < 1e-9                        # the share fell exactly as expected
