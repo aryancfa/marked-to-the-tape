@@ -114,3 +114,66 @@ def test_the_straddle_is_replaced_when_the_share_has_moved_away():
     assert out.loc[d1, "restruck"] == 1
     assert out.loc[d1, "pnl"] == pytest.approx(-200 * 100 * 1.5)        # marked at the OLD strike
     assert out.loc[d1, "cost"] == pytest.approx(2 * 200 * 100 * 0.10)   # out of one, into the other
+
+
+def futures_file(rows):
+    """Made-up settlements: (day index, expiry, settle, bid, ask)."""
+    return pd.DataFrame([dict(date=DAYS[i], expiry=pd.Timestamp(e), settle=s, bid=b, ask=a,
+                              two_sided=not (np.isnan(b) or np.isnan(a)))
+                         for i, e, s, b, a in rows])
+
+
+def test_the_index_leg_split_from_the_sector_legs_adds_back_to_the_whole_hedge():
+    D = pd.DataFrame({"AAA": [100_000.0]}, index=DAYS[:1])
+    X = pd.DataFrame({"index": [0.01], "ZEB": [0.02]}, index=DAYS[:1])
+    rolling = {"AAA": pd.DataFrame({"index": [0.8], "ZEB": [0.5]}, index=DAYS[:1])}
+    whole = bh.delta_hedge(D, rolling, {}, X).iloc[0]
+    sector = bh.delta_hedge(D, rolling, {}, X, legs="sector").iloc[0]
+    idx = bh.index_dollars(D, rolling, {}, X).iloc[0]
+    assert idx == pytest.approx(80_000.0)
+    assert sector - idx * 0.01 == pytest.approx(whole)
+
+
+def test_the_future_is_sold_in_whole_contracts_and_charged_half_the_spread():
+    e = "2026-09-18"
+    fut = futures_file([(0, e, 1000.0, 999.9, 1000.1), (1, e, 1010.0, 1009.9, 1010.1)])
+    out = bh.sxf_leg(pd.Series([610_000.0], index=DAYS[1:2]), fut)
+    r = out.iloc[0]
+    assert r["contracts"] == -3                          # 610,000 / (200 x 1,000) rounds to 3
+    assert r["pnl"] == pytest.approx(-3 * 200 * 10.0)
+    assert r["cost"] == pytest.approx(3 * 0.1 * 200)     # half of a 0.2-point spread
+    assert not r["missing"] and not r["rolled"]
+
+
+def test_the_hedge_rolls_before_expiry_and_pays_to_close_and_open():
+    near, far = DAYS[3].strftime("%Y-%m-%d"), "2026-12-18"
+    rows = []
+    for i in range(3):
+        rows += [(i, near, 1000.0, np.nan, np.nan), (i, far, 1005.0 + i, 1004.9 + i, 1005.1 + i)]
+    fut = futures_file(rows)
+    ex = pd.Series([400_000.0, 400_000.0], index=DAYS[1:3])
+    out = bh.sxf_leg(ex, fut)
+    # the near contract expires within ROLL_DAYS of both days, so the far one is used throughout
+    assert (out["contracts"] == -2).all() and not out["rolled"].any()
+    assert out["pnl"].iloc[1] == pytest.approx(-2 * 200 * 1.0)
+    assert out["cost"].iloc[1] == 0.0                    # nothing traded on the second day
+
+
+def test_a_day_without_settlements_earns_nothing_and_is_counted():
+    fut = futures_file([(0, "2026-09-18", 1000.0, 999.9, 1000.1)])
+    out = bh.sxf_leg(pd.Series([400_000.0], index=DAYS[1:2]), fut)
+    assert out["missing"].iloc[0] and out["pnl"].iloc[0] == 0.0
+
+
+def test_a_roll_closes_the_old_contract_and_opens_the_new_one():
+    near, far = "2026-06-08", "2026-09-18"          # DAYS[1] is 2 June, DAYS[2] is 3 June
+    rows = []
+    for i in range(3):
+        rows += [(i, near, 1000.0 + i, 999.9 + i, 1000.1 + i), (i, far, 1004.0, 1003.8, 1004.2)]
+    out = bh.sxf_leg(pd.Series([400_000.0, 400_000.0], index=DAYS[1:3]), futures_file(rows))
+    assert not out["rolled"].iloc[0]                 # 6 days to the near expiry: still held
+    assert out["rolled"].iloc[1]                     # 5 days: moved to the far contract
+    assert out["pnl"].iloc[0] == pytest.approx(-2 * 200 * 1.0)
+    assert out["pnl"].iloc[1] == 0.0                 # the far contract did not move
+    # close 2 near at half of 0.2 points, open 2 far at half of 0.4 points
+    assert out["cost"].iloc[1] == pytest.approx(2 * 0.1 * 200 + 2 * 0.2 * 200)

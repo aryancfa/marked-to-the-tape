@@ -15,7 +15,11 @@ was known the evening before:
                 fitted on the 250 trading days BEFORE the day (hedge.py). The
                 TSX 60 index stands in for the SXF future. The same hedge
                 with ratios fitted on every day, which nobody could have
-                traded, is shown beside it.
+                traded, is shown beside it, and so is the same hedge with
+                its index leg put on in the SXF future itself (sxf_leg):
+                whole contracts, rolled ROLL_DAYS before expiry, scored on
+                the future's own settlements and charged half the quoted
+                spread on every contract traded.
 
   delta + vega  on top of that, a straddle in near-the-money XIU options of
                 ONE stated expiry, sized each evening so that the book's
@@ -181,25 +185,103 @@ def delta_ratios(names: list[str]) -> tuple[dict, dict, pd.DataFrame]:
     return rolling, hindsight, X
 
 
+def _ratios(n: str, day, rolling: dict, hindsight: dict, X: pd.DataFrame,
+            honest: bool) -> dict | None:
+    """The hedge ratios for name n on day, or None when there are none yet
+    or the hedges have no return that day."""
+    if n == "SXF":
+        b = {"index": 1.0}
+    elif honest:
+        if day not in rolling[n].index or rolling[n].loc[day].isna().any():
+            return None
+        b = rolling[n].loc[day].to_dict()
+    else:
+        b = hindsight[n]
+    if day not in X.index or X.loc[day, list(b)].isna().any():
+        return None
+    return b
+
+
 def delta_hedge(D: pd.DataFrame, rolling: dict, hindsight: dict, X: pd.DataFrame,
-                honest: bool = True) -> pd.Series:
+                honest: bool = True, legs: str = "all") -> pd.Series:
     """Dollars the index and sector hedge earns each day. D holds each
-    name's dollar delta carried into the day (columns are names)."""
+    name's dollar delta carried into the day (columns are names). With
+    legs="sector" only the sector funds' part, for when the index part is
+    put on in the future instead (sxf_leg)."""
     out = pd.Series(0.0, index=D.index)
     for n in D.columns:
         for day, dollars in D[n].dropna().items():
-            if n == "SXF":
-                b = {"index": 1.0}
-            elif honest:
-                if day not in rolling[n].index or rolling[n].loc[day].isna().any():
-                    continue
-                b = rolling[n].loc[day].to_dict()
-            else:
-                b = hindsight[n]
-            if day not in X.index or X.loc[day, list(b)].isna().any():
+            b = _ratios(n, day, rolling, hindsight, X, honest)
+            if b is None:
                 continue
-            out[day] -= dollars * sum(b[h] * X.loc[day, h] for h in b)
+            out[day] -= dollars * sum(b[h] * X.loc[day, h] for h in b
+                                      if legs == "all" or h != "index")
     return out
+
+
+def index_dollars(D: pd.DataFrame, rolling: dict, hindsight: dict, X: pd.DataFrame,
+                  honest: bool = True) -> pd.Series:
+    """The dollars of index the delta hedge sells each day (its index leg),
+    summed over names: what the SXF future has to carry."""
+    out = pd.Series(0.0, index=D.index)
+    for n in D.columns:
+        for day, dollars in D[n].dropna().items():
+            b = _ratios(n, day, rolling, hindsight, X, honest)
+            if b is not None:
+                out[day] += dollars * b["index"]
+    return out
+
+
+SXF_MULTIPLIER = 200.0          # dollars per index point (Montreal Exchange contract terms)
+SXF_TICK = 0.1                  # index points; charged in full where no two-sided quote exists
+ROLL_DAYS = 5                   # calendar days before expiry the hedge moves to the next contract
+
+
+def sxf_leg(exposure: pd.Series, fut: pd.DataFrame) -> pd.DataFrame:
+    """The index leg put on in the SXF future: on each day, the contracts
+    set at the previous close are round(-exposure / (multiplier x that
+    close's settlement)), in the nearest contract more than ROLL_DAYS from
+    expiry with a settlement on both days. Earns contracts x multiplier x
+    the settlement's change. Every contract traded (resizing, and closing
+    and opening on a roll) pays half the quoted spread at the close it was
+    traded, or a full tick where the quote was one-sided. Days without a
+    settlement on both closes earn nothing and are counted."""
+    fut = fut.assign(day=pd.to_datetime(fut["date"]).dt.normalize(),
+                     exp=pd.to_datetime(fut["expiry"]).dt.normalize())
+    by = {k: g.set_index("exp") for k, g in fut.groupby("day")}
+    days = sorted(by)
+
+    def half(day, e) -> float:
+        q = by[day].loc[e]
+        return 0.5 * float(q["ask"] - q["bid"]) if q["two_sided"] else SXF_TICK
+
+    held_exp, held_n = None, 0
+    out = []
+    for t, dollars in exposure.sort_index().items():
+        t = pd.Timestamp(t).normalize()
+        row = dict(day=t, pnl=0.0, cost=0.0, contracts=held_n, rolled=False, missing=True)
+        before = [d for d in days if d < t]
+        if t not in by or not before:
+            out.append(row)                       # no settlement: nothing earned, counted
+            continue
+        p = before[-1]
+        ok = [e for e in by[p].index if e in by[t].index and (e - t).days > ROLL_DAYS]
+        if not ok:
+            out.append(row)
+            continue
+        e = min(ok)
+        n = int(round(-dollars / (SXF_MULTIPLIER * float(by[p].loc[e, "settle"]))))
+        if e == held_exp or held_n == 0:
+            cost = abs(n - (held_n if e == held_exp else 0)) * half(p, e)
+        else:                                     # roll: close the old, open the new
+            old = half(p, held_exp) if held_exp in by[p].index else half(p, e)
+            cost = abs(held_n) * old + abs(n) * half(p, e)
+            row["rolled"] = True
+        row.update(cost=cost * SXF_MULTIPLIER, contracts=n, missing=False,
+                   pnl=n * SXF_MULTIPLIER * float(by[t].loc[e, "settle"] - by[p].loc[e, "settle"]))
+        held_exp, held_n = e, n
+        out.append(row)
+    return pd.DataFrame(out).set_index("day")
 
 
 def vol_betas(atm: pd.DataFrame, hedge_expiry: date) -> pd.DataFrame:
@@ -351,6 +433,11 @@ def main() -> None:
     rolling, hindsight, X = delta_ratios(list(D.columns) + [HEDGE_NAME])
     h1 = delta_hedge(D, rolling, hindsight, X)
     h1_hind = delta_hedge(D, rolling, hindsight, X, honest=False)
+    # the same hedge with its index leg put on in the SXF future itself
+    sxf = sxf_leg(index_dollars(D, rolling, hindsight, X), load_mx_futures(mx_files("SXF")))
+    sxf = sxf.reindex(daily.index)
+    h1_sxf = (delta_hedge(D, rolling, hindsight, X, legs="sector")
+              + sxf["pnl"].fillna(0.0) - sxf["cost"].fillna(0.0))
 
     o = rows[rows["kind"] == "option"]
     V = o.pivot_table(index="day", columns=["name", "expiry"], values="V0", aggfunc="sum")
@@ -364,24 +451,39 @@ def main() -> None:
     stage0 = daily["total"]
     stage1 = stage0 + h1
     stage1_hind = stage0 + h1_hind
+    stage1_sxf = stage0 + h1_sxf
     stage2 = stage1 + vh["pnl"] + h2_delta - vh["cost"]
     on = vh["contracts_in"] != 0
 
     say(f"Closing chart for {path.name}, a made-up book: {daily.index.min():%d %b %Y} to "
         f"{daily.index.max():%d %b %Y}, {len(daily)} days.")
     say("Dollars a day, summed over positions. Every hedge is set from what was known the")
-    say("evening before. The TSX 60 index stands in for the SXF future.")
+    say("evening before. The TSX 60 index stands in for the SXF future, except in the row")
+    say("that puts the index leg in the future itself.")
     say()
     say("1. THREE STAGES")
     t = pd.DataFrame({"unhedged": stats(stage0, stage0),
                       "delta hedged": stats(stage1, stage0),
                       "delta hedged, hindsight ratios": stats(stage1_hind, stage0),
+                      "delta hedged, index leg in SXF": stats(stage1_sxf, stage0),
                       "delta + vega hedged": stats(stage2, stage0)}).T
     say(t.to_string(float_format=lambda x: f"{x:,.2f}" if abs(x) < 1 else f"{x:,.0f}")
         .replace("\n", "\n   ").join(["   ", ""]))
     say("   'variance removed' is against the unhedged book. 'hindsight ratios' are fitted on")
     say("   every day at once: nobody could have traded them, and the gap to the row above")
     say("   is what honesty costs.")
+    gap = stage1_sxf - stage1
+    say("   'index leg in SXF' is the same ratios with the index part put on in the nearest SXF")
+    say(f"   future more than {ROLL_DAYS} days from expiry, in whole contracts of "
+        f"{SXF_MULTIPLIER:.0f} dollars a point, scored")
+    say("   on the future's own settlements, every contract traded paying half the quoted")
+    say("   spread. Against the index row it adds the future's basis to the index, the")
+    say(f"   rounding to whole contracts, and the cost: daily st. dev. {gap.std():,.0f}, "
+        f"sum {gap.sum():+,.0f},")
+    say(f"   of which trading cost {-sxf['cost'].sum():,.0f}. Contracts held: mean "
+        f"{sxf['contracts'].abs().mean():.1f};")
+    say(f"   rolls {int(sxf['rolled'].sum())}; days with no settlement on both closes, "
+        f"earning nothing: {int(sxf['missing'].fillna(True).sum())}.")
     if on.sum() >= 10:
         s1, s2 = stage1[on], stage2[on]
         say(f"   On the {int(on.sum())} days a vega hedge was on: daily st. dev. "
