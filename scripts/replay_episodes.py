@@ -360,6 +360,12 @@ def main() -> None:
         say("   the options' vol change on that day, vol points (* = from the C1 rule): "
             + ", ".join(f"{n} {r['points']:+.1f}{'*' if r['source'] == RULE_VOL else ''}"
                         for n, r in moved.iterrows()))
+        c_worst = (curves or {}).get(ep.key, {}).get(worst)
+        c_end = (curves or {}).get(ep.key, {}).get(sessions(ep)[-1])
+        if c_worst is not None and c_end is not None:
+            i90 = c_worst[0].index(90.0)
+            say(f"   rates: the 3-month bill yield had moved {1e4 * c_worst[1][i90]:+.0f} bp by "
+                f"that day, {1e4 * c_end[1][i90]:+.0f} bp by the episode's end")
         measured = opt["funding_measured"].eq(True)
         if measured.all():
             fm = funding[ep.key].get(worst)
