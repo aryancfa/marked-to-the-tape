@@ -163,6 +163,7 @@ A five-day stress includes five days of time decay and funding, and an ex-divide
 
 - **Done when:** Scenario P&L computed as the shocked revaluation at the end of the horizon minus today's revaluation, with a horizon control and time decay, funding and dividends shown separately from the shock.
 - **Depends on:** B1, A4
+- **State, 13 November 2026:** built (`src/horizon.py`, `scenarios.reprice_horizon`, `scripts/stress.py --horizon N`, default 5 sessions). Split by repricing in a fixed order: decay at a zero rate, funding, dividends going ex in the window (the share expected to drop by them), and the shock on the expected price; the parts add up exactly. Five sessions cost $4,900 (bank-heavy) and $3,000 (diversified) of decay and funding. Shares carry nothing (dividend received cancels the drop; the books hold no financing line) and the index future's basis is not modelled; both stated in the report.
 
 ### B7. Invariant tests in CI  _(already built)_
 
@@ -221,6 +222,7 @@ Made-up shocks are numbers someone typed, so replay real dated moves applied tog
 
 - **Done when:** Joint moves for February to March 2020, April 2020 negative WTI, the 2022–23 Bank of Canada cycle and January 2015, plus the WCS–WTI spread as its own factor with at least one case of WTI flat and the spread widening. Every replay day carries one of three labels: real settlement, model price on an observed New York vol, or model price on a rule-based vol. The page shows the count of each.
 - **Depends on:** A1, A2, B6, C1, WRDS
+- **State, 13 November 2026:** partly built (`src/episodes.py`, `src/nyvol.py`, `scripts/wrds_episode_vols.py`, `scripts/replay_episodes.py` → `reports/<book>_episodes.txt/.png`). January 2015, February to March 2020, April 2020 and the 2022 to 2023 cycle replayed on today's book from each name's real total returns, aged by B6 where the episode is shorter than the book's first expiry (instant otherwise). Vols from OptionMetrics' at-the-money surface for the New York listings, currency removed by the deferred item 2 formula with the currency's vol and correlation realized over 60 sessions, applied as a parallel change to each option's own vol; the C1 rule elsewhere. Every option-day labelled; counts printed (no real settlements exist: Montreal history starts May 2026). The report also runs the C1 rule in place of every observed vol, so the rule is measured against the market. Rates: today's curve shifted by the Bank of Canada Treasury bill curve's move since each episode began (`data/raw/boc_history`, kept apart from `data/raw/boc`, which is in every cache key), reported as its own part. NOT built: the WCS-WTI factor (no price series on disk), funding-spread moves, skew changes.
 
 ### C4. Hedge and residual  _(closing chart)_
 

@@ -2,7 +2,7 @@
 
 A risk system for a small book of Canadian listed options. It prices positions with its own engine for American options with discrete dividends. It compares the implied volatilities with Montreal Exchange settlements and with an independent source. Then it replays real historical days and shows what risk is left after hedging with SXF, ZEB and XIU.
 
-**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 83 steps) and 442 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
+**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 87 steps) and 480 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
 
 ## What it has found so far
 
@@ -583,6 +583,73 @@ share move (between -0.03 and -0.25 by name). Those are six months with no crash
 so that is the response to ordinary days and a floor on the size, which is why the
 number is a control and not a fit.
 
+### A move that takes days, not a second (B6)
+
+An instant shock skips the time decay and funding a book pays while the move
+happens, so it flatters a long-option book. `src/horizon.py` prices each option at
+the END of a window of trading sessions and splits the result by repricing, in a
+fixed order, so the parts add up exactly: decay (the days passing at a zero rate),
+funding (what the rate curve adds), dividends (ex-dates inside the window, with the
+share expected to drop by them) and the move itself. `scripts/stress.py --horizon
+N` sets the window; the report shows five sessions beside the instant figure. Over
+five sessions the bank-heavy book pays $4,900 of decay and funding at every move
+size, and the diversified book $3,000. No holding goes ex-dividend in those five
+sessions; over fifteen, XIU's 25 November distribution shows up as its own line.
+
+### Real episodes, replayed on today's book (C3)
+
+![The bank-heavy book through four historical episodes](reports/bank_heavy_episodes.png)
+
+A made-up shock is a number someone typed. `scripts/replay_episodes.py` takes four
+real stretches (January 2015, February to March 2020, April 2020's negative oil
+price, and the 2022 to 2023 rate cycle) and replays them on the book as it stands
+today: every name moves exactly as it moved then, all together, day by day, with
+time passing as it did (B6). No beta stands between the history and the result.
+
+The vol comes from what the market showed. For each name listed in New York,
+OptionMetrics has the at-the-money implied vol its options carried on every day
+of every episode. Priced in US dollars, that vol carries the Canadian dollar's
+moves too, so they are taken out (`src/nyvol.py`, the build sheet's formula, with
+the currency's vol and correlation measured over the 60 sessions before each day).
+The change since the episode began is added to each option's own vol today. Where
+no New York vol exists (the Toronto funds, a New York holiday), the C1 rule fills
+in. Every option-day is labelled by where its vol came from: 98% of the bank-heavy
+book's and 89% of the diversified book's are observed. None is a real settlement,
+because Montreal history on disk starts in May 2026.
+
+| Model prices on today's book | Bank-heavy | Diversified |
+|---|---|---|
+| January 2015 (index flat; banks fell after a surprise rate cut) | -$250,000 | -$29,000 at worst, -$14,000 at the end |
+| February to March 2020 (index -36%) | -$705,000 | +$350,000 at the end |
+| April 2020, negative oil | -$192,000 at worst | -$500 at worst |
+| 2022 to 2023 rate cycle (instant: 343 sessions would run every option past expiry) | -$402,000 at worst | -$31,000 at worst |
+
+Rates move too. On each session today's curve shifts by as much as the Bank of
+Canada's Treasury bill curve had moved since the episode began (-30 basis points by
+the end of January 2015, about -110 by 23 March 2020, about +450 over the 2022 to
+2023 cycle), read at each option's own maturity. What that adds is its own line.
+It is small: +$22,900 on the bank-heavy book over the whole hiking cycle, because a
+higher rate raises the forward and the book is long calls, and -$2,400 in the 2020
+cuts. The rate cycle reached these books through the banks' share prices, not
+through the options' own sensitivity to rates.
+
+January 2015 is the case a beta cannot show: the index ended flat, but the banks
+fell about 8% after the Bank of Canada's surprise cut squeezed their lending
+margins.
+
+**The C1 vol rule against the market.** Run again with the rule in place of every
+observed vol, the replay shows where the rule is wrong. At the 2020 low the market
+had added 52 vol points to the bank-heavy book's options, and the rule 17: the rule
+understates a crash by about three times. In the slow 2022 grind it went the other
+way, 3.4 points from the rule against 1.2 from the market. Real vol depends on how
+fast the market falls, not only how far. The dollar gap is modest on these books
+($21,000 in 2020) because they are mostly delta; on a book long or short vega it
+would decide the answer.
+
+Still missing from C3: the WCS-WTI oil spread factor has no price series, the
+funding spread is held at today's level, and the vol shift is parallel, so a
+steepening skew is not captured.
+
 ### Which position drives the worst days (C5)
 
 Six months has three days in its 97.5% tail, too few to split among fourteen
@@ -864,6 +931,16 @@ Notes from the header and counts only:
   of XIU rows, so the two are not taken at the same moment.
 - The underlying's own quote in the file is about 20 basis points wide, so it does not
   pin the share price at the time the options were quoted.
+
+### Historical episodes (C3)
+
+- **Share and index moves:** daily total returns from Compustat (WRDS), 2014 on.
+- **Vols:** OptionMetrics' standardized at-the-money surface for the twelve New York
+  listings (`scripts/wrds_episode_vols.py`), with the currency taken out using
+  Compustat's daily exchange rates. Only changes in vol are published, never levels.
+- **Rates:** Bank of Canada Treasury bill yields at 1, 3, 6 and 12 months, 2014 to
+  2023, from the Bank's public data service, in `data/raw/boc_history/`. They are
+  kept apart from `data/raw/boc/`, whose files are part of every name's cache key.
 
 ## Run the tests
 

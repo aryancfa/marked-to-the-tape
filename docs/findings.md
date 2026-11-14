@@ -611,6 +611,37 @@ realized to expiry (`scripts/realized_implied.py`). 75 name-windows; five months
   nearer expiry now wins a tie, and two runs give identical output. The banks'
   and XIU's figures above did not move at the first decimal.
 
+## Finding 26: real episodes show where the stress rules are wrong, in both directions
+
+Today's two books were replayed through January 2015, February to March 2020,
+April 2020 and the 2022 to 2023 rate cycle, every name moving as it really moved
+and vols taken from the New York listings with the currency removed
+(`scripts/replay_episodes.py`, C3). Two of the stress test's simplifications were
+measured, not assumed.
+
+- **The C1 vol rule understates a crash and overstates a grind.** At the 2020 low
+  the market had raised the bank-heavy book's option vols by 52 points on average;
+  the rule, at -0.5 points per 1% fall with a steeper skew past -10%, by 17. In
+  the 2022 grind the rule gave 3.4 and the market 1.2. Vol responds to the speed
+  of a fall as well as its size, which a rule in the size alone cannot carry.
+- **One-day crash betas understate a month-long crash.** CNQ fell about 1.9 times
+  the index over February to March 2020, against a crash beta of 1.43 from single
+  bad days. The beta stress stays as a quick sensitivity; the replay is the
+  measurement.
+- **A beta misses what is not the market.** In January 2015 the index ended flat
+  and the banks fell about 8% on a surprise rate cut. The bank-heavy book lost
+  $250,000 in a month a beta stress would call quiet.
+- **The dollar effect of the vol source is modest on these books** ($21,000 on a
+  $705,000 loss in 2020), because they are mostly delta.
+- **So is the options' own exposure to rates.** Today's curve is shifted by the
+  Treasury bill curve's move in each episode (+450 basis points over the 2022 to
+  2023 cycle). That added $22,900 to the bank-heavy book over the whole cycle. The
+  cycle reached the book through the banks' share prices.
+
+What is not in it: the WCS-WTI factor has no data, the funding spread is held at
+today's level, the vol shift is parallel, and no episode has a real Montreal
+settlement.
+
 ## A fourth outside review (13 November 2026)
 
 A reviewer read the live page as an equity derivatives desk would. It ran nothing,
@@ -877,6 +908,8 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
   vega.
 - Vega limits and usage bars (C8), and the interlisted volume panel (C6). The
   vega grid they need (C2) exists for the latest day only, not as a daily history.
+- In the historical replay (C3): the WCS-WTI oil spread factor (no price series on
+  disk), funding-spread moves, and skew changes.
 - Correlation that changes with the size of the move. The stress test uses one
   crash beta per name for every fall, so a 5% fall and a 20% fall move a name by
   the same multiple of the index. The crash betas come from days averaging a 2%

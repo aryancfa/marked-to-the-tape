@@ -25,6 +25,20 @@ fall together: CNQ's and Suncor's were negative, which moved them UP in a crash.
    sticky strike, moneyness and delta leave at-the-money vol where the old smile
    puts it. Only beta lets it rise in a fall, which is what a fall does.
 
+1b. THE SAME MOVES TAKING 5 TRADING SESSIONS, under the beta rule, dollars
+               decay  funding  dividends  the move    total  instant
+   index move                                                       
+   -20%       -3,096   -1,757          0  -469,335 -474,188 -470,011
+   -10%       -3,096   -1,757          0  -287,406 -292,259 -285,964
+   -5%        -3,096   -1,757          0  -156,069 -160,923 -154,858
+   +5%        -3,096   -1,757          0   155,236  150,383  154,243
+   +10%       -3,096   -1,757          0   319,360  314,507  317,467
+   Each option is priced at the end of the 5 sessions (B6, src/horizon.py). decay = the days passing
+   at a zero rate; funding = what the rate curve adds; dividends = ex-dates inside
+   the window; the move = the shock on the share price expected at the end, which
+   is today's less those dividends. The four add up to 'total'. 'instant' is table
+   1's beta column, the same move this second. Change the window with --horizon.
+
 2. BY NAME, under the beta rule, dollars
                   BMO     BNS     CNQ       RY      SU       TD     ZEB
    index move                                                          
