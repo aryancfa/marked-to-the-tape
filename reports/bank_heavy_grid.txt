@@ -1,0 +1,52 @@
+Derived statistics only: dollars of Greeks summed over a made-up book, and betas.
+No price or quote appears in this file.
+
+Risk grid for bank_heavy.csv, a made-up book, on each name's latest day (04 Nov to 10 Nov 2026).
+
+1. WHERE THE VEGA SITS: dollars per vol point, by days to expiry and strike over
+   share price (the front chart's cells)
+   names with no expiry quoted widely enough for a smile (delta-only): none
+   the book, all names added (see the caution below):
+   moneyness  under 0.88  0.88-0.95  0.95-0.98
+   maturity                                   
+   31-90d              0      1,791          0
+   91-180d             0       -129      1,550
+   by name:
+                             vega
+   name maturity moneyness       
+   RY   31-90d   0.88-0.95    561
+        91-180d  0.95-0.98  1,550
+   TD   31-90d   0.88-0.95    703
+        91-180d  0.88-0.95 -1,157
+   BNS  31-90d   0.88-0.95    528
+        91-180d  0.88-0.95    628
+   BMO  91-180d  0.88-0.95    917
+   SU   91-180d  0.88-0.95   -517
+   vega with no market behind it: 201 of 3,413 (2% of gross vega)
+     CNQ Jan 2027 60 C: 201 (strike outside the quoted range or no quoted strike in its cell)
+   Netting: the book's vega adds to 3,413; added name by name without netting it is 5,356.
+   Caution: a vol point on one name is not a vol point on another, and a one-month
+   vol point moves more than a six-month one. The book grid adds them dollar for
+   dollar; the by-name rows are the ones to act on.
+
+2. THE OPTIONS' DELTA, BY NAME AND IN INDEX TERMS: dollars of share, and of TSX 60
+   at each name's beta over the last 250 days on file
+        dollar delta   beta correlation index dollars
+   name                                              
+   BMO       375,876  +1.12       +0.73       419,375
+   BNS       670,405  +0.93       +0.63       620,347
+   CNQ       178,752  -0.31       -0.12       -54,861
+   RY      1,570,922  +0.85       +0.69     1,337,872
+   SU         80,519  -0.19       -0.09       -15,251
+   TD        933,277  +0.94       +0.68       881,887
+   the options: 3,809,750 of share delta, 3,189,369 in index terms.
+   Left out: the book's share, fund and future positions (RY, ZEB).
+   Their dollar delta is their size times their price, so printing it would
+   publish a price. Their effect is in the closing chart, summed with everything.
+   An index future sized to the index figure offsets the market's move. What it
+   leaves is each name's own move: dollar delta not carried by the index, gross 707,381.
+   THE INDEX DOES NOT EXPLAIN CNQ, SU (correlation under 0.5 over these 250 days).
+   For those names the beta is close to noise, so their index figure is too: an
+   index future neither hedges nor offsets their delta. Their own sector fund or
+   their own shares do. A beta fitted on a calm year is also not a crash beta:
+   in a sell-off correlations tend to rise toward one.

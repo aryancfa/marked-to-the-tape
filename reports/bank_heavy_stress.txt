@@ -4,29 +4,35 @@ positions, and ratios. No price or quote appears in this file.
 Stress test of bank_heavy.csv, a made-up book. MODEL prices on a rule-based vol:
 nothing below is a mark. An instant move, with no day's decay.
 Valued on each name's latest day on file (04 Nov to 10 Nov 2026).
-The index moves; each name moves by its beta to it (-0.31 to 1.12 here, fitted on the last 250 days).
+The index moves; each name moves by its beta to it. In a FALL the beta is how
+the name moved on the index's worst 5% of days since 2014 (scripts/scenarios.crash_betas); in a
+rise, its beta over the last 250 days. A calm year's beta understates how names
+fall together: CNQ's and Suncor's were negative, which moved them UP in a crash.
+   beta in a    RY    TD   BNS   BMO   CNQ    SU   ZEB
+   fall       0.92  0.90  0.91  1.03  1.43  1.31  0.93
+   rise       0.85  0.94  0.93  1.12 -0.31 -0.19  0.98
 
 1. THE BOOK'S P&L BY INDEX MOVE AND VOL RULE, dollars
                sticky strike  sticky moneyness  sticky delta     beta
    index move                                                        
-   -20%             -405,895          -411,011      -411,011 -387,980
-   -10%             -254,723          -268,235      -268,235 -244,711
-   -5%              -138,940          -145,403      -145,403 -133,972
+   -20%             -486,132          -491,656      -491,656 -470,011
+   -10%             -295,466          -308,361      -308,361 -285,964
+   -5%              -159,539          -165,559      -165,559 -154,858
    +5%               155,087           160,319       160,319  154,243
    +10%              319,628           324,400       324,400  317,467
-   At -20% the rules differ by 23,031: from sticky moneyness (-411,011) to beta (-387,980).
+   At -20% the rules differ by 21,645: from sticky moneyness (-491,656) to beta (-470,011).
    The beta rule here: -0.50 vol points per 1% move, the skew 50% steeper beyond a -10% fall. Change them with --beta, --crash, --steepen.
    sticky strike, moneyness and delta leave at-the-money vol where the old smile
    puts it. Only beta lets it rise in a fall, which is what a fall does.
 
 2. BY NAME, under the beta rule, dollars
-                  BMO     BNS    CNQ       RY     SU       TD     ZEB
-   index move                                                        
-   -20%       -41,428 -49,938 11,184 -122,521  3,296 -158,574 -29,999
-   -10%       -30,024 -45,937  5,400  -75,137  1,719  -85,733 -14,999
-   -5%        -17,460 -26,903  2,643  -42,234    877  -43,395  -7,500
-   +5%         21,988  31,509 -2,530   51,414   -957   45,320   7,500
-   +10%        46,746  67,033 -4,937  105,845 -1,960   89,741  14,999
+                  BMO     BNS     CNQ       RY      SU       TD     ZEB
+   index move                                                          
+   -20%       -40,261 -50,568 -27,424 -129,679 -42,416 -151,399 -28,264
+   -10%       -28,381 -45,520 -19,127  -79,615 -17,572  -81,616 -14,132
+   -5%        -16,292 -26,528 -10,894  -45,202  -7,650  -41,226  -7,066
+   +5%         21,988  31,509  -2,530   51,414    -957   45,320   7,500
+   +10%        46,746  67,033  -4,937  105,845  -1,960   89,741  14,999
 
 3. WHAT THE DAYS ON FILE SHOW: at-the-money vol points per 1% share move
          beta  std_error  days

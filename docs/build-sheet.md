@@ -205,7 +205,7 @@ A 20% drop in the share price with implied volatility unchanged has never happen
 
 - **Done when:** A selectable rule (sticky strike, sticky delta, sticky moneyness or a custom spot-vol beta), with at-the-money vol moved by beta times the return and skew steepening in crash cases. Exposed as a control the reader can change.
 - **Depends on:** B3
-- **State, 13 November 2026:** built (`src/volrule.py`, `scripts/stress.py`, `scripts/scenarios.py`). Four rules, each option repriced in full; the rule, beta, crash threshold and steepening are options of the script, and with none given all four are shown side by side. The control is a command-line option; the live page is static and shows the four-rule table.
+- **State, 13 November 2026:** built (`src/volrule.py`, `scripts/stress.py`, `scripts/scenarios.py`). Four rules, each option repriced in full; the rule, beta, crash threshold and steepening are options of the script, and with none given all four are shown side by side. The control is a command-line option; the live page is static and shows the four-rule table. Names move by crash betas in a fall (their average move on the index's worst 5% of days since 2014, `scenarios.crash_betas`) and by 250-day betas in a rise; `--betas recent` uses the 250-day betas for both. Changed the same day after C2 showed CNQ's and Suncor's calm-year betas were negative.
 
 ### C2. Bucket the vega, map the delta
 
@@ -213,6 +213,7 @@ One portfolio vega number adds one-month volatility on one name to one-year vola
 
 - **Done when:** Vega on a maturity-by-moneyness grid only where the surface is populated, with names without one marked delta-only. Delta mapped to the TSX 60 by beta for totals, with per-name deltas kept.
 - **Depends on:** B3
+- **State, 13 November 2026:** built (`src/riskgrid.py`, `scripts/risk_grid.py` → `reports/<book>_grid.txt/.png`, on the site's book page). Cells are the front chart's moneyness cells by days to expiry, per name. A cell is populated when the position's expiry has at least seven strikes with a vol, the position's strike is inside the quoted range, and a quoted strike falls in its cell; vega elsewhere is reported apart, never dropped. A name with no seven-strike expiry is delta-only (none on these books). Off-market vega: 2% of gross (bank-heavy, one CNQ call) and 4% (diversified, one SHOP put). Option delta by name, beta and correlation to the TSX 60 over 250 days, and index dollars; names the index does not explain (correlation under 0.5) are named. Options only: a share, fund or future position's dollar delta would print its price. Latest day only; a daily history for C8's limits is not built.
 
 ### C3. Historical replay  _(label the marks)_
 

@@ -539,9 +539,18 @@ set from what was known the evening before.
 
 Four rules for what implied vol does when the share moves (`src/volrule.py`), with
 every option repriced in full (`scripts/stress.py`). On a 20% index fall the
-bank-heavy book loses $388,000 to $411,000 depending on the rule, a spread of
-$23,000; the diversified book, which carries a short future, gains $171,000 to
-$175,000.
+bank-heavy book loses $470,000 to $492,000 depending on the rule, a spread of
+$22,000; the diversified book, which carries a short future, gains $112,000 to
+$123,000.
+
+- **Which beta moves each name mattered more than the vol rule.** The first
+  version moved each name by its beta over the last 250 days. CNQ's and Suncor's
+  were negative in 2026, so a 20% index crash moved them up. Found while building
+  C2, which prints each beta beside its correlation. Falls now use crash betas:
+  each name's average move on the index's worst 5% of days since 2014, over the
+  index's (`scenarios.crash_betas`). CNQ 1.43, Suncor 1.31, Barrick 0.58 (its calm
+  year said 2.46), banks 0.9 to 1.0. The bank-heavy loss grew by about $80,000 and
+  the diversified gain shrank by about $55,000: four times what the vol rule moves.
 
 - The books are mostly delta, so the rule moves the answer by about 6%. On a book
   that was long or short vega it would decide it.
@@ -866,7 +875,12 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
   the six months on file hold no crash to fit one to.
 - A VaR priced in full each evening. The backtest goes through delta, gamma and
   vega.
-- Bucketed vega limits and usage bars (C8), and the interlisted volume panel (C6).
+- Vega limits and usage bars (C8), and the interlisted volume panel (C6). The
+  vega grid they need (C2) exists for the latest day only, not as a daily history.
+- Correlation that changes with the size of the move. The stress test uses one
+  crash beta per name for every fall, so a 5% fall and a 20% fall move a name by
+  the same multiple of the index. The crash betas come from days averaging a 2%
+  fall; a 20% fall is ten times larger than any of them.
 - Any day before May 2026. OptionMetrics on this subscription has no Canadian
   listings, so Montreal history cannot be extended from it.
 - A methodology note and a walkthrough. The live page is charts and reports.

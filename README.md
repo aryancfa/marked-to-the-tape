@@ -500,6 +500,35 @@ move together far more than this.
 The same delta hedge on twelve years of daily share returns, without options, is
 in the next section but one.
 
+## Where the vega sits, and the delta in index terms (C2)
+
+![Vega by name, days to expiry and strike, diversified book](reports/diversified_grid.png)
+
+One vega number adds a one-month vol point on RY to a four-month vol point on
+Suncor as if they were the same risk. `scripts/risk_grid.py` puts each name's vega
+on the front chart's own grid of days to expiry by strike over share price. It
+counts vega in a cell only where the exchange quotes a smile around the position:
+at least seven strikes in the expiry, the strike inside the quoted range, and a
+quoted strike in its cell. Vega anywhere else is a sensitivity to a vol nobody can
+observe, so it is reported apart. On these books that is 2% of gross vega
+(bank-heavy, one CNQ call) and 4% (diversified, one SHOP put). No name is
+delta-only; on a book of thinner names some would be.
+
+The options' delta is also mapped to the TSX 60 by each name's beta over 250 days:
+$3.8 million of share delta is $3.2 million of index on the bank-heavy book, and
+$1.1 million is $0.9 million on the diversified one. The correlation sits beside
+each beta, because a beta means something only where the index explains the name.
+For CNQ, Suncor, BCE, Enbridge and CNR it does not (correlation -0.12 to +0.42):
+their betas are close to noise, and an index future neither hedges nor offsets
+their delta. CNQ's and Suncor's betas over the last year are even negative. The
+stress test used to apply those betas to a crash, which moved both names up when
+the index fell 20%. It now uses betas from the market's own bad days for falls
+(next section).
+
+The share, fund and future positions are left out of these figures, as in the book
+report: their dollar delta is their size times their price. Their effect is in the
+closing chart.
+
 ## Stress, tail risk and whether the VaR held
 
 Everything in this section that prices a move is a **model price on a rule-based
@@ -510,7 +539,21 @@ vol**, not a mark. The parts that use the book's actual marked P&L say so.
 A share falling 20% with its implied vol unchanged has never happened, so a stress
 test has to say what vol does. `scripts/stress.py` moves the index, moves each name
 by its beta to it, and reprices every option in full under one of four rules
-(`src/volrule.py`):
+(`src/volrule.py`).
+
+**Which beta, in a fall.** A beta fitted on a calm year says how a name moved in
+that year, not in a sell-off, when names fall together. Over 2026 CNQ's and
+Suncor's betas to the index were negative, so the first version of this test moved
+them up in an index crash. For a fall the test now uses each name's **crash beta**:
+on the index's worst 5% of days since 2014 (162 days, most in 2020 and 2022), the
+name's average move divided by the index's. CNQ comes out at 1.43 and Suncor 1.31,
+where the calm year said -0.31 and -0.19. Barrick comes out at 0.58, where the calm
+year said 2.46, because gold tends to hold up in a sell-off. The banks are 0.9 to
+1.0 either way, and XIU, which is the index, is 0.98. Rises keep the last 250 days'
+betas. Nothing is typed in; `--betas recent` restores the calm-year betas for a
+fall.
+
+The four rules:
 
 - **Sticky strike:** each option keeps its own vol.
 - **Sticky moneyness:** the smile travels with the share, so at-the-money vol does
@@ -521,13 +564,17 @@ by its beta to it, and reprices every option in full under one of four rules
 
 | Index -20%, book P&L | Bank-heavy | Diversified |
 |---|---|---|
-| Sticky strike | -$405,900 | +$172,400 |
-| Sticky moneyness | -$411,000 | +$171,200 |
-| Sticky delta | -$411,000 | +$171,200 |
-| Beta (-0.5 points per 1%, skew 50% steeper past -10%) | -$388,000 | +$175,200 |
+| Sticky strike | -$486,100 | +$112,500 |
+| Sticky moneyness | -$491,700 | +$111,700 |
+| Sticky delta | -$491,700 | +$111,700 |
+| Beta (-0.5 points per 1%, skew 50% steeper past -10%) | -$470,000 | +$122,700 |
 
 The diversified book gains in a fall because it carries a short index future. On
-the bank-heavy book the choice of rule is worth $23,000 on the same move. The rule
+the bank-heavy book the choice of rule is worth $22,000 on the same move. The crash
+betas matter about four times as much: with the calm-year betas the same fall cost
+the bank-heavy book $388,000 to $411,000, about $80,000 less, and earned the
+diversified book $171,000 to $175,000, about $55,000 more. Both changes come mostly
+from the energy names now falling with the market. The rule
 and its size are options of the script (`--rule`, `--beta`, `--crash`,
 `--steepen`); with none given it prints all four.
 

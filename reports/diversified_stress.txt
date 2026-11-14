@@ -4,29 +4,35 @@ positions, and ratios. No price or quote appears in this file.
 Stress test of diversified.csv, a made-up book. MODEL prices on a rule-based vol:
 nothing below is a mark. An instant move, with no day's decay.
 Valued on each name's latest day on file (04 Nov to 10 Nov 2026).
-The index moves; each name moves by its beta to it (-0.31 to 2.46 here, fitted on the last 250 days).
+The index moves; each name moves by its beta to it. In a FALL the beta is how
+the name moved on the index's worst 5% of days since 2014 (scripts/scenarios.crash_betas); in a
+rise, its beta over the last 250 days. A calm year's beta understates how names
+fall together: CNQ's and Suncor's were negative, which moved them UP in a crash.
+   beta in a    RY    TD   MFC   CNQ    SU   ENB   CNR   BCE   ABX  SHOP   XIU   XEG
+   fall       0.92  0.90  1.25  1.43  1.31  0.93  0.83  0.52  0.58  1.67  0.98  1.44
+   rise       0.85  0.94  0.87 -0.31 -0.19  0.16  0.72 -0.13  2.46  2.37  1.01 -0.20
 
 1. THE BOOK'S P&L BY INDEX MOVE AND VOL RULE, dollars
                sticky strike  sticky moneyness  sticky delta    beta
    index move                                                       
-   -20%              172,431           171,168       171,168 175,235
-   -10%               66,936            61,604        61,604  68,667
-   -5%                26,488            21,732        21,732  28,278
+   -20%              112,462           111,748       111,748 122,705
+   -10%               27,827            21,171        21,171  36,445
+   -5%                 5,949              -253          -253   9,526
    +5%               -12,255            -8,443        -8,443 -14,913
    +10%              -13,781           -10,265       -10,265 -18,690
-   At -20% the rules differ by 4,067: from sticky moneyness (171,168) to beta (175,235).
+   At -20% the rules differ by 10,957: from sticky moneyness (111,748) to beta (122,705).
    The beta rule here: -0.50 vol points per 1% move, the skew 50% steeper beyond a -10% fall. Change them with --beta, --crash, --steepen.
    sticky strike, moneyness and delta leave at-the-money vol where the old smile
    puts it. Only beta lets it rise in a fall, which is what a fall does.
 
 2. BY NAME, under the beta rule, dollars
-                  ABX    BCE    CNQ     CNR    ENB     MFC      RY    SHOP     SU      SXF      TD   XEG    XIU
-   index move                                                                                                  
-   -20%       -11,035 -2,675  8,280 -13,317 -6,130 -18,355 -35,747 -68,813  3,802  259,908 -24,097 1,670 81,742
-   -10%        -8,425 -1,373  4,025  -8,469 -2,980 -12,216 -24,913 -32,454  1,793  129,954  -7,263   835 30,153
-   -5%         -5,265   -697  2,036  -4,847 -1,466  -6,941 -14,143 -16,244    867   64,977  -2,760   418 12,343
-   +5%          8,659    749 -1,790   5,621  1,400   8,357  16,338  16,810   -845  -64,977   1,592  -418 -6,409
-   +10%        22,440  1,519 -3,545  12,135  2,737  17,498  33,548  35,045 -1,657 -129,954   2,080  -835 -9,701
+                 ABX    BCE     CNQ     CNR     ENB     MFC      RY    SHOP      SU      SXF      TD     XEG    XIU
+   index move                                                                                                      
+   -20%       -5,058 13,519 -19,092 -14,185 -41,331 -20,789 -36,629 -46,669 -12,401  259,908 -22,054 -11,891 79,378
+   -10%       -2,862  6,518 -13,096  -9,413 -19,560 -15,681 -26,293 -22,555  -8,484  129,954  -6,691  -5,945 30,553
+   -5%        -1,505  3,187  -7,630  -5,473  -9,246  -9,584 -15,130 -11,467  -5,049   64,977  -2,599  -2,973 12,017
+   +5%         8,659    749  -1,790   5,621   1,400   8,357  16,338  16,810    -845  -64,977   1,592    -418 -6,409
+   +10%       22,440  1,519  -3,545  12,135   2,737  17,498  33,548  35,045  -1,657 -129,954   2,080    -835 -9,701
 
 3. WHAT THE DAYS ON FILE SHOW: at-the-money vol points per 1% share move
          beta  std_error  days
