@@ -636,9 +636,9 @@ because Montreal history on disk starts in May 2026.
 | 2022 to 2023 rate cycle (instant: 343 sessions would run every option past expiry) | -$417,000 at worst | -$29,000 at worst |
 
 Rates move too. On each session today's curve shifts by as much as the Bank of
-Canada's Treasury bill curve had moved since the episode began (-30 basis points by
-the end of January 2015, about -110 by 23 March 2020, about +450 over the 2022 to
-2023 cycle), read at each option's own maturity. What that adds is its own line.
+Canada's Treasury bill curve had moved since the episode began (the 3-month bill:
+-33 basis points by the end of January 2015, -118 by 23 March 2020, +454 over the
+2022 to 2023 cycle), read at each option's own maturity. What that adds is its own line.
 It is small: +$23,000 on the bank-heavy book over the whole hiking cycle, because a
 higher rate raises the forward and the book is long calls, and -$2,200 in the 2020
 cuts. The rate cycle reached these books through the banks' share prices, not
@@ -666,7 +666,8 @@ option does. This matters: when the banks fell, the book's calls, struck near th
 money, became strikes well above the share, where equity smiles are lower. In 2020
 the at-the-money vol rose 52 points and the vol at the book's strikes 46. In 2022
 the at-the-money vol rose about 1 point while the vol at the book's strikes fell
-nearly 6. Beyond the 25-delta points the smile is held flat.
+nearly 6. (The at-the-money figures come from the parallel-shift run, reports at
+commit 118d0ed.) Beyond the 25-delta points the smile is held flat.
 
 **The heavy-oil discount (`scripts/oil_spread.py`, `reports/<book>_oil.txt`).**
 Western Canadian Select, the heavy crude most oil sands output is sold as, trades
@@ -683,8 +684,17 @@ tried, and the report says so. The case the build sheet asks for, February 2018
 inside about ±$10,000 when every sensitivity is moved two standard errors, and
 less than a month's carry (-$13,000 to -$20,000).
 
-Still missing from C3: the funding spread is held at today's level, and no
-episode has a real Montreal settlement.
+**Funding.** On top of the rate curve, the funding spread moves too, by as much as bank funding rose over government
+funding: the 3-month bankers' acceptance rate less the 3-month bill yield
+(Statistics Canada, weekly). Canada stopped publishing that rate after 2018, so
+only January 2015 is measured (the spread moved about -3 basis points; -$100).
+For every episode the report also shows what a stated +100 basis point funding
+shock would add, outside the total: +$2,000 to +$6,300 on the bank-heavy book and
+up to +$2,900 on the diversified one. A funding move shifts the forward exactly as
+a rate move does, and these books are long calls, so wider funding helps them
+slightly. It is not a risk that matters here.
+
+Still missing from C3: no episode has a real Montreal settlement.
 
 ### Which position drives the worst days (C5)
 

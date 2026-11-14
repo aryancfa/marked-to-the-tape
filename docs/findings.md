@@ -644,7 +644,8 @@ measured, not assumed.
   option's own strike instead of at the money, the 2020 vol rise on the bank-heavy
   book is 46 points, not 52, and the 2022 move is -5.6, not +1.2: as the banks
   fell, the calls struck near the money became high strikes, where equity smiles
-  sit lower. A parallel shift overstated the vol the book was charged.
+  sit lower. A parallel shift overstated the vol the book was charged. (The
+  at-the-money figures: the parallel-shift run, reports at commit 118d0ed.)
 - **The heavy-oil discount is not a material risk for these books.** Fitted beside
   the index and WTI on monthly data since 2014, no name's sensitivity to the
   WCS-WTI discount is distinguishable from zero, and the producers lean, if
@@ -653,13 +654,20 @@ measured, not assumed.
   -$1,600 and -$500, inside about ±$10,000 at two standard errors. The measure (as a
   share of WTI, not dollars a barrel) was chosen after trying both.
 - **So is the options' own exposure to rates.** Today's curve is shifted by the
-  Treasury bill curve's move in each episode (+450 basis points over the 2022 to
-  2023 cycle). That added $23,000 to the bank-heavy book over the whole cycle. The
+  Treasury bill curve's move in each episode (the 3-month bill +454 basis points
+  over the 2022 to 2023 cycle). That added $23,000 to the bank-heavy book over the whole cycle. The
   cycle reached the book through the banks' share prices.
 
-What is not in it: the funding spread is held at today's level, the smile is
-read only between the 25-delta points (flat beyond), and no episode has a real
-Montreal settlement.
+- **Funding stress does not matter to these books either.** The 3-month bankers'
+  acceptance less bill spread moved about -3 basis points in January 2015 (-$100);
+  Canada stopped publishing it after 2018, so 2020 and 2022 are not measured. A
+  stated +100 basis point funding shock adds +$2,000 to +$6,300 (bank-heavy) and
+  at most +$2,900 (diversified): a wider spread raises the forward, and the books
+  are long calls.
+
+What is not in it: funding moves for 2020 and 2022 (no published Canadian rate;
+shown as a stated shock instead), the smile beyond the 25-delta points (held flat),
+and a real Montreal settlement for any episode.
 
 ## A fourth outside review (13 November 2026)
 
@@ -927,8 +935,9 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
   vega.
 - Vega limits and usage bars (C8), and the interlisted volume panel (C6). The
   vega grid they need (C2) exists for the latest day only, not as a daily history.
-- In the historical replay (C3): funding-spread moves, and the smile beyond the
-  25-delta points.
+- In the historical replay (C3): measured funding moves after 2018 (no Canadian
+  rate is published; a stated shock stands in), and the smile beyond the 25-delta
+  points.
 - Correlation that changes with the size of the move. The stress test uses one
   crash beta per name for every fall, so a 5% fall and a 20% fall move a name by
   the same multiple of the index. The crash betas come from days averaging a 2%
