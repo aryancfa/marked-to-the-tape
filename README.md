@@ -2,7 +2,7 @@
 
 A risk system for a small book of Canadian listed options. It prices positions with its own engine for American options with discrete dividends. It compares the implied volatilities with Montreal Exchange settlements and with an independent source. Then it replays real historical days and shows what risk is left after hedging with SXF, ZEB and XIU.
 
-**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 87 steps) and 480 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
+**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 89 steps) and 491 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
 
 ## What it has found so far
 
@@ -619,17 +619,17 @@ because Montreal history on disk starts in May 2026.
 
 | Model prices on today's book | Bank-heavy | Diversified |
 |---|---|---|
-| January 2015 (index flat; banks fell after a surprise rate cut) | -$250,000 | -$29,000 at worst, -$14,000 at the end |
-| February to March 2020 (index -36%) | -$705,000 | +$350,000 at the end |
-| April 2020, negative oil | -$192,000 at worst | -$500 at worst |
-| 2022 to 2023 rate cycle (instant: 343 sessions would run every option past expiry) | -$402,000 at worst | -$31,000 at worst |
+| January 2015 (index flat; banks fell after a surprise rate cut) | -$262,000 | -$32,000 at worst, -$14,000 at the end |
+| February to March 2020 (index -36%) | -$710,000 | +$355,000 at the end |
+| April 2020, negative oil | -$211,000 at worst | -$11,000 at worst |
+| 2022 to 2023 rate cycle (instant: 343 sessions would run every option past expiry) | -$417,000 at worst | -$29,000 at worst |
 
 Rates move too. On each session today's curve shifts by as much as the Bank of
 Canada's Treasury bill curve had moved since the episode began (-30 basis points by
 the end of January 2015, about -110 by 23 March 2020, about +450 over the 2022 to
 2023 cycle), read at each option's own maturity. What that adds is its own line.
-It is small: +$22,900 on the bank-heavy book over the whole hiking cycle, because a
-higher rate raises the forward and the book is long calls, and -$2,400 in the 2020
+It is small: +$23,000 on the bank-heavy book over the whole hiking cycle, because a
+higher rate raises the forward and the book is long calls, and -$2,200 in the 2020
 cuts. The rate cycle reached these books through the banks' share prices, not
 through the options' own sensitivity to rates.
 
@@ -639,16 +639,41 @@ margins.
 
 **The C1 vol rule against the market.** Run again with the rule in place of every
 observed vol, the replay shows where the rule is wrong. At the 2020 low the market
-had added 52 vol points to the bank-heavy book's options, and the rule 17: the rule
-understates a crash by about three times. In the slow 2022 grind it went the other
-way, 3.4 points from the rule against 1.2 from the market. Real vol depends on how
-fast the market falls, not only how far. The dollar gap is modest on these books
-($21,000 in 2020) because they are mostly delta; on a book long or short vega it
-would decide the answer.
+had added 46 vol points at the bank-heavy book's own strikes, and the rule 17: the
+rule understates a crash by nearly three times. In the slow 2022 grind it went the
+other way: the rule added 3.1 points, while the market TOOK AWAY 5.6 at those
+strikes. Real vol depends on how fast the market falls, not only how far. The
+dollar gap is modest on these books ($17,000 on a $710,000 loss in 2020, $40,000
+in 2022) because they are mostly delta; on a book long or short vega it would
+decide the answer.
 
-Still missing from C3: the WCS-WTI oil spread factor has no price series, the
-funding spread is held at today's level, and the vol shift is parallel, so a
-steepening skew is not captured.
+**The vol is read at each option's own strike.** New York's smile is pulled at the
+25-delta put, the money and the 25-delta call. Each day, each option's strike is
+placed on that day's smile by the delta a call there would have, given how far the
+share has moved, so the option keeps its strike as the market moves, as a held
+option does. This matters: when the banks fell, the book's calls, struck near the
+money, became strikes well above the share, where equity smiles are lower. In 2020
+the at-the-money vol rose 52 points and the vol at the book's strikes 46. In 2022
+the at-the-money vol rose about 1 point while the vol at the book's strikes fell
+nearly 6. Beyond the 25-delta points the smile is held flat.
+
+**The heavy-oil discount (`scripts/oil_spread.py`, `reports/<book>_oil.txt`).**
+Western Canadian Select, the heavy crude most oil sands output is sold as, trades
+below WTI by an amount that moves for its own reasons (pipeline space, refinery
+outages). Each name's monthly return since 2014 is fitted on the index, WTI and
+the change in log(WCS/WTI) together (Government of Alberta monthly averages, so
+the share returns are monthly averages too). No name's sensitivity to the discount
+is distinguishable from zero; if anything the producers did slightly better when
+it widened, which fits their upgraders and refineries turning cheap heavy crude
+into products priced off WTI. The discount was first tried in dollars a barrel,
+which also showed nothing; the share-of-price measure was chosen after both were
+tried, and the report says so. The case the build sheet asks for, February 2018
+(WTI -2.3%, WCS 9.7% lower against it), moves the books by -$1,600 and -$500,
+inside about ±$10,000 when every sensitivity is moved two standard errors, and
+less than a month's carry (-$13,000 to -$20,000).
+
+Still missing from C3: the funding spread is held at today's level, and no
+episode has a real Montreal settlement.
 
 ### Which position drives the worst days (C5)
 

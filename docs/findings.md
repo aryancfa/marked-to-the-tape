@@ -620,9 +620,9 @@ and vols taken from the New York listings with the currency removed
 measured, not assumed.
 
 - **The C1 vol rule understates a crash and overstates a grind.** At the 2020 low
-  the market had raised the bank-heavy book's option vols by 52 points on average;
-  the rule, at -0.5 points per 1% fall with a steeper skew past -10%, by 17. In
-  the 2022 grind the rule gave 3.4 and the market 1.2. Vol responds to the speed
+  the market had raised the vols at the bank-heavy book's own strikes by 46 points
+  on average; the rule, at -0.5 points per 1% fall with a steeper skew past -10%,
+  by 17. In the 2022 grind the rule added 3.1 and the market took away 5.6. Vol responds to the speed
   of a fall as well as its size, which a rule in the size alone cannot carry.
 - **One-day crash betas understate a month-long crash.** CNQ fell about 1.9 times
   the index over February to March 2020, against a crash beta of 1.43 from single
@@ -630,17 +630,29 @@ measured, not assumed.
   measurement.
 - **A beta misses what is not the market.** In January 2015 the index ended flat
   and the banks fell about 8% on a surprise rate cut. The bank-heavy book lost
-  $250,000 in a month a beta stress would call quiet.
-- **The dollar effect of the vol source is modest on these books** ($21,000 on a
-  $705,000 loss in 2020), because they are mostly delta.
+  $262,000 in a month a beta stress would call quiet.
+- **The dollar effect of the vol source is modest on these books** ($17,000 on a
+  $710,000 loss in 2020, $40,000 in 2022), because they are mostly delta.
+- **A held option keeps its strike, and the smile is not flat.** Read at each
+  option's own strike instead of at the money, the 2020 vol rise on the bank-heavy
+  book is 46 points, not 52, and the 2022 move is -5.6, not +1.2: as the banks
+  fell, the calls struck near the money became high strikes, where equity smiles
+  sit lower. A parallel shift overstated the vol the book was charged.
+- **The heavy-oil discount is not a material risk for these books.** Fitted beside
+  the index and WTI on monthly data since 2014, no name's sensitivity to the
+  WCS-WTI discount is distinguishable from zero, and the producers lean, if
+  anything, toward doing better when it widens (they upgrade and refine heavy
+  crude). The worst month with WTI flat (February 2018) moves the books by
+  -$1,600 and -$500, inside about ±$10,000 at two standard errors. The measure (as a
+  share of WTI, not dollars a barrel) was chosen after trying both.
 - **So is the options' own exposure to rates.** Today's curve is shifted by the
   Treasury bill curve's move in each episode (+450 basis points over the 2022 to
-  2023 cycle). That added $22,900 to the bank-heavy book over the whole cycle. The
+  2023 cycle). That added $23,000 to the bank-heavy book over the whole cycle. The
   cycle reached the book through the banks' share prices.
 
-What is not in it: the WCS-WTI factor has no data, the funding spread is held at
-today's level, the vol shift is parallel, and no episode has a real Montreal
-settlement.
+What is not in it: the funding spread is held at today's level, the smile is
+read only between the 25-delta points (flat beyond), and no episode has a real
+Montreal settlement.
 
 ## A fourth outside review (13 November 2026)
 
@@ -908,8 +920,8 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
   vega.
 - Vega limits and usage bars (C8), and the interlisted volume panel (C6). The
   vega grid they need (C2) exists for the latest day only, not as a daily history.
-- In the historical replay (C3): the WCS-WTI oil spread factor (no price series on
-  disk), funding-spread moves, and skew changes.
+- In the historical replay (C3): funding-spread moves, and the smile beyond the
+  25-delta points.
 - Correlation that changes with the size of the move. The stress test uses one
   crash beta per name for every fall, so a 5% fall and a 20% fall move a name by
   the same multiple of the index. The crash betas come from days averaging a 2%

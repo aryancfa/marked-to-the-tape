@@ -1,0 +1,46 @@
+Fitted sensitivities and model prices on a made-up book.
+No price or quote appears in this file.
+
+The WCS discount as a factor, for diversified.csv, a made-up book.
+Monthly, 2014-02 to 2026-09 (152 months). MODEL prices on a rule-based vol below.
+
+1. SENSITIVITIES, fitted together: % move per 1% move in the index, per 1% in WTI,
+   and per 1% that WCS RISES against WTI (the discount narrowing). A negative
+   'discount' figure means the name tended to do better when the discount WIDENED.
+         months  index   wti  discount  t wti  t discount
+   RY       152  +0.95 -0.02     +0.02  -1.16       +1.50
+   TD       152  +0.94 +0.02     +0.00  +0.85       +0.29
+   MFC      152  +1.27 +0.01     +0.01  +0.29       +0.48
+   CNQ      152  +1.56 +0.37     -0.04  +8.04       -1.87
+   SU       152  +1.14 +0.28     -0.03  +5.83       -1.13
+   ENB      152  +0.90 +0.04     +0.01  +1.38       +0.53
+   CNR      152  +0.83 -0.08     +0.02  -2.93       +1.64
+   BCE      152  +0.50 -0.04     -0.01  -1.31       -0.97
+   ABX      152  +0.90 -0.09     -0.07  -1.16       -1.77
+   SHOP     136  +1.78 -0.24     +0.03  -2.31       +0.61
+   XIU      152  +1.00 -0.00     +0.00  -0.06       +0.28
+   XEG      152  +1.37 +0.38     -0.03  +9.38       -1.40
+   Names whose discount sensitivity is two standard errors from zero: none.
+   No name's sensitivity to the discount is distinguishable from zero. If anything the
+   producers (CNQ, SU, XEG) did slightly BETTER when it widened: they own
+   upgraders and refineries that turn heavy crude into products priced off WTI, so
+   cheap heavy oil helps that part of the business. The discount was first measured
+   in dollars a barrel, which showed nothing either; the share-of-price measure was
+   chosen after both were tried. Read the signs as a hint, not a finding.
+
+2. THE INDEX AND WTI FLAT, THE DISCOUNT WIDENING, over 21 sessions, dollars
+   February 2018: WTI -2.3%, the discount's worst month with WTI flat: WCS fell 9.7% against WTI
+             fitted: the move -540; with the month's carry -13,746
+      all fall more: the move -5,498; with the month's carry -18,704
+      all fall less: the move +4,495; with the month's carry -8,711
+   the discount's worst 5% of months since 2014: WCS fell 15.2% against WTI
+             fitted: the move -809; with the month's carry -14,015
+      all fall more: the move -8,618; with the month's carry -21,824
+      all fall less: the move +7,182; with the month's carry -6,024
+   'all fall more' and 'all fall less' move every name's sensitivity two standard
+   errors at once, toward a bigger fall or a smaller one; they bound the answer
+   loosely. The carry is the same month passing with no move at all, kept apart as
+   in the stress report (B6).
+
+Vol: the C1 beta rule on each name's move (no market vol exists for an imagined
+month). Oil prices: Government of Alberta economic data, OilPrices, monthly averages.

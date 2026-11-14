@@ -16,14 +16,14 @@ JANUARY 2015: OIL COLLAPSE AND A SURPRISE RATE CUT
    decay                       -3,977     -10,487
    funding                       -572      -1,507
    dividends                      -64        -223
-   shock                      -24,333      -1,216
-   rates                            9        -532
-   total                      -28,938     -13,966
-   by name on that day, all four parts (options; hedges as one line): ENB -21,916, RY -14,649, CNQ -12,524, MFC -7,191, SU -4,403, BCE -4,043, TD -3,748, CNR -3,360, ABX 672, XIU 6,170, shares, funds and futures together 36,053
-   the options' vol change on that day, vol points (* = from the C1 rule): ABX -0.3, BCE +0.0, CNQ +2.1, CNR +0.9, ENB +4.8, MFC +2.2, RY +2.5, SU +4.1, TD +3.7, XIU +0.1*
+   shock                      -27,448      -1,459
+   rates                            9        -527
+   total                      -32,053     -14,204
+   by name on that day, all four parts (options; hedges as one line): ENB -21,948, RY -15,163, CNQ -13,626, MFC -7,927, SU -5,048, BCE -4,439, CNR -3,415, TD -3,362, ABX 652, XIU 6,170, shares, funds and futures together 36,053
+   the options' vol change on that day, vol points (* = from the C1 rule): ABX -0.3, BCE -1.7, CNQ -0.6, CNR +0.8, ENB +5.6, MFC +0.8, RY +1.7, SU +2.5, TD +2.6, XIU +0.1*
    option-days by where the vol came from: real settlement 0, model on observed NY vol 180, model on rule-based vol 30
    with the C1 rule in place of every observed vol: -30,659 on that day, -22,411 at the end
-   (the rule moved the options' vol +1.3 points on average that day, where the market's moved +2.0)
+   (the rule moved the options' vol +1.3 points on average that day, where the market's moved +1.1)
 
 FEBRUARY TO MARCH 2020: THE PANDEMIC CRASH
    The TSX fell about 37% from its 20 February high to the 23 March low.
@@ -34,14 +34,14 @@ FEBRUARY TO MARCH 2020: THE PANDEMIC CRASH
    decay                       -2,197     -11,580
    funding                       -361      -1,894
    dividends                        0        -224
-   shock                        2,532     363,791
-   rates                          -33         403
-   total                          -59     350,496
-   by name on that day, all four parts (options; hedges as one line): SHOP -15,980, MFC -13,659, RY -12,280, ENB -11,896, CNQ -11,811, CNR -5,540, SU -4,724, TD -2,704, ABX 2,689, BCE 4,210, XIU 11,620, shares, funds and futures together 60,017
-   the options' vol change on that day, vol points (* = from the C1 rule): ABX +4.0, BCE +1.3, CNQ +4.0, CNR +4.1, ENB +4.3, MFC +4.7, RY +1.7, SHOP +7.5, SU +4.2, TD +3.4, XIU +0.0*
+   shock                       -1,216     367,989
+   rates                          -32         466
+   total                       -3,806     354,756
+   by name on that day, all four parts (options; hedges as one line): MFC -16,205, SHOP -16,199, CNQ -13,438, RY -11,881, ENB -11,669, CNR -5,904, SU -5,429, TD -2,797, ABX 2,616, BCE 5,463, XIU 11,620, shares, funds and futures together 60,017
+   the options' vol change on that day, vol points (* = from the C1 rule): ABX +3.8, BCE +8.6, CNQ +0.1, CNR +3.3, ENB +3.1, MFC -0.3, RY +2.4, SHOP +6.1, SU +2.4, TD +3.6, XIU +0.0*
    option-days by where the vol came from: real settlement 0, model on observed NY vol 242, model on rule-based vol 22
    with the C1 rule in place of every observed vol: -4,694 on that day, 333,776 at the end
-   (the rule moved the options' vol +2.2 points on average that day, where the market's moved +3.9)
+   (the rule moved the options' vol +2.2 points on average that day, where the market's moved +3.3)
 
 APRIL 2020: NEGATIVE WTI
    The May WTI future settled at minus $37.63 on 20 April.
@@ -52,14 +52,14 @@ APRIL 2020: NEGATIVE WTI
    decay                         -869      -3,106
    funding                        -92        -445
    dividends                        0           0
-   shock                          524      33,407
-   rates                          -67         -78
-   total                         -504      29,777
-   by name on that day, all four parts (options; hedges as one line): RY -14,256, CNQ -9,606, MFC -9,506, SU -7,737, TD -6,693, ENB -3,123, CNR 574, BCE 1,597, ABX 3,087, XIU 5,472, SHOP 10,791, shares, funds and futures together 28,895
-   the options' vol change on that day, vol points (* = from the C1 rule): ABX +0.8, BCE -0.3, CNQ +0.2, CNR +1.6, ENB +0.1, MFC +3.1, RY +0.5, SHOP +3.3, SU +4.5, TD +5.6, XIU +0.0*
+   shock                       -9,659      31,229
+   rates                          -64         -78
+   total                      -10,684      27,599
+   by name on that day, all four parts (options; hedges as one line): RY -16,092, MFC -14,438, CNQ -14,236, SU -10,828, TD -4,392, ENB -2,878, CNR 1,262, BCE 1,654, ABX 2,981, XIU 5,472, SHOP 11,915, shares, funds and futures together 28,895
+   the options' vol change on that day, vol points (* = from the C1 rule): ABX +0.5, BCE +0.0, CNQ -10.1, CNR +3.1, ENB -0.7, MFC -5.7, RY -2.3, SHOP +5.6, SU -4.4, TD -0.1, XIU +0.0*
    option-days by where the vol came from: real settlement 0, model on observed NY vol 66, model on rule-based vol 6
    with the C1 rule in place of every observed vol: -787 on that day, 20,913 at the end
-   (the rule moved the options' vol +0.2 points on average that day, where the market's moved +1.9)
+   (the rule moved the options' vol +0.2 points on average that day, where the market's moved -0.7)
 
 2022 TO 2023: THE BANK OF CANADA'S HIKING CYCLE
    Ten hikes from 0.25% to 5.00%, 2 March 2022 to 12 July 2023.
@@ -70,22 +70,25 @@ APRIL 2020: NEGATIVE WTI
    decay                            0           0
    funding                          0           0
    dividends                        0           0
-   shock                      -33,960      84,453
-   rates                        2,533      12,778
-   total                      -31,427      97,231
-   by name on that day, all four parts (options; hedges as one line): SHOP -44,156, RY -13,314, BCE -7,142, ABX -2,185, XIU -1,772, TD -494, shares, funds and futures together 357, SU 3,148, ENB 3,718, MFC 6,115, CNR 7,380, CNQ 16,918
-   the options' vol change on that day, vol points (* = from the C1 rule): ABX -0.3, BCE -1.0, CNQ +0.1, CNR -4.0, ENB -2.5, MFC -4.2, RY -3.9, SHOP +9.7, SU -0.3, TD -6.0, XIU -0.0*
+   shock                      -30,990      83,560
+   rates                        2,449      13,484
+   total                      -28,541      97,044
+   by name on that day, all four parts (options; hedges as one line): SHOP -43,564, RY -12,855, BCE -9,183, ABX -2,089, XIU -1,772, TD 332, shares, funds and futures together 357, ENB 3,430, SU 3,815, MFC 6,949, CNR 8,213, CNQ 17,826
+   the options' vol change on that day, vol points (* = from the C1 rule): ABX -0.1, BCE -8.6, CNQ +2.6, CNR -0.9, ENB -1.7, MFC -2.0, RY -3.2, SHOP +3.8, SU +1.2, TD -8.6, XIU -0.0*
    option-days by where the vol came from: real settlement 0, model on observed NY vol 3684, model on rule-based vol 432
    with the C1 rule in place of every observed vol: -31,523 on that day, 107,916 at the end
-   (the rule moved the options' vol +1.7 points on average that day, where the market's moved -0.2)
+   (the rule moved the options' vol +1.7 points on average that day, where the market's moved -1.1)
 
-WHERE THE VOL COMES FROM. For names listed in New York, the change in the at-the-
-money vol their New York options showed at the position's own maturity since the
-episode's first close (OptionMetrics), with the Canadian dollar's part taken out
-(src/nyvol.py), added to the option's own vol today. It moves the whole smile in
-parallel, so a steepening skew is not captured. Where no New York vol exists (the
-Toronto funds, a New York holiday), the C1 beta rule: -0.50 vol points per 1% move, skew
-50% steeper past a -10% fall. No real settlement exists for any episode:
-Montreal history on disk starts in May 2026. The WCS-WTI oil spread factor is not
-built: no price series for it is on disk. The rate move is the bill curve's, added
-to today's curve; the funding spread on top of it is held where it is today.
+WHERE THE VOL COMES FROM. For names listed in New York, the change in the vol their
+New York options showed since the episode's first close (OptionMetrics), at the
+position's own maturity AND its own strike: the strike is placed on the smile by
+the delta a call there would have, recomputed each day from the moved share price,
+and read between the 25-delta put, the money and the 25-delta call (flat beyond).
+A skew that steepened moves a low strike more than the money.
+The Canadian dollar's part is taken out (src/nyvol.py) and the change is added to the
+option's own vol today. Where no New York vol exists (the Toronto funds, a New York
+holiday), the C1 beta rule: -0.50 vol points per 1% move, skew 50% steeper past a
+-10% fall. No real settlement exists for any episode: Montreal history
+on disk starts in May 2026. The WCS-WTI discount is measured apart (the _oil report):
+no name's sensitivity to it is distinguishable from zero. The rate move is the bill
+curve's, added to today's curve; the funding spread on top is held at today's level.
