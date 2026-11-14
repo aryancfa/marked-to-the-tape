@@ -112,7 +112,7 @@ def one_name(task) -> dict:
                     ge = greek_explain(prev[0], v, prev[1], inp)
                     rows.append(dict(day=inp.day, name=name, i=i, kind="future",
                                      D0=prev[0].scale * prev[1].spot, V0=0.0, G0=0.0,
-                                     expiry=None, ex=False,
+                                     expiry=None, ex=False, theta_days=0.0,
                                      **{k: e[k] for k in (*STEPS, "total")},
                                      **{f"g_{k}": ge[k] for k in GREEK_TERMS}))
                 prev = (v, inp)
@@ -164,6 +164,10 @@ def one_name(task) -> dict:
                 rows.append(dict(day=day, name=name, i=i, kind=pos.kind, expiry=pos.expiry,
                                  ex=dividends_gone_ex(inp0.divs, inp0.day, inp.day) > 0,
                                  **{f"g_{k}": ge[k] for k in GREEK_TERMS},
+                                 # the first version's theta, kept to show why it
+                                 # was replaced: one-day theta x calendar days
+                                 theta_days=v0.scale * (v0.theta or 0.0)
+                                 * (inp.day - inp0.day).days,
                                  D0=v0.scale * v0.delta * inp0.spot,
                                  V0=v0.scale * (v0.vega or 0.0),
                                  # dollars gained per (return squared), halved: gamma

@@ -77,7 +77,7 @@ def main() -> None:
     rows["day"] = pd.to_datetime(rows["day"])
     atm = pd.DataFrame([r for x in res for r in x["atm"]])
     g_cols = [f"g_{k}" for k in GREEK_TERMS]
-    daily = rows.groupby("day")[[*g_cols, "total", "dividends"]].sum()
+    daily = rows.groupby("day")[[*g_cols, "total", "dividends", "theta_days"]].sum()
     daily.columns = [c[2:] if c.startswith("g_") else c for c in daily.columns]
     D = rows.pivot_table(index="day", columns="name", values="D0", aggfunc="sum")
     whole = D.notna().all(axis=1)            # days every underlying in the book was valued
@@ -114,6 +114,15 @@ def main() -> None:
     w.index = w.index.strftime("%Y-%m-%d")
     say("   The five largest residuals:")
     say(w.to_string(float_format=money).replace("\n", "\n   ").join(["   ", ""]))
+    # the first version took theta as the evening's one-day theta times the
+    # calendar days passed; over a weekend that counts a dividend's jump once
+    # for every day, so its residual is shown beside the one in use
+    naive = res_ + daily["theta"] - daily["theta_days"]
+    nw = naive.abs().sort_values(ascending=False).head(2).index
+    say("   Theta as the one-day theta times calendar days passed (the first version) instead")
+    say(f"   of repricing to the next session: typical residual {naive.abs().median():,.0f}; "
+        "largest " + ", ".join(f"{naive[d]:+,.0f} on {d:%a %d %b} "
+                               f"(positions going ex: {int(ex_days.get(d, 0))})" for d in nw) + ".")
     say("   Read: the Greeks are a second-order local picture. They miss moves large enough")
     say("   for the third order to matter, vol and share moving together (vanna), a dividend")
     say("   whose amount or date changed, and a mark that jumped for reasons of its own. The")
@@ -183,10 +192,11 @@ def main() -> None:
     say("   One vol move size for every bucket. Measured bucket by bucket (changes, 99th")
     say("   percentile in points): " + "; ".join(f"{b} {int(r['count'])}, {r['move_size']:.2f}"
                                                for b, r in v_by.iterrows()) + ".")
-    big = vch.loc[vch["change"].abs().idxmax()]
+    big = vch.loc[vch["change"].abs().sort_values(ascending=False).index[:2]]
     say(f"   Too few changes per bucket to tell them apart, and one name's event sets a thin")
-    say(f"   bucket: the largest single change is {big['name']} on {big['day']:%d %b %Y}, "
-        f"{big['change']:+.1f} points.")
+    say("   bucket: the two largest single changes are "
+        + " and ".join(f"{r['name']} on {r['day']:%d %b %Y}, {r['change']:+.1f} points ({r['bucket']})"
+                       for _, r in big.iterrows()) + ".")
     say("   Vol history on disk starts in May 2026, so this move size is measured on the days")
     say("   on file: the one limit set with some hindsight.")
     say()

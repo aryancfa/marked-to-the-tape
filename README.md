@@ -765,8 +765,9 @@ adds up exactly by construction; this one does not, and the residual is the poin
 | Days flagged (residual over 20% of the day and over $1,000) | 0 | 0 |
 
 The first version took one-day theta times the days passed. On the two Mondays the
-banks went ex-dividend, 27 July and 26 October, that left about -$17,000 to -$19,000
-of residual. Friday's one-day theta already holds the jump as the dividend leaves
+banks went ex-dividend, 27 July and 26 October, that left -$27,900 and -$25,400 of
+residual on the bank-heavy book (-$6,000 and -$5,600 on the diversified); the report
+still prints both versions. Friday's one-day theta already holds the jump as the dividend leaves
 the option's life, so three days counted it three times. Repricing theta to the
 next session, as desks do, removed it. What is left lines up with dividend news
 (correlation +0.52 on the bank-heavy book), which Greeks cannot see.

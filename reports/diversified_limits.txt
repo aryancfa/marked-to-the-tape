@@ -24,6 +24,8 @@ Mark history: the Montreal files on disk (the Interactive Brokers capture has no
    2026-05-28            4,246      -182                      -173                   0
    2026-05-11            4,791      -154                      -177                   0
    2026-05-14           -7,322      -141                        -3                   0
+   Theta as the one-day theta times calendar days passed (the first version) instead
+   of repricing to the next session: typical residual 44; largest -5,991 on Mon 27 Jul (positions going ex: 1), -5,610 on Mon 26 Oct (positions going ex: 1).
    Read: the Greeks are a second-order local picture. They miss moves large enough
    for the third order to matter, vol and share moving together (vanna), a dividend
    whose amount or date changed, and a mark that jumped for reasons of its own. The
@@ -41,7 +43,7 @@ Mark history: the Montreal files on disk (the Interactive Brokers capture has no
    One vol move size for every bucket. Measured bucket by bucket (changes, 99th
    percentile in points): 181-400d 642, 1.52; 31-90d 69, 10.39; 91-180d 511, 1.87.
    Too few changes per bucket to tell them apart, and one name's event sets a thin
-   bucket: the largest single change is SHOP on 03 Nov 2026, -12.7 points.
+   bucket: the two largest single changes are SHOP on 03 Nov 2026, -12.7 points (31-90d) and SHOP on 02 Nov 2026, +9.3 points (31-90d).
    Vol history on disk starts in May 2026, so this move size is measured on the days
    on file: the one limit set with some hindsight.
 

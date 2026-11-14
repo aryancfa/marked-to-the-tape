@@ -676,8 +676,9 @@ a typical residual of $51 (bank-heavy) and $32 (diversified) against typical day
 of $14,600 and $4,400 (`scripts/limits.py`, C8). No day is flagged.
 
 - **One-day theta times days passed is wrong across a weekend ex-date.** It left
-  about -$17,000 to -$19,000 of residual on the two Mondays the banks went
-  ex-dividend. Friday's one-day theta holds the jump as the dividend leaves the
+  -$27,900 and -$25,400 of residual (bank-heavy; -$6,000 and -$5,600
+  diversified) on the two Mondays the banks went ex-dividend, 27 July and
+  26 October. The limits report prints both versions. Friday's one-day theta holds the jump as the dividend leaves the
   option's life, and three days counted it three times. Repricing theta to the
   next session at the expected share price removed it.
 - **What is left is dividend news,** which Greeks cannot see: the residual
