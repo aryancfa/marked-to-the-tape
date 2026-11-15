@@ -32,6 +32,39 @@ def _clean(raw: pd.DataFrame, today: date | None) -> pd.DataFrame:
     return raw.sort_values("datadate").drop_duplicates("datadate").set_index("datadate")
 
 
+US_COMMON = "01"              # Compustat's issue id of the common share
+US_EXCHANGES = (11, 12, 14)   # NYSE, NYSE American, Nasdaq (19 is over the counter)
+
+
+def load_volume_pair(toronto: str | Path, new_york: str | Path | None,
+                     today: date | None = None) -> pd.DataFrame:
+    """Daily share volume of one company in Toronto and in New York (C6).
+
+    `toronto` is a prices_<T>.csv from wrds_prices.py, `new_york` the
+    ny_volume_<T>.csv from wrds_ny_volume.py, which holds every US issue of
+    the company: only the common share listed on an exchange is kept (the
+    rest are over-the-counter preferreds and notes). Returns one row per day
+    either market traded, indexed by day: tor, ny (shares), tor_px, ny_px
+    (closes in each listing's own currency); nan where that market had no
+    session. Splits are not removed: they apply to both listings the same day.
+    With `new_york` None (a fund listed in Toronto only) ny and ny_px are nan."""
+    t = _clean(pd.read_csv(toronto), today)
+    if new_york is None:
+        out = pd.DataFrame({"tor": pd.to_numeric(t["cshtrd"], errors="coerce"),
+                            "tor_px": t["prccd"], "ny": float("nan"), "ny_px": float("nan")})
+        out.index.name = "day"
+        return out
+    u = pd.read_csv(new_york, dtype={"iid": str})
+    u = u[(u["iid"] == US_COMMON) & u["exchg"].isin(US_EXCHANGES)]
+    u = _clean(u, today)
+    out = pd.DataFrame({"tor": pd.to_numeric(t["cshtrd"], errors="coerce"),
+                        "tor_px": t["prccd"]}).join(
+        pd.DataFrame({"ny": pd.to_numeric(u["cshtrd"], errors="coerce"), "ny_px": u["prccd"]}),
+        how="outer")
+    out.index.name = "day"
+    return out
+
+
 def _one_session(r: pd.Series, venue: str) -> pd.Series:
     """
     Keep only returns earned over exactly ONE trading session.

@@ -1,0 +1,75 @@
+INTERLISTED VOLUME PANEL (C6): where thirteen names trade, Toronto against New York.
+Daily share volume, January 2014 (Shopify from its 2015 listing) to 10 Nov 2026.
+Compustat on WRDS; published as shares of volume, ratios and counts only.
+
+0. WHAT THE TWO VOLUMES MEASURE
+   New York: consolidated, every US exchange and off-exchange trade (Compustat's
+   figure equals CRSP's to the share on 1,761 days, 2018 to 2024; checked 14 Nov 2026).
+   Toronto: most likely the Toronto Stock Exchange's own trades only. It equals the
+   volume the Montreal file prints, and shows no step in September 2025, when TMX began
+   publishing a consolidated Canadian figure. Not confirmed by a written definition.
+   So Toronto's share below is a LOWER BOUND on Canada's: one Canadian venue against
+   every US one. A FALL over time is ambiguous: it can be trading leaving the TSX for
+   another Canadian venue, not for New York. A RISE is not: the TSX gained on every US
+   venue together. Differences between names in the same year share the same basis.
+   One share for one share: Toronto close / New York close has a median of 1.323 across names (the exchange rate);
+   every name between 0.9 and 1.7: yes.
+
+1. TORONTO'S SHARE of the two listings' combined share volume, days both traded
+                             group  first full year %  last 12 months %  change, points
+   BMO           banks and insurer               74.6              75.4             0.8
+   MFC           banks and insurer               65.2              73.2             8.0
+   RY            banks and insurer               80.1              71.5            -8.6
+   TD            banks and insurer               71.3              71.4             0.1
+   CM            banks and insurer               84.1              67.9           -16.2
+   BNS           banks and insurer               79.8              66.1           -13.7
+   ENB         energy and pipeline               57.6              64.6             6.9
+   CNQ         energy and pipeline               47.0              64.0            16.9
+   SU          energy and pipeline               44.7              58.8            14.1
+   BCE   rail, telecom, gold, tech               62.9              54.2            -8.7
+   CNR   rail, telecom, gold, tech               53.4              51.7            -1.7
+   ABX   rail, telecom, gold, tech               18.2              29.7            11.5
+   SHOP  rail, telecom, gold, tech                8.6              17.0             8.4
+   (first full year: 2014; Shopify 2016, its first full year listed in both.)
+   Median by group, last 12 months: banks and insurer 71%; energy and pipeline 64%; rail, telecom, gold, tech 41%.
+   Toronto's share rose on 8 of 13 names and fell on 5.
+   Read: Toronto is the main market for the banks and the insurer; the energy names
+   and the pipeline have moved toward it (a rise, so not a basis effect); Barrick and
+   Shopify trade mostly in New York. The banks' falls (CM, BNS, RY) may be trading
+   moving to other Canadian venues: this data cannot tell.
+   With Toronto counted as one venue, a Canadian share above a half here is certain
+   to be above a half on the whole Canadian market.
+
+2. DAYS ONLY ONE MARKET IS OPEN: the open venue's volume against its own median over
+   the 20 sessions before (1.00 = a normal day)
+   New York alone   69 days,  891 name-days: median 0.60 (middle half 0.45 to 0.82)
+   Toronto alone    58 days,  749 name-days: median 0.34 (middle half 0.23 to 0.50)
+   Read: on a US holiday Toronto trades alone, and on a Canadian holiday New York
+   does. The ratio says how much of the usual liquidity is still there; part of the
+   flow that normally crosses between the two markets does not turn up on the other.
+
+3. DAYS TO LIQUIDATE on each name's latest day, taking 20% of the average daily volume over the 20 sessions before it
+   Counts of positions (options in their own Montreal series, the future in its own
+   contract) and of names (the net share delta of options and shares together).
+                                                  within a day  1 to 5 days  6 to 20 days  21 to 60 days  over 60 days  no volume in 20 sessions
+   book        what                                                                                                                             
+   bank_heavy  option and future positions                   0            0             0              6             4                         0
+               names' share delta, Toronto only              7            0             0              0             0                         0
+               names' share delta, both listings             6            0             0              0             0                         0
+   diversified option and future positions                   1            0             0              6             5                         1
+               names' share delta, Toronto only             12            0             0              0             0                         0
+               names' share delta, both listings            10            0             0              0             0                         0
+   Option positions, median sessions to exit: bank_heavy 58; diversified 59 (an untraded series counts as never).
+   Option positions in a series that did not trade at all in the 20 sessions before:
+   1 of 22. Leaving one is a negotiated trade, not a share of volume.
+   Share deltas: every name's net delta can be exited within a day on Toronto alone.
+   Read: the hedge (shares, futures) is liquid and the options are not. At a fifth of
+   their series' own volume these made-up books would take months to leave; a desk
+   would exit by asking market makers for a price, and that price is the mark the
+   review queue checks.
+
+4. NOT MEASURED
+   New York trading after 16:00 and intraday time buckets: both regular sessions run
+   9:30 to 16:00 Eastern, and the daily US figure does not separate extended hours.
+   That needs intraday bars; the Interactive Brokers capture (not yet run) can record
+   them. Canada's other venues: not on disk (see section 0).
