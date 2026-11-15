@@ -11,11 +11,10 @@ brackets.
 A small book of Canadian listed options is marked from the Montreal Exchange's
 daily files, and two questions are asked of it.
 
-1. **Can the marks be believed?** Every option's implied volatility is
-   compared with four references: the put at the same strike, a smile fitted
-   through the neighbouring strikes, the exchange's own published vol, and
-   OptionMetrics on the New York listings. The front chart shows the
-   differences in vol points, by expiry and by moneyness.
+1. **Can the marks be believed?** The front chart uses call-put, smile and
+   exchange-vol references where available. It shows differences in vol points,
+   by expiry and by moneyness. OptionMetrics is a separate engine check on earlier
+   New York listings, not a same-day reference for every Montreal option.
 2. **What is left after the hedge?** The book's daily P&L is shown unhedged,
    after an index and sector hedge in shares and in the SXF future, and after
    a vega hedge in listed options. That is the closing chart.
@@ -100,15 +99,17 @@ used (`surface.DATE_WINDOW`).
 expiry (`rates.futures_curve`). Treasury bills are the fallback on days without
 futures. The curve stops on a gap of more than four days in the fixings.
 
-**Funding spread.** The options' own forwards sit above the futures curve by
-what it costs to fund a share position. One spread a day is fitted from
+**Funding spread.** This is an option-implied carry adjustment, conditional on
+the share price, dividends and pricing conventions. It is not an independent
+measurement of funding cost. One spread a day is fitted from
 monthly expiries resting only on declared dividends
 (`surface.fit_funding_spread`). The spread applied on a day is the mean of
 earlier days' estimates only (`surface.trailing_spread`). A name uses its own
 spread once it has 20 earlier estimates with a standard error of at most 5
 basis points a year; until then it uses the median of the names that do
 (`surface.choose_spread`). This spread comes from the same market the call-put
-check tests, so on rates that check is not independent. The futures curve is.
+check tests, so on rates that check is not independent. The futures curve supplies
+a separate rate reference, not an independent measurement of the adjustment.
 
 **Dividends.** Each name's schedule is held in `reference/`, with the date
 each dividend was announced. A day is priced with the schedule as it was known
@@ -128,7 +129,7 @@ labelled projected.
 | Call minus put at the same strike | a carry input (share price, rate, funding, dividend) is off |
 | Strike minus smile | this quote is out of line with its neighbours |
 | Ours minus the exchange's vol | the two models differ; the exchange uses Black-Scholes on American options |
-| Ours minus OptionMetrics (New York listings) | the engine differs from an independent one on the same inputs |
+| Ours minus OptionMetrics (New York listings) | a separate engine check; agreement without a dividend does not isolate the cause of dividend-spanning discrepancies |
 
 **The smile.** Each strike is judged against an SVI curve in strike over
 forward, fitted through the other strikes of its expiry and screened for
@@ -210,18 +211,31 @@ whole sample are shown beside them as a check, never used.
 - The index leg is shown two ways: in the TSX 60 total return, and in whole
   SXF contracts on their own settlements (`book_hedge.sxf_leg`). The SXF
   contract is the nearest one more than 5 days from expiry, it rolls before
-  that, and each trade pays half the quoted spread.
+  that. Trades pay half the spread where quoted and a full tick otherwise.
+  Days without settlements at both closes earn nothing. The comparison includes
+  these conventions as well as basis, rounding and cost.
 - ZEB is added where the book is bank-heavy, and XEG for energy.
 
-**Vega hedge.** A listed index or ETF straddle is sized to the book's vega
-(C4b). Every stage is judged on the same days.
+**Vega hedge** (C4b, `book_hedge.py`). An XIU straddle is sized each evening
+to the book's vega, weighted by vol betas from earlier days. Its expiry is chosen
+once, from the book as first written. It is the monthly nearest the book's average
+option expiry, weighted by contracts held
+(quantity times multiplier), not by vega. The vega stage is added to the delta
+hedge with the index stand-in, not to the row with the SXF leg.
 
-**Diagnostics** (`hedge.py`). Each stage reports:
+**Diagnostics** (`hedge.py`). The share hedges (`hedge_shares.py`) report:
 - the share of variance removed, with a 20-day block-bootstrap error;
 - expected shortfall;
 - autocorrelation and the Ljung-Box test, to see whether what is left is
   predictable;
-- the same figures by market regime.
+- variance removed split between calm and stressed days.
+
+The option-book stages (`book_hedge.py`) report the share of variance removed,
+expected shortfall, the worst day, autocorrelation and the Ljung-Box test, with
+no block-bootstrap error and no regime split, so a small gap between two stages
+is not read as an improvement. A position counts on a day only if it was valued
+that day and the evening before; the report counts coverage and repeats the stages
+on the days every position was valued (`book_hedge.coverage`).
 
 ## 9. Stress and tail risk
 
@@ -239,8 +253,9 @@ understate how names move together in a fall.
 **Horizon.** A stress over several sessions includes the carry over them:
 decay, funding and dividends (`horizon.py`).
 
-**Historical episodes** (`episodes.py`). Four episodes are replayed on today's
-book, with each name's share moving as it did then:
+**Historical episodes** (`episodes.py`). Four episodes are replayed on the book, with
+each name's share moving as it did then. Valuation starts each name from its own
+latest cached day, not one common book date. The episodes:
 - January 2015, the oil collapse and the surprise rate cut;
 - February to March 2020, the pandemic crash;
 - April 2020, negative WTI;
@@ -258,14 +273,20 @@ How the other inputs move in a replay:
 Episode output is labelled as model prices throughout.
 
 **Expected shortfall** (`tailrisk.py`). The book is fully repriced under every
-day's moves since 2015. ES is the average loss beyond the 97.5% level.
+day's moves since 2015. Valuation starts each name from its own latest cached day,
+not one common book date; the report prints each name's date and repeats the ES
+with every name valued on the earliest of them. A position that cannot be valued
+would be left at zero
+and named in a NOTE line; the current reports have none. ES is the average loss
+beyond the 97.5% level.
 Component ES is each position's average P&L on the book's worst days, so the
 components add up to the book's ES exactly.
 
 **VaR back-test.** A day-ahead 99% VaR comes from delta, gamma and vega on the
-250 days before. It is tested against the next day's actual P&L, only on days
-the whole book was valued. The exceptions are counted and judged with Kupiec's
-test and the Basel traffic light.
+250 days before. It is tested against the next day's actual P&L on days with a
+valuation row for every underlying. This is not a position-by-position
+completeness check. The exceptions are counted and judged with Kupiec's test and
+the Basel traffic light.
 
 **Risk grid** (`riskgrid.py`). Vega is shown on the front chart's cells,
 counted only where the market quotes a smile, and delta is mapped to the TSX 60.
@@ -288,10 +309,14 @@ over the 20 sessions before.
   on one made-up set and scored on a second, independent one.
 - **Robustness.** `scripts/robustness.py` changes one choice at a time: the
   dividend rule, the funding lookback, tree steps and the share-price source.
-- **A second engine.** The OptionMetrics comparison checks the engine on New
-  York options priced from OptionMetrics' own inputs.
-- **Reproduction.** `scripts/reproduce_all.py` rebuilds every report in one
-  command, all or nothing, and writes a manifest of the commit and steps.
+- **A second engine.** The OptionMetrics comparison agrees closely where no
+  dividend intervenes. Dividend-spanning options remain discrepant. Currency
+  conversion reduces the call-put gap, but the vendor's dividend assumptions are
+  unavailable, so the comparison does not isolate the cause.
+- **Reproduction.** `scripts/reproduce_all.py` records its commit and completed
+  steps. A failed subprocess restores reports, but interruption or another
+  exception can bypass restoration. A partial run can replace the manifest. The
+  committed manifest does not certify every artifact against the current source.
 - **Frozen rules.** Pricing modules, thresholds and projection rules are frozen
   (`docs/frozen-test-plan.md`). The next month of exchange files is the first
   test the rules have not seen.

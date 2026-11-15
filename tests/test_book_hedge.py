@@ -177,3 +177,25 @@ def test_a_roll_closes_the_old_contract_and_opens_the_new_one():
     assert out["pnl"].iloc[1] == 0.0                 # the far contract did not move
     # close 2 near at half of 0.2 points, open 2 far at half of 0.4 points
     assert out["cost"].iloc[1] == pytest.approx(2 * 0.1 * 200 + 2 * 0.2 * 200)
+
+
+def test_coverage_counts_what_each_day_stands_for():
+    from book import Position
+    opt = lambda e: Position("option", "AAA", 1.0, 100.0, "MX", "C", 10.0, e)
+    positions = {"AAA": [opt(date(2026, 6, 19)), opt(date(2026, 1, 16))],
+                 "BBB": [Position("share", "BBB", 100.0, 1.0, "TSX")],
+                 "XIU": []}                       # the hedge name, not in the book
+    d1, d2, d3 = (pd.Timestamp(f"2026-01-{d}") for d in (14, 15, 20))
+    rows = pd.DataFrame([dict(day=d1, name="AAA", i=0), dict(day=d1, name="AAA", i=1),
+                         dict(day=d1, name="BBB", i=0),
+                         dict(day=d2, name="AAA", i=0), dict(day=d2, name="BBB", i=0),  # AAA option 1 missing
+                         dict(day=d3, name="AAA", i=0)])         # BBB missing; option 1 expired
+    d4 = pd.Timestamp("2026-01-21")                # nothing valued at all
+    assert d4 not in bh.coverage(rows, positions).index
+    cov = bh.coverage(rows, positions, [d1, d2, d3, d4])
+    assert cov.loc[d4, ["held", "valued"]].tolist() == [2, 0]
+    assert cov.loc[d1, ["held", "valued"]].tolist() == [3, 3]
+    assert cov.loc[d2, "names_partly"] == ["AAA"] and cov.loc[d2, "valued"] == 2
+    assert cov.loc[d2, "missing_in_partly"] == 1 and cov.loc[d3, "missing_in_partly"] == 0
+    assert cov.loc[d3, "held"] == 2 and cov.loc[d3, "names_missing"] == ["BBB"]
+    assert cov.loc[d3, "names_partly"] == []

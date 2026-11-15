@@ -9,3 +9,6 @@ CLAUDE.md
 .claude/
 AGENTS.md
 site/
+
+# hand-off files for the Hermes partner agent
+.hermes-handoff/

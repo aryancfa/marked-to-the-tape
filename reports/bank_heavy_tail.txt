@@ -11,6 +11,13 @@ Tail risk for bank_heavy.csv, a made-up book.
    worst day's loss            93,335        12,495
    daily st. dev.              26,589         5,102
    From 127 days the 97.5% tail is 3 days and the 99% VaR is the worst day. These are real marks and a thin sample.
+   The 127 days include 4 with part of the book missing (a position counts only
+   if valued that day and the evening before). On the 123 days every position was valued:
+                             unhedged  delta hedged
+   99% VaR                     93,335        12,495
+   97.5% expected shortfall    81,308        12,128
+   worst day's loss            93,335        12,495
+   daily st. dev.              27,002         5,173
 
 2. HAS THE VaR BEEN HONEST? One-day 99% VaR set each evening, against the next
    day's actual marked P&L
@@ -30,7 +37,10 @@ Tail risk for bank_heavy.csv, a made-up book.
 3. WHICH POSITION DRIVES THE TAIL. Today's book under each of 2,974 days'
    joint moves, 02 Jan 2015 to 10 Nov 2026, repriced in full. Vol rule: beta (-0.50 points per 1%).
    MODEL prices on a rule-based vol: none of this is a mark.
+   Each name is valued on its own latest day on file, not one common date: 04 Nov 2026 (BMO, BNS, CNQ, RY, TD); 10 Nov 2026 (SU, ZEB).
    Book: 97.5% expected shortfall 101,261 (the average of the worst 74 scenarios); 99% VaR 86,992.
+   The same book with every name valued on one date, 04 Nov 2026 (the line above is kept as published):
+   97.5% expected shortfall 100,519; 99% VaR 86,688.
                        component ES  marginal ES  own ES, alone  share of the book's ES %
    RY Jan 2027 270 C         25,699       25,699         28,553                        25
    TD Jan 2027 160 C         22,387       22,387         26,790                        22

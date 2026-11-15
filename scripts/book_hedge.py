@@ -71,7 +71,7 @@ from replay import (GREEK_TERMS, STEPS, DayInputs, dividends_gone_ex, explain,
                     greek_explain, value_position)
 from run_days import BOC, mx_files
 from surface import dividend_times
-from tradingcal import is_monthly_expiry, year_fraction
+from tradingcal import TSX, is_monthly_expiry, trading_days, year_fraction
 from voleng import greeks_american
 
 WRDS = ROOT / "data/raw/wrds"
@@ -391,6 +391,39 @@ def vega_hedge(V: pd.DataFrame, beta: pd.DataFrame, chain: pd.DataFrame) -> pd.D
     return pd.DataFrame(out).set_index("day")
 
 
+def coverage(rows: pd.DataFrame, positions: dict[str, list], days=None) -> pd.DataFrame:
+    """Day by day, how much of the book a row stands for (review R1). A position
+    gets a row only when it was valued on the day and the evening before, and
+    the stages sum whatever rows there are, so a day with part of the book
+    missing still looks like a whole day. Per day: positions held (not yet
+    expired), positions valued, the names with no position valued, the names
+    with some positions valued but not all, and how many positions those
+    partly valued names missed. `days` lists the sessions expected; a session
+    on which nothing at all was valued is then counted, not lost."""
+    got = rows.groupby(["day", "name"])["i"].agg(set)
+    out = []
+    for day in (sorted(rows["day"].unique()) if days is None else days):
+        day = pd.Timestamp(day)
+        d = pd.Timestamp(day).date()
+        held = valued = short = 0
+        whole, partly = [], []
+        for n, ps in positions.items():
+            alive = {i for i, p in enumerate(ps) if p.expiry is None or p.expiry >= d}
+            if not alive:
+                continue
+            have = got.get((day, n), set()) & alive
+            held += len(alive)
+            valued += len(have)
+            if not have:
+                whole.append(n)
+            elif have != alive:
+                partly.append(n)
+                short += len(alive - have)
+        out.append(dict(day=day, held=held, valued=valued, names_missing=whole,
+                        names_partly=partly, missing_in_partly=short))
+    return pd.DataFrame(out).set_index("day")
+
+
 def stats(x: pd.Series, base: pd.Series) -> dict:
     x = x.dropna()
     lb, struct = ljung_box(x)
@@ -499,6 +532,38 @@ def main() -> None:
         say(f"   On the {int(on.sum())} days a vega hedge was on: daily st. dev. "
             f"{s1.std():,.0f} delta hedged, {s2.std():,.0f} with the vega hedge "
             f"({100 * (1 - s2.var() / s1.var()):+.0f}% of that variance removed).")
+    sessions = trading_days(TSX, daily.index.min().date(), daily.index.max().date())
+    cov = coverage(rows, names, sessions)
+    empty = cov.index[(cov["valued"] == 0) & (cov["held"] > 0)]
+    whole_days = cov.index[cov["valued"] == cov["held"]].intersection(daily.index)
+    say("   COVERAGE. A position counts on a day only if it was valued that day and the")
+    say(f"   evening before. Of the {len(cov)} days, {len(whole_days)} had every position the "
+        "book held valued.")
+    if len(empty):
+        say(f"   Sessions with no position valued at all, so absent from every table: "
+            f"{len(empty)}.")
+    part = cov[cov["names_partly"].str.len() > 0]
+    if len(part):
+        say(f"   Days a name had some positions valued but not all: {len(part)} "
+            f"({int(part['missing_in_partly'].sum())} position-days).")
+    else:
+        say("   No position dropped out on a day another position on its name was valued.")
+    gone = pd.Series([n for ns in cov["names_missing"] for n in ns]).value_counts()
+    if len(gone):
+        say("   Days a whole name had no position valued: "
+            + ", ".join(f"{n} {k}" for n, k in gone.items()) + ".")
+    if 0 < len(whole_days) < len(cov):
+        w = whole_days
+        say(f"   The same stages on the {len(w)} days every position was valued. The table")
+        say("   above counts every day, including days part of the book is missing; it is")
+        say("   kept as published, and this one is set beside it.")
+        tw = pd.DataFrame({"unhedged": stats(stage0[w], stage0[w]),
+                           "delta hedged": stats(stage1[w], stage0[w]),
+                           "delta hedged, hindsight ratios": stats(stage1_hind[w], stage0[w]),
+                           "delta hedged, index leg in SXF": stats(stage1_sxf[w], stage0[w]),
+                           "delta + vega hedged": stats(stage2[w], stage0[w])}).T
+        say(tw.to_string(float_format=lambda x: f"{x:,.2f}" if abs(x) < 1 else f"{x:,.0f}")
+            .replace("\n", "\n   ").join(["   ", ""]))
     say()
     say("2. WHAT THE DELTA HEDGE LEAVES, AND WHAT IT IS MADE OF")
     parts = pd.DataFrame({"delta the hedge missed": daily["delta"] + h1,

@@ -11,6 +11,13 @@ Tail risk for diversified.csv, a made-up book.
    worst day's loss            33,404        10,127
    daily st. dev.               7,186         4,426
    From 127 days the 97.5% tail is 3 days and the 99% VaR is the worst day. These are real marks and a thin sample.
+   The 127 days include 7 with part of the book missing (a position counts only
+   if valued that day and the evening before). On the 120 days every position was valued:
+                             unhedged  delta hedged
+   99% VaR                     33,404        10,127
+   97.5% expected shortfall    25,944         8,695
+   worst day's loss            33,404        10,127
+   daily st. dev.               7,115         4,414
 
 2. HAS THE VaR BEEN HONEST? One-day 99% VaR set each evening, against the next
    day's actual marked P&L
@@ -30,7 +37,10 @@ Tail risk for diversified.csv, a made-up book.
 3. WHICH POSITION DRIVES THE TAIL. Today's book under each of 2,877 days'
    joint moves, 22 May 2015 to 10 Nov 2026, repriced in full. Vol rule: beta (-0.50 points per 1%).
    MODEL prices on a rule-based vol: none of this is a mark.
+   Each name is valued on its own latest day on file, not one common date: 04 Nov 2026 (BCE, CNQ, CNR, ENB, MFC, RY, SXF, TD); 06 Nov 2026 (XIU); 10 Nov 2026 (ABX, SHOP, SU, XEG).
    Book: 97.5% expected shortfall 12,627 (the average of the worst 71 scenarios); 99% VaR 12,215.
+   The same book with every name valued on one date, 04 Nov 2026 (the line above is kept as published):
+   97.5% expected shortfall 13,336; 99% VaR 13,005.
                         component ES  marginal ES  own ES, alone  share of the book's ES %
    SHOP Jan 2027 200 C         3,139        3,190          7,414                        25
    SHOP Jan 2027 180 P         2,610        2,660          5,872                        21

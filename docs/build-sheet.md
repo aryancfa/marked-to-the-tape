@@ -242,7 +242,7 @@ Futures can't hedge volatility. A book that is long options loses when implied v
 
 - **Done when:** A fixed, stated rule and not a search: near-the-money XIU options (SXO as the alternative) in the maturity bucket where the book's vega sits, sized to bring that bucket's beta-weighted vega to zero, with SXF then re-sized for the delta the hedge adds. Hedge options marked at real settlements and charged half the quoted spread on entry and exit; any day marked from the model labelled. The closing chart shows three stages side by side: unhedged, delta-hedged, delta and vega hedged. What still remains (gamma, single-name vol moving differently from index vol) is named on the chart.
 - **Depends on:** C2, C4, B3
-- **State, 13 November 2026:** built (`scripts/book_hedge.py`, `tests/test_book_hedge.py`). An XIU straddle in the monthly nearest the book's vega-weighted expiry, sized each evening to the beta-weighted vega, betas from earlier days only, half the quoted spread charged. Result: no measurable reduction on either sample book, at a cost of $6,400 to $12,100 in spread. SXF is not re-sized as a future; the straddle's delta goes through the same index hedge. SXO was not tried (its file has settlements only).
+- **State, 13 November 2026:** built (`scripts/book_hedge.py`, `tests/test_book_hedge.py`). An XIU straddle in the monthly nearest the book's average option expiry weighted by contracts held (quantity times multiplier; vega weighting was specified, see R2b), sized each evening to the beta-weighted vega, betas from earlier days only, half the quoted spread charged. Result: no measurable reduction on either sample book, at a cost of $6,400 to $12,100 in spread. SXF is not re-sized as a future; the straddle's delta goes through the same index hedge, and the vega stage is added to the delta hedge with the index stand-in, not to the SXF row. SXO was not tried (its file has settlements only).
 
 ### C5. Component ES
 
@@ -285,6 +285,75 @@ Nobody clones a repo. A reader spends a few seconds, and a live link is what tho
 - **State, 13 November 2026:** `scripts/build_site.py` builds a static nine-page site from `reports/`, the README and two documents, and `.github/workflows/pages.yml` deploys it with GitHub Pages (public, not indexed). It is live only once the Pages source is set to GitHub Actions in the repository settings. Not built: the methodology PDF, the walkthrough, and reaching any day or expiry from the page.
 - **State, 14 November 2026, methodology:** `docs/methodology.md` (methods and settings only, no results; each setting named with the module that holds it), typeset by `scripts/methodology_pdf.py` into `reports/methodology.pdf` (five pages; reportlab, pinned, needed by this script only). The PDF carries the hash of the text it was typeset from and a test fails when the two differ. On the site as the Method page, with the PDF linked from it and from the overview. Still not built: the walkthrough, and reaching any day or expiry from the page.
 - **State, 15 November 2026, any day or expiry:** `scripts/day_tables.py` writes `reports/days/<name>_days.csv` and `_expiries.csv` from the front chart's cache (a reproduction step). The site's "Pick a day" page lists every name's days by month; each day has its own static page (`day/<NAME>/<date>.html`): the day's rows, rejections by reason, evidence split and funding spread, then every expiry with the three references in vol points, by moneyness bucket. Previous and next day and the same day on the other names are one click away; no script on the page. Published by bucket, never by strike: a strike with its moneyness gives the implied share price back. The tables stop if a day's counts differ from the day runner's own tally; a test holds their columns to a list of derived ones. Still not built: the walkthrough.
+
+## Review fixes  _(independent review, 15 November 2026)_
+
+From an independent review of commit `49ac726` (`docs/hermes-project-review-2026-11-15.md`),
+checked against the code before any change. Order: wording first (nothing a frozen rule
+computes changes), then coverage. Anything that moves a published in-sample figure is
+reported before and after, never silently replaced (`docs/frozen-test-plan.md`).
+
+**Wording only, no published figure changes**
+
+- **R3. Limits timestamp.** A row's delta, vega and gamma are the previous evening's. The
+  limits report says "usage on the latest day". **Done when:** the report and its chart
+  say the exposure carried into the day, and every number in it is unchanged.
+- **R4. Claims ahead of the statistics.** `docs/findings.md` calls the remaining
+  call-put gap real because it is positive on all seven names, while RY's own is t = 0.911.
+  **Done when:** the text gives each name's evidence as the report prints it, and says the
+  names share inputs, so seven signs are not seven independent tests.
+- **R5a. Provenance wording.** The site says every number came from one run whenever a
+  manifest exists. **Done when:** the stamp names the run's commit, says when it differs
+  from the commit the site was built from, and says when the run covered only some steps.
+- **R6. Stale findings.** The opening status, the dividend-hindsight paragraph and the
+  "not built" list in `docs/findings.md` describe an earlier state. **Done when:** a sweep
+  of the document against the build sheet's State lines finds no stale status claim.
+- **R2a. Vega hedge as built.** The expiry is chosen by contracts held (quantity times
+  multiplier), not by vega, and the vega stage sits on the index-proxy delta hedge, not on
+  the SXF row. **Done when:** the build sheet, methodology and report describe the rule
+  that runs.
+- **RB. Bootstrap error, where it exists.** `hedge.variance_removed_error` gives the share
+  hedges a 20-day block-bootstrap error and a regime split; the option-book stages have
+  neither, though the methodology listed them for every stage. **Done when:** the
+  methodology says which report has which; adding them to the book stages is R8.
+
+**Measurements that change published figures (decision needed first)**
+
+- **R1. Whole-book coverage.** A one-off check (not yet a committed report) found no
+  single position dropping out while its name stays in, but whole names do, on days
+  when some names' files had ended; the hedge table and the tail report's table on the
+  marks count those days. The VaR backtest and the limits report use only days the
+  whole book was valued. The scenario book values each name on its own latest cached
+  day, which is not the same day for every name. **Done when:** a committed report
+  prints position-by-position coverage; the hedge stages and the tail table are scored
+  on days every position was valued; the scenario book has one as-of date; a position
+  missing on a day stops the run or is counted; and the change is reported before and
+  after.
+  - **State, 15 November 2026:** `book_hedge.coverage` counts each day's positions held
+    and valued, and `reports/<book>_hedge.txt` prints it: no position dropped out while
+    its name was valued; whole names were missing on 4 of 127 days (bank-heavy) and 7
+    (diversified). The stages are repeated on the complete days: the delta hedge still
+    removes 96% and 62%. `reports/<book>_tail.txt` repeats its table on the marks on
+    those days (VaR and ES unchanged), prints each name's valuation date, and repeats the
+    scenario ES with every name on the earliest one (`scenarios.reprice` takes an as-of
+    date): 100,519 against 101,261 published (bank-heavy), 13,336 against 12,627
+    (diversified). Published figures are kept; the new ones sit beside them. Left: the
+    stress, episode and grid reports still value each name on its own latest day.
+- **R2b. Vega-weighted expiry.** Weighting by vega is what was specified. The vega hedge is
+  frozen: a code change waits for your decision and is reported both ways.
+- **R8. Block-bootstrap error on the book stages.** `hedge.variance_removed_error` and the
+  regime split, added beside each option-book stage; no rule changed. **Done when:** each stage prints the error and small gaps between
+  stages are no longer read as improvements.
+
+**Engineering**
+
+- **R5b. Reproduction safety.** An interrupted run (not a failed step) does not restore
+  `reports/`; a partial run (`--only`) replaces the manifest; Pages deploys without waiting
+  for the tests. **Done when:** each is closed and has a test where one can be written.
+- **R7. Capture before routine use.** `capture_ibkr.py --date` can file today's quotes
+  under a past day; a second run overwrites the CSV but logs twice; one timestamp covers
+  every batch; the day runner reads only Montreal files. **Done when:** each is fixed and
+  the gateway has been run once with the user signed in.
 
 ## Deferred (add later, in this order)
 

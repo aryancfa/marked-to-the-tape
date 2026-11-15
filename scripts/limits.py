@@ -181,7 +181,8 @@ def main() -> None:
     say("   factor, everything else still. The tolerance is made up, like the book.")
     how = {"mapped delta": f"index dollars; the index's 99th-percentile daily move "
                            f"{100 * idx_move:.2f}%, from the {WINDOW} sessions before {first:%d %b %Y}",
-           "ES": f"one-day {100 * ES_LEVEL:.1f}% expected shortfall, dollars; equal to the "
+           "ES": f"one-day {100 * ES_LEVEL:.1f}% expected shortfall through delta, gamma "
+                 "and vega (not the tail report's ES, repriced in full), dollars; equal to the "
                  "tolerance (for a normal, 97.5% ES = 99% VaR)"}
     vega_how = (f"dollars per vol point, net; the 99th-percentile daily change in the book's "
                 f"at-the-money vols, {v_all:.2f} points ({len(vch)} changes, every name and "
@@ -201,8 +202,9 @@ def main() -> None:
     say("   on file: the one limit set with some hindsight.")
     say()
     last = H.index.max()
-    say(f"3. USAGE on the latest day the whole book was valued, {last:%d %b %Y} "
-        f"(green under {100 * AMBER:.0f}%, amber to {100 * RED:.0f}%, then a breach)")
+    say(f"3. USAGE carried into {last:%d %b %Y}, the latest day the whole book was valued: "
+        "the exposure set at the previous evening's close, not that day's close")
+    say(f"   (green under {100 * AMBER:.0f}%, amber to {100 * RED:.0f}%, then a breach)")
     for k in lim:
         if k not in H:
             continue
@@ -214,7 +216,8 @@ def main() -> None:
     if missing:
         say(f"   Not in mapped delta (no beta yet): {', '.join(missing)}")
     say()
-    say(f"4. USAGE OVER TIME: {len(H)} days the whole book was valued")
+    say(f"4. USAGE OVER TIME: {len(H)} days the whole book was valued, each the exposure "
+        "carried into the day")
     s = pd.DataFrame({"latest %": 100 * U.iloc[-1], "highest %": 100 * U.max(),
                       "days amber": (U >= AMBER).sum() - (U > RED).sum(),
                       "days in breach": (U > RED).sum()})
@@ -243,7 +246,7 @@ def draw(U: pd.DataFrame, stem: str) -> None:
     for x in (100 * AMBER, 100 * RED):
         ax1.axvline(x, color="black", lw=0.6, ls=":" if x < 100 else "-")
     ax1.set_xlabel("usage, % of limit")
-    ax1.set_title(f"{stem}: usage on {U.index[-1]:%d %b %Y}", fontsize=10)
+    ax1.set_title(f"{stem}: usage carried into {U.index[-1]:%d %b %Y}", fontsize=10)
     for k in U.columns:
         ax2.plot(U.index, 100 * U[k], lw=1.1, label=k)
     ax2.axhline(100 * RED, color="black", lw=0.6)

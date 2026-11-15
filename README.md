@@ -2,12 +2,14 @@
 
 A risk system for a small book of Canadian listed options. It prices positions with its own engine for American options with discrete dividends. It compares the implied volatilities with Montreal Exchange settlements and with an independent source. Then it replays real historical days and shows what risk is left after hedging with SXF, ZEB and XIU.
 
-**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 93 steps) and 534 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository; any name, day and expiry can be opened from its "Pick a day" page (`scripts/day_tables.py`, `reports/days/`). How every number is made: [`docs/methodology.md`](docs/methodology.md), also typeset as [`reports/methodology.pdf`](reports/methodology.pdf).
+**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. One command (`scripts/reproduce_all.py`, 93 steps) rebuilds the reports and records its commit and steps in a manifest; the committed manifest is from an earlier commit until the next full run, and the runner's known gaps are listed in the build sheet (R5). The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). IBKR option-chain snapshot capture is written but untested against the gateway and not integrated into the report pipeline. The walkthrough is unfinished. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository; any name, day and expiry can be opened from its "Pick a day" page (`scripts/day_tables.py`, `reports/days/`). How every number is made: [`docs/methodology.md`](docs/methodology.md), also typeset as [`reports/methodology.pdf`](reports/methodology.pdf).
 
 ## What it has found so far
 
-On RY options, May to November 2026. The full account, with what was rejected and
-what is still not trusted, is in [docs/findings.md](docs/findings.md).
+The first findings concern RY. Later sections cover other names, sample books and
+historical share returns. The figures come from the reports named beside them.
+The full account, with what was rejected and what is still not trusted, is in
+[docs/findings.md](docs/findings.md).
 
 - **The bid-ask spread is the wrong yardstick for model error.** Quotes are wide, but
   midpoints agree with each other far more closely than the spread suggests. Judged
@@ -42,12 +44,13 @@ what is still not trusted, is in [docs/findings.md](docs/findings.md).
   seven were a model input, five were this tool, one was a stale price in the
   file, and none was a bad exchange quote. So the review queue names a likely
   cause from the neighbouring strikes instead of calling the quote wrong.
-- **A delta hedge set the evening before removes 62 to 96% of a book's daily
-  variance,** and honest ratios cost nothing against hindsight ones. What is left
-  is almost all single names moving apart from the index.
-- **An index vega hedge did not help.** Selling XIU vol against single-name vol
-  left risk unchanged and cost the spread, because a single name's implied vol
-  barely follows the index's from day to day.
+- **The published delta-hedge point estimates are similar** for earlier-day and
+  hindsight ratios. The comparison remains provisional until all stages are
+  scored on complete-book days. The option-book report gives no uncertainty
+  interval for variance removed.
+- **The implemented XIU hedge showed little benefit** on these books after
+  spread costs. No uncertainty interval is reported. This does not reject
+  index-option hedging generally, or establish performance in a sell-off.
 
 - **A VaR set from a calm year failed when the market got livelier.** On the
   bank-heavy book the loss went past a day-ahead 99% VaR on 5 of 123 days, where
@@ -78,8 +81,10 @@ top row uses every quote; the bottom row only the tightest third.
   file, calls and puts apart.
 
 A cell is in bold only when its mean is more than two standard errors from zero on
-at least five days. Everything else is not distinguishable from zero. The standard
-error allows each day to resemble the three or four before it (Newey-West), because
+at least five days. The screen identifies means distinguishable from zero under
+its assumptions. Failing it does not establish a zero mean, and passing it does
+not establish the cause. The standard error allows each day to resemble the three
+or four before it (Newey-West), because
 a slow-moving quote or a slightly wrong dividend pushes neighbouring days the same
 way. That widens it by about 1.1 times on the first two panels and 1.65 times on the
 exchange panels, compared with treating days as independent.
@@ -240,28 +245,29 @@ What it shows:
   tied to cash flow, which the rule knows nothing about.
 - **The pooled spread costs RY a little.** For its first twenty days RY has no
   estimate of its own and takes the pool's 45 to 49 basis points, well above its
-  own 18. Its declared-dividend gap is -0.06 (2.2 standard errors) on 104 days,
+  own 18. Its declared-dividend gap is -0.06 (2.2 standard errors) on 96 days,
   where on the 92 days funded by its own spread it was -0.02.
 - **Projected dividends are the weak input, as expected.** The gaps there are larger
   and of both signs: the bank raise rule is too low for TD and BNS, and "same as
   last year" is too low for ZEB and Barrick and too high for XIU.
-- **Thirty tests at once, allowed for.** The table holds 28 t statistics, and about
-  1.4 would pass two standard errors by chance if every true gap were zero. Sixteen
-  pass. After a correction for the number of tests (Benjamini-Hochberg, and the
-  stricter Benjamini-Yekutieli, which assumes nothing about how the names move
-  together; `src/multitest.py`), twelve remain. On declared dividends only CNR
-  (-0.11) and Barrick (-0.23, on two days, so not to be leaned on) survive. RY's
-  -0.06 and CNQ's -0.17 do not: on this evidence they could be chance. Ten of the
+- **Multiple tests at once, allowed for.** The table holds 28 t statistics, and
+  about 1.4 would pass two standard errors by chance if every true gap were zero.
+  Sixteen pass. Thirteen remain under Benjamini-Hochberg and twelve under the
+  stricter Benjamini-Yekutieli rule (`src/multitest.py`). On declared dividends
+  only CNR (-0.11) and Barrick (-0.23) survive. Barrick has too few days for a
+  reliable p-value. RY's -0.06 and CNQ's -0.17 do not: on this evidence they could
+  be chance. Ten of the
   thirteen projected-dividend gaps survive, which says again that the projection is
   the weak input. Surviving is not the same as large: CNR's gap is real and still
   about a tenth of a vol point.
 
 ### Next year's dividends, three ways
 
-For the dividends not yet declared, three sources that share nothing
-(`scripts/dividend_three_way.py`): this project's rule, the amount the options imply,
-and analysts' consensus from I/B/E/S (as of 20 August 2026). Fiscal-year totals per
-share:
+Three views of dividends are compared (`scripts/dividend_three_way.py`): the
+schedule rule, a hybrid estimate replacing schedule amounts with option-implied
+amounts where available, and analysts' consensus from I/B/E/S. The options column
+still uses the rule where no amount could be isolated, so these are not independent
+estimates. Fiscal-year totals per share:
 
 | Name | Fiscal year to | Rule | Options | Analysts (number) |
 |---|---|---|---|---|
@@ -274,11 +280,10 @@ share:
 | CNR | December 2027 | 3.77 | 3.80 | 3.82 (12) |
 | BCE | December 2027 | 1.75 | 1.71 | 1.76 (10) |
 
-On the years already declared the schedule matches analysts to within about 1%,
-which checks the bookkeeping. On next year's, the rule is within 2.2% of analysts on
-average and the options within 2.0%. On RY and BNS the options and the analysts
-agree with each other against the rule. Suncor's consensus predates its November
-raise, so that row flatters nobody. The model's inputs are unchanged: this is a
+Across fiscal years containing a projected dividend, the mean absolute difference
+from analyst consensus is 1.8% for the rule and 2.4% for the hybrid options
+estimate, over 11 name-years (`reports/dividend_three_way.txt`). Agreement does not
+independently check the bookkeeping. The model's inputs are unchanged: this is a
 comparison, and a dividend taken from the options would make calls and puts agree
 by construction.
 
@@ -289,11 +294,14 @@ by construction.
 A Greeks report takes the day's marks as given. This one tests each mark before its
 P&L is believed (`scripts/book_report.py`, `src/replay.py`; numbers in
 `reports/bank_heavy_book.txt` and `reports/diversified_book.txt`). Two made-up
-books, struck near the money, valued at the exchange's own marks on every day from
-8 May to 10 November 2026.
+books, struck near the money, valued at the exchange's own marks where available.
 
-**Every position could be marked.** 1,244 option position-days in the bank-heavy
-book and 1,503 in the diversified one, all from a two-sided quote or a trade.
+Each position's valuation is checked. A day counts a position only if it was valued
+that day and the evening before, and the hedge report now counts them: no position
+dropped out while its name was valued, but whole names were missing on 4 of 127 days
+(bank-heavy) and 7 (diversified), where some names' files had ended. Scored only on
+days every position was valued, the delta hedge still removes 96% and 62%; both tables
+are printed. The VaR backtest and the limits report leave those days out.
 
 **The day's P&L is explained with nothing left over.** Each option is repriced one
 input at a time: a day passes (decay, funding, an expected ex-dividend drop), the
@@ -460,15 +468,13 @@ index leg in the future itself.
   before. The same hedge with ratios fitted on every day at once is shown beside
   it; nobody could have traded those.
 - **Delta hedged, index leg in SXF:** the same ratios, with the index part put on
-  in the SXF future: whole contracts of $200 a point, the nearest contract more
-  than 5 days from expiry (rolled then), scored on the future's own settlements,
-  half the quoted spread paid on every contract traded. The gap to the row above
-  is what the real instrument adds: the future's basis to the index, rounding to
-  whole contracts, and cost.
-- **Delta and vega hedged:** on top of that, an XIU straddle in one stated expiry,
-  sized each evening so the book's beta-weighted vega is zero, with half the
-  quoted spread charged on every contract traded. The rule is fixed in the script
-  and was not searched.
+  in the SXF future. The simulation trades whole contracts. It charges half the
+  spread where quoted and a full tick otherwise. Days without settlements at both
+  closes earn nothing. The comparison includes these conventions as well as basis,
+  rounding and cost.
+- **Delta and vega hedged:** an XIU straddle added to the index-proxy delta hedge,
+  not the SXF row. Its added delta is hedged through the proxy. Sizing targets
+  beta-weighted vega, subject to whole contracts and available estimates.
 
 | Daily standard deviation | Bank-heavy | Diversified |
 |---|---|---|
@@ -483,30 +489,24 @@ index leg in the future itself.
 The three questions the chart has to answer:
 
 1. **How much does each hedge remove?** The delta hedge removes 96% of the
-   bank-heavy book's daily variance and 62% of the diversified book's. Honest
-   ratios do as well as hindsight ones. Putting the index leg in the SXF future
-   costs little: what is left widens by 5% (bank-heavy) and 2% (diversified).
-   The bank-heavy book's index leg averages under one contract, because its
-   banks are hedged mostly through ZEB, so rounding to whole contracts leaves it
-   unhedged on many days. The vega hedge removes nothing measurable.
+   bank-heavy book's daily variance and 62% of the diversified book's, and ratios
+   fitted with hindsight do no better. The comparison remains provisional until
+   all stages are scored on complete-book days. The option-book report gives no
+   uncertainty interval for variance removed.
 2. **What is the remainder made of?** Single names moving apart from the index and
    their sector: 89% of what is left on the bank-heavy book and 94% on the
    diversified one. Vol is 11% and 6%. Gamma, carry and dividend news are about
    nothing.
-3. **Is it noise, or could the next instrument hedge it?** Mostly neither. It has
-   little day-to-day pattern (lag-1 autocorrelation within 0.13 of zero; a test
-   over ten lags finds structure in the diversified book only). And it does not
-   move with XIU's implied vol (correlation +0.05), so index options are the wrong
-   tool. Single-name risk is hedged with single names.
+3. **Is it noise, or could the next instrument hedge it?** It has little day-to-day
+   pattern (lag-1 autocorrelation 0.02 and -0.11; a test over ten lags finds
+   structure in the diversified book only), and it moves with XIU's at-the-money vol
+   at a correlation of +0.05 on both books. Low correlation in this sample does not
+   establish that index options are generally the wrong hedge.
 
-**Why the vega hedge did not help.** It sells index vol against single-name vol.
-A name's at-the-money vol moved only 0.2 to 0.7 points for each point of XIU's, by
-regression on earlier days, and for several names the link was about zero. On the
-days it was on (68 and 76) the vol part of the P&L did not get smaller, and
-trading the straddle cost $12,100 and $6,400 at half the quoted spread. Two
-caveats: the betas come from noisy daily at-the-money vols, which biases them
-toward zero, and this is six calm months. In a sell-off, single-name and index vol
-move together far more than this.
+The implemented XIU hedge showed little benefit on these books after spread
+costs. No uncertainty interval is reported. Noisy vol estimates and the calm sample
+limit the interpretation. This does not reject index-option hedging generally,
+or establish how it would perform in a sell-off.
 
 The same delta hedge on twelve years of daily share returns, without options, is
 in the next section but one.
@@ -529,9 +529,9 @@ The options' delta is also mapped to the TSX 60 by each name's beta over 250 day
 $3.8 million of share delta is $3.2 million of index on the bank-heavy book, and
 $1.1 million is $0.9 million on the diversified one. The correlation sits beside
 each beta, because a beta means something only where the index explains the name.
-For CNQ, Suncor, BCE, Enbridge and CNR it does not (correlation -0.12 to +0.42):
-their betas are close to noise, and an index future neither hedges nor offsets
-their delta. CNQ's and Suncor's betas over the last year are even negative. The
+For CNQ, Suncor, BCE, Enbridge and CNR, weak recent correlation limits what an
+index hedge can explain. It does not establish that the hedge provides no offset.
+CNQ's and Suncor's betas over the last year are even negative. The
 stress test used to apply those betas to a crash, which moved both names up when
 the index fell 20%. It now uses betas from the market's own bad days for falls
 (next section).
@@ -542,8 +542,9 @@ closing chart.
 
 ## Stress, tail risk and whether the VaR held
 
-Everything in this section that prices a move is a **model price on a rule-based
-vol**, not a mark. The parts that use the book's actual marked P&L say so.
+Stress and scenario ES use model prices on rule-based vol. Episode replay uses
+observed New York vol changes where available and the rule elsewhere. The parts
+that use the book's actual marked P&L say so.
 
 ### The vol rule is a control (C1)
 
@@ -591,8 +592,8 @@ and its size are options of the script (`--rule`, `--beta`, `--crash`,
 
 What the days on file show: at-the-money vol moved a median -0.13 points per 1%
 share move (between -0.03 and -0.25 by name). Those are six months with no crash,
-so that is the response to ordinary days and a floor on the size, which is why the
-number is a control and not a fit.
+so that is the response to ordinary days, not an established floor for a crash
+response. The stress-response size remains a control, not a fit.
 
 ### A move that takes days, not a second (B6)
 
@@ -613,9 +614,10 @@ sessions; over fifteen, XIU's 25 November distribution shows up as its own line.
 
 A made-up shock is a number someone typed. `scripts/replay_episodes.py` takes four
 real stretches (January 2015, February to March 2020, April 2020's negative oil
-price, and the 2022 to 2023 rate cycle) and replays them on the book as it stands
-today: every name moves exactly as it moved then, all together, day by day, with
-time passing as it did (B6). No beta stands between the history and the result.
+price, and the 2022 to 2023 rate cycle). Each name starts from its own latest
+cached valuation, not one common book date. Names move as they did in the episode.
+Episodes are aged only where they fit before expiry; longer episodes are
+instantaneous shocks (B6). No beta stands between the history and the result.
 
 The vol comes from what the market showed. For each name listed in New York,
 OptionMetrics has the at-the-money implied vol its options carried on every day
@@ -698,11 +700,14 @@ Still missing from C3: no episode has a real Montreal settlement.
 
 ### Which position drives the worst days (C5)
 
-Six months has three days in its 97.5% tail, too few to split among fourteen
-positions. So `scripts/tail_risk.py` reprices today's book in full under every
-day's joint moves since 2015 (about 2,900 scenarios, vol by the beta rule) and
-takes each position's average P&L on the book's worst 2.5% of them. Those
-components add up to the book's expected shortfall exactly.
+`scripts/tail_risk.py` reprices the book in full under every day's joint moves since
+2015 (vol by the beta rule). Valuation starts each name from its own latest cached
+day, not one common book date; the report prints which date each name used, and
+the ES with every name valued on one date beside it (bank-heavy 101,261 as published,
+100,519 on 4 November; diversified 12,627 and 13,336). A position that cannot be valued would be left
+at zero and named in a NOTE line; the current reports have none. Component ES is
+each position's average P&L on the book's worst days. Those components add up to
+the book's expected shortfall exactly.
 
 ![Bank-heavy book: the VaR against what happened, and component ES](reports/bank_heavy_tail.png)
 
@@ -780,14 +785,15 @@ that much on a 1-in-100 day move of its own factor:
 |---|---|---|
 | Mapped delta | index dollars; the TSX 60's 99th-percentile daily move, 2.02%, from the 250 sessions before the first day | $2.47 million |
 | Vega, per maturity bucket and in total | dollars per vol point; the 99th-percentile daily change in the book's at-the-money vols | $31,400 (bank-heavy), $27,000 (diversified) |
-| One-day 97.5% expected shortfall | the tolerance itself (for a normal, 97.5% ES equals 99% VaR) | $50,000 |
+| One-day 97.5% expected shortfall | through delta, gamma and vega, distinct from fully revalued scenario ES; the tolerance itself | $50,000 |
 
-| Usage on 4 November | Bank-heavy | Diversified |
+| Exposure carried into 4 November, from the previous valuation | Bank-heavy | Diversified |
 |---|---|---|
 | Mapped delta | 105%, a breach (10 days in breach of 123, 86 amber) | 20% |
 | Expected shortfall | 130%, a breach (44 days in breach) | 38% |
 | Vega, all buckets | 14% | 13% |
 
+Usage describes exposure carried into the day, not that day's closing exposure.
 The bank-heavy book is a directional bet on the banks, and its limits say so. Its
 vega is small next to its delta, as the closing chart found.
 
@@ -837,9 +843,9 @@ of 22 positions sits in a series that did not trade at all in 20 sessions. A des
 leaves such positions by asking market makers for a price, which is the mark the
 review queue checks.
 
-Not measured: New York trading after 16:00 and intraday time buckets. Both regular
-sessions run 9:30 to 16:00 Eastern and the daily figure does not separate extended
-hours; that needs intraday bars, which the Interactive Brokers capture can record.
+Not measured: New York trading after the close and intraday volume buckets. These
+need a separate intraday-bar capture path. The current Interactive Brokers script
+records option-chain snapshots, not intraday bars.
 
 ## Implied vol against the vol that followed (B9)
 
@@ -934,13 +940,12 @@ What it shows:
 - **The hedge holds up in stress** (it removes more variance on stressed days than
   on calm ones for every name but ABX), and **the ratio moves from year to year**,
   a little for the banks and a great deal for the energy names.
-- **In March 2020** the five-bank basket's daily returns summed to -42% unhedged and
-  +6% hedged.
+- **Over February to March 2020** the five-bank basket returned -37.5% unhedged
+  and +5.7% hedged, compounded from daily returns.
 
-What this is not: it holds shares, so it says nothing about gamma or vega, which is
-most of what is left on an options book. The TSX 60 index stands in for the SXF
-future (the index fund XIU tracks it with a correlation of 0.994). Options are the
-next layers.
+This share-only experiment does not measure gamma or vega. The option-book report
+splits what the delta hedge leaves into delta the hedge missed, gamma, vol, carry
+and dividend news.
 
 ## Engine check: against OptionMetrics on the New York listings
 
@@ -953,15 +958,13 @@ Seven names, June to August 2025 (`scripts/engine_check.py`).
 
 | | Options | Mean absolute difference |
 |---|---|---|
-| No dividend before expiry (only the engines can differ) | 7,884 | 0.006 to 0.011 vol points by name; all within 0.25 |
+| No dividend before expiry | 7,884 | 0.006 to 0.011 vol points by name; all within 0.25 |
 | A dividend before expiry | about 15,000 | 1 to 3 vol points |
 
 The top row of the chart is the first case and the bottom row the second, for RY.
-The engines agree to within this solver's own rounding. Where a dividend is involved
-the two sides assume different dividends: these companies declare in Canadian
-dollars and the options are in US dollars. Market prices settle which is right.
-Taking the Canadian amount at face value leaves calls 1.8 to 4.2 vol points above
-puts on every name; converting it leaves 0.1 to 1.1.
+The engines agree closely where no dividend intervenes. Dividend-spanning options
+remain discrepant. Currency conversion reduces the call-put gap, but the vendor's
+dividend assumptions are unavailable, so the comparison does not isolate the cause.
 
 This is not a same-day comparison of the two markets. OptionMetrics on this
 subscription ends in August 2025 and the Montreal files start in May 2026.
@@ -986,7 +989,7 @@ The chart shows the mean gap for each expiry over 104 days (8 June to 4 November
 | Expiries | Futures only | Plus funding spread |
 |---|---|---|
 | Monthly, over 60 days, declared dividends | +0.16 | -0.06 |
-| Monthly, over 60 days, projected dividends | +0.39 | +0.01 |
+| Monthly, over 60 days, projected dividends | +0.39 | +0.02 |
 | Weekly, up to 30 days | -0.06 | -0.02 |
 
 What it shows:
@@ -1002,7 +1005,7 @@ What it shows:
    twenty days, the median across other names). On expiries that rest on declared
    dividends the gap falls from +0.16 to -0.06, which is 2.2 standard errors below
    zero: the early days are slightly over-funded by the pooled figure. On
-   projected dividends it is +0.01, well inside one standard error.
+   projected dividends it is +0.02, well inside one standard error.
 4. **Dividend projections are tested, not fitted.** 2027 dividends are projected by
    a rule from RBC's own history (a raise twice a year, the size of last year's).
    The market prices about half that raise: on the same days projecting none
@@ -1016,24 +1019,27 @@ What it shows:
 
 Limits. The spread is fitted from the same option market the check then tests, so
 on rates this check is not independent; it is labelled "fitted from options"
-wherever it is used. The futures curve is independent, and it shows a spread is
-needed but cannot say what it should be. Standard errors allow for dependence
-between neighbouring days: the funding spread is 17.7 basis points with a standard
-error of 2.0, where the plain formula gave 1.2. The share price is implied from the nearest monthly
+wherever it is used. The spread is an option-implied carry adjustment, conditional
+on the share price, dividends and pricing conventions. The futures curve supplies
+a separate rate reference, not an independent measurement of funding cost.
+Standard errors allow for dependence between neighbouring days: the funding
+spread is 17.6 basis points with a standard error of 2.0, where the plain formula
+gave 1.2. The share price is implied from the nearest monthly
 expiry, so that expiry is left out on the days it is used. This is one name over
 six months.
 
 ## Reproduce every number
 
-With the data files in place (see Data below):
+For the RY charts, with the data files in place (see Data below):
 
 ```
 .venv\Scripts\python scripts\reproduce.py RY
 ```
 
-That prices every day, draws both RY charts under `reports/`, and writes every
-reported number to `reports/ry_numbers.txt`. The first run takes about a quarter of
-an hour on eight cores; later runs load from a local cache in seconds. The numbers
+That runs RY's day runner and front-chart script, draws their charts under
+`reports/`, and saves their printed output to `reports/ry_numbers.txt`. The
+project-wide report runner is `scripts/reproduce_all.py`. Later runs load from a local
+cache. The numbers
 file holds derived statistics only and is in the repository, so the write-up can be
 checked against it without the licensed data.
 
@@ -1043,11 +1049,8 @@ This repository contains no exchange or vendor data. Montreal Exchange, Interact
 
 ### Montreal Exchange daily summary files (CAP)
 
-Downloaded by hand from the exchange's website. Earliest date held: 8 May 2026 for RY
-(124 trading days to 4 November 2026) and 10 September 2026 for XIU (41 trading days to
-6 November 2026; four earlier months are still to download, in pieces of about two
-months because the site limits the file size). The trading calendar accounts for every
-date in both files, with none missing and none on a holiday.
+Downloaded by hand from the exchange's website. The committed summary now covers
+124 RY days and 126 XIU days (`reports/all_names_summary.txt`).
 
 Columns, identical in both files:
 
@@ -1057,7 +1060,7 @@ Last Close Price, Net Change, Open Price, High Price, Low Price, Total Value,
 Nb. Trades, Settlement Price, Open Interest, Implied Volatility,
 Accrued Financing Value, Accrued Financing Date, CORRA Rate`
 
-Notes from the header and counts only:
+Notes from the original two-file inspection, not a current full-sample inventory:
 
 - `Call/Put` is 0 for a call and 1 for a put, confirmed two ways: the series symbol
   carries the letter, and call prices fall as the strike rises in every chain.

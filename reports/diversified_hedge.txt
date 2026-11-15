@@ -24,6 +24,19 @@ that puts the index leg in the future itself.
    of which trading cost -2,180. Contracts held: mean 1.8;
    rolls 2; days with no settlement on both closes, earning nothing: 4.
    On the 76 days a vega hedge was on: daily st. dev. 4,559 delta hedged, 4,608 with the vega hedge (-2% of that variance removed).
+   COVERAGE. A position counts on a day only if it was valued that day and the
+   evening before. Of the 127 days, 120 had every position the book held valued.
+   No position dropped out on a day another position on its name was valued.
+   Days a whole name had no position valued: BCE 7, RY 4, TD 4, MFC 4, CNQ 4, ENB 4, CNR 4, SXF 4, XIU 2.
+   The same stages on the 120 days every position was valued. The table
+   above counts every day, including days part of the book is missing; it is
+   kept as published, and this one is set beside it.
+                                  daily st. dev. variance removed % 97.5% shortfall worst day    sum lag-1 autocorr. structure over 10 lags
+   unhedged                                7,115               0.00          25,944   -33,404 20,763           -0.25                     no
+   delta hedged                            4,414                 62           8,695   -10,127 38,630           -0.12                    yes
+   delta hedged, hindsight ratios          4,496                 60           8,478    -9,213 39,256           -0.06                     no
+   delta hedged, index leg in SXF          4,413                 62           8,200    -9,001 50,460           -0.07                     no
+   delta + vega hedged                     4,465                 61           8,853   -10,127 36,588           -0.13                    yes
 
 2. WHAT THE DELTA HEDGE LEAVES, AND WHAT IT IS MADE OF
                            daily st. dev.     sum  share of the residual's variance %

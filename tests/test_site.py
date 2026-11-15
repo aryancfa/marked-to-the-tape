@@ -131,3 +131,17 @@ def test_a_figure_the_reports_do_not_hold_stops_the_build():
         bs.figure("all_names_summary.txt", r"no such line (\d+)")
     with pytest.raises(SystemExit):
         bs.figure("no_such_report.txt", r"(\d+)")
+
+
+def test_the_provenance_line_says_only_what_the_manifest_shows():
+    m = {"commit": "7b445f5abc", "started": "2026-11-14T10:00:00", "only": "everything",
+         "steps": [{}] * 92, "inputs": {"a": 1, "b": 2}}
+    same = bs.provenance(m, "7b445f5abc")
+    assert "commit 7b445f5" in same and "92 steps (every step)" in same
+    assert "built from" not in same and "Every number" not in same
+    assert "does not check the reports" in same
+    later = bs.provenance(m, "49ac726def")
+    assert "built from commit 49ac726" in later
+    part = bs.provenance({**m, "only": "hedge"}, None)
+    assert "(only hedge)" in part and "built from" not in part
+    assert "uncommitted" in bs.provenance({**m, "uncommitted_changes": True}, None)

@@ -26,6 +26,7 @@ import html
 import json
 import re
 import shutil
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -216,6 +217,35 @@ def chart(name: str, alt: str) -> str:
 
 def folded(title: str, body: str) -> str:
     return f"<details><summary>{html.escape(title)}</summary>{body}</details>"
+
+
+def built_from() -> str | None:
+    """The commit this site is built from, or None outside a git checkout."""
+    try:
+        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
+                              text=True, check=True).stdout.strip() or None
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def provenance(m: dict, head: str | None) -> str:
+    """The footer's line on where the numbers came from. It says only what the
+    manifest shows: which commit the run used, whether it ran every step, and
+    whether the site is built from a later commit than that run."""
+    run = str(m.get("commit"))[:7]
+    steps = len(m.get("steps", []))
+    scope = ("every step" if m.get("only", "everything") == "everything"
+             else f"only {m['only']}")
+    text = (f"The recorded run: commit {run}, started {m.get('started', '?')}, "
+            f"{steps} steps ({scope}), from {len(m.get('inputs', {}))} input files "
+            "identified by hash. The manifest records that run; it does not check the "
+            "reports shown here against it.")
+    if m.get("uncommitted_changes"):
+        text += " That run had uncommitted changes."
+    if head and not head.startswith(str(m.get("commit"))):
+        text += (f" This site is built from commit {head[:7]}: a report changed since that "
+                 "run was not produced by it.")
+    return text
 
 
 def page(file: str, body: str, stamp: str, title: str | None = None, up: str = "") -> str:
@@ -496,9 +526,7 @@ def build(out: Path) -> list[Path]:
     stamp = "Not yet reproduced from a clean commit."
     if (REPORTS / "manifest.json").exists():
         m = json.loads((REPORTS / "manifest.json").read_text(encoding="utf-8"))
-        stamp = (f"Every number here was produced by one run of commit {str(m.get('commit'))[:7]}"
-                 f", started {m.get('started', '?')}, {len(m.get('steps', []))} steps, from "
-                 f"{len(m.get('inputs', {}))} input files identified by hash.")
+        stamp = provenance(m, built_from())
 
     pages: dict[str, str] = {}
     pages["index.html"] = (

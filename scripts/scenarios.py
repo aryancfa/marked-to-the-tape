@@ -19,6 +19,7 @@ Every figure from here is a MODEL price on a rule-based vol (hard rule 6).
 from __future__ import annotations
 
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -105,13 +106,16 @@ def crash_betas(table: pd.DataFrame, share: float = CRASH_SHARE) -> pd.DataFrame
     return pd.DataFrame(out).T
 
 
-def latest_inputs(name: str):
-    """One underlying's latest cached day: (day, DayInputs, the day runner's
-    inverted table). The rate curve carries the funding spread the day was
-    priced with, if any, so a position valued here matches the book report's
-    mark on that day."""
+def latest_inputs(name: str, asof: date | None = None):
+    """One underlying's latest cached day, or its latest on or before `asof`
+    when given: (day, DayInputs, the day runner's inverted table). The rate
+    curve carries the funding spread the day was priced with, if any, so a
+    position valued here matches the book report's mark on that day."""
     days = cached_days(name)
-    day = max(days)
+    on_or_before = [d for d in days if asof is None or d <= asof]
+    if not on_or_before:
+        raise SystemExit(f"{name}: no cached day on or before {asof}")
+    day = max(on_or_before)
     r = days[day]
     opts = load_mx_options(mx_files(name))
     opts = opts[(opts["underlying"] == name) & (opts["date"].dt.date == day)]
@@ -186,22 +190,26 @@ def reprice(task) -> dict:
     """Runs in a worker. One underlying's positions under an array of
     returns: dollars of P&L, one row per scenario and one column per position.
 
-    task = (name, positions, returns, rule, params); params are shocked_vol's
-    keyword arguments (beta, crash, steepen)."""
-    name, positions, moves, rule, params = task
+    task = (name, positions, returns, rule, params[, asof]); params are
+    shocked_vol's keyword arguments (beta, crash, steepen); asof, if given,
+    values the book on that day or the name's latest before it."""
+    name, positions, moves, rule, params, *rest = task
+    asof = rest[0] if rest else None
     moves = np.asarray(moves, dtype=float)
     cols, notes = {}, []
     if name == "SXF":
         fut = load_mx_futures(mx_files("SXF"))
         for pos in positions:
             f = fut[fut["expiry"].dt.date == pos.expiry].sort_values("date")
+            if asof is not None:
+                f = f[f["date"].dt.date <= asof]
             if f.empty:
                 raise SystemExit(f"SXF {pos.expiry}: no such contract in the exchange files")
             level = float(f["settle"].iloc[-1])
             cols[label(pos)] = pos.quantity * pos.multiplier * level * moves
         return dict(name=name, pnl=cols, notes=notes, day=f["date"].iloc[-1].date())
 
-    day, inp, inv = latest_inputs(name)
+    day, inp, inv = latest_inputs(name, asof)
     inv = inv[inv["iv"].notna()]
     exp = pd.Series([e.date() if hasattr(e, "date") else e for e in inv["expiry"]],
                     index=inv.index)

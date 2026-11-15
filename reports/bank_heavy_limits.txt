@@ -35,7 +35,7 @@ Mark history: the Montreal files on disk (the Interactive Brokers capture has no
    Each limit is the exposure that loses that much on a 1-in-100 day move of its own
    factor, everything else still. The tolerance is made up, like the book.
    mapped delta       limit   2,469,825   index dollars; the index's 99th-percentile daily move 2.02%, from the 250 sessions before 11 May 2026
-   ES                 limit      50,000   one-day 97.5% expected shortfall, dollars; equal to the tolerance (for a normal, 97.5% ES = 99% VaR)
+   ES                 limit      50,000   one-day 97.5% expected shortfall through delta, gamma and vega (not the tail report's ES, repriced in full), dollars; equal to the tolerance (for a normal, 97.5% ES = 99% VaR)
    vega, all buckets  limit      31,403   dollars per vol point, net; the 99th-percentile daily change in the book's at-the-money vols, 1.59 points (991 changes, every name and bucket)
    vega 31-90d        limit      31,403   the same, per bucket
    vega 91-180d       limit      31,403   the same, per bucket
@@ -47,7 +47,8 @@ Mark history: the Montreal files on disk (the Interactive Brokers capture has no
    Vol history on disk starts in May 2026, so this move size is measured on the days
    on file: the one limit set with some hindsight.
 
-3. USAGE on the latest day the whole book was valued, 04 Nov 2026 (green under 75%, amber to 100%, then a breach)
+3. USAGE carried into 04 Nov 2026, the latest day the whole book was valued: the exposure set at the previous evening's close, not that day's close
+   (green under 75%, amber to 100%, then a breach)
    mapped delta         2,584,322 of 2,469,825    105%  ##################### breach
    ES                      65,015 of    50,000    130%  ########################## breach
    vega, all buckets        4,257 of    31,403     14%  ###                  green
@@ -55,7 +56,7 @@ Mark history: the Montreal files on disk (the Interactive Brokers capture has no
    vega 91-180d             1,683 of    31,403      5%  #                    green
    vega 181-400d                0 of    31,403      0%                       green
 
-4. USAGE OVER TIME: 123 days the whole book was valued
+4. USAGE OVER TIME: 123 days the whole book was valued, each the exposure carried into the day
                       latest %  highest %  days amber  days in breach
    mapped delta            105        110          86              10
    ES                      130        138          39              44

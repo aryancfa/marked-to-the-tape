@@ -108,6 +108,20 @@ def main() -> None:
     say(f"   From {len(daily)} days the 97.5% tail is {k} days and the 99% VaR is the "
         f"{'worst' if tail_size(len(daily), 0.99) == 1 else 'second worst'} day. These are "
         "real marks and a thin sample.")
+    cov = bh.coverage(rows, names)
+    w = cov.index[cov["valued"] == cov["held"]]
+    if 0 < len(w) < len(cov):
+        tw = pd.DataFrame({"unhedged": [var(daily["total"][w], 0.99),
+                                        es(daily["total"][w], 0.975),
+                                        -daily["total"][w].min(), daily["total"][w].std()],
+                           "delta hedged": [var(hedged[w], 0.99), es(hedged[w], 0.975),
+                                            -hedged[w].min(), hedged[w].std()]},
+                          index=t.index)
+        say(f"   The {len(daily)} days include {len(daily) - len(w)} with part of the book "
+            "missing (a position counts only")
+        say(f"   if valued that day and the evening before). On the {len(w)} days every "
+            "position was valued:")
+        say(money(tw))
     say()
 
     # ---- the backtest -----------------------------------------------------
@@ -176,8 +190,28 @@ def main() -> None:
     say("   MODEL prices on a rule-based vol: none of this is a mark.")
     for nt in notes:
         say("   NOTE: " + nt)
+    asof = pd.Series({x_["name"]: x_["day"] for x_ in res})
+    say("   Each name is valued on its own latest day on file, not one common date: "
+        + "; ".join(f"{d:%d %b %Y} ({', '.join(sorted(g.index))})"
+                    for d, g in asof.groupby(asof)) + ".")
     say(f"   Book: 97.5% expected shortfall {es(total, 0.975):,.0f} (the average of the worst "
         f"{k} scenarios); 99% VaR {var(total, 0.99):,.0f}.")
+    if asof.nunique() > 1:
+        common = min(asof)
+        with ProcessPoolExecutor(max_workers=a.workers) as pool:
+            res_c = list(pool.map(reprice, [(*t_, common) for t_ in tasks]))
+        total_c = pd.DataFrame({k_: v_ for x_ in res_c for k_, v_ in x_["pnl"].items()},
+                               index=scen.index).fillna(0.0).sum(axis=1)
+        off = {x_["name"]: x_["day"] for x_ in res_c if x_["day"] != common}
+        say(f"   The same book with every name valued on one date, {common:%d %b %Y} (the "
+            "line above is kept as published):")
+        if off:
+            say("   NOT on that date (no file that day; their latest before it was used): "
+                + ", ".join(f"{n_} {d_:%d %b %Y}" for n_, d_ in sorted(off.items())) + ".")
+        for nt in (n_ for x_ in res_c for n_ in x_["notes"]):
+            say("   NOTE (on that date): " + nt)
+        say(f"   97.5% expected shortfall {es(total_c, 0.975):,.0f}; 99% VaR "
+            f"{var(total_c, 0.99):,.0f}.")
     comp = pd.DataFrame({"component ES": component_es(pnl, 0.975),
                          "marginal ES": marginal_es(pnl, 0.975),
                          "own ES, alone": pnl.apply(lambda c: es(c, 0.975))})
