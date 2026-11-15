@@ -84,6 +84,7 @@ def steps() -> list[tuple[str, list[str]]]:
                                  ("episodes", "replay_episodes.py"), ("oil", "oil_spread.py"),
                                  ("limits", "limits.py"))
             for b in ("bank_heavy", "diversified")]
+    out.append(("venues", [S + "venue_panel.py"]))
     return out
 
 

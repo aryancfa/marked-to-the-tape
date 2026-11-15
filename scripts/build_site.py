@@ -413,6 +413,14 @@ def build(out: Path) -> list[Path]:
     body += ("<h3>The delta hedge on twelve years of shares</h3>"
              + chart("hedge_shares.png", "Index and sector hedge, share by share")
              + folded("The numbers", report("hedge_shares_numbers.txt")))
+    body += ("<h3>Where the interlisted names trade</h3>"
+             "<p>Thirteen names list in Toronto and New York, one share for one. Toronto's "
+             "share of the two listings' volume, the days only one market is open, and how "
+             "long each book takes to exit at a fifth of its volume. Toronto here is the "
+             "TSX alone and New York every US venue, so Toronto's share is a lower "
+             "bound.</p>"
+             + chart("venues.png", "Toronto against New York, by year")
+             + folded("The numbers", report("venues.txt")))
     pages["hedge.html"] = body
 
     body = ("<h2>Stress and tail risk</h2>"

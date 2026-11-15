@@ -5,8 +5,8 @@ import pandas as pd
 import pytest
 
 from loaders.compustat import load_volume_pair
-from venues import (adv, bucket, days_to_liquidate, one_for_one, share_over,
-                    single_venue_days, toronto_share)
+from venues import (adv, bucket, common_step, days_to_liquidate, one_for_one, same_count,
+                    share_over, single_venue_days, toronto_share)
 
 
 def pair(tor, ny, start="2026-01-05", tor_px=13.0, ny_px=10.0):
@@ -26,6 +26,26 @@ def test_a_twelve_month_share_spans_new_year_in_one_piece():
     p = pair([100.0] * 10, [100.0] * 5 + [300.0] * 5, start="2025-12-24")
     assert p.index.year.nunique() == 2
     assert share_over(p) == pytest.approx(1000 / (1000 + 2000))
+
+
+def test_two_sources_counting_the_same_trades_agree_day_by_day():
+    d = pd.bdate_range("2026-01-05", periods=4)
+    a = pd.Series([100.0, 200.0, 0.0, 400.0], index=d)
+    out = same_count(a, pd.Series([100.0, 201.0, 50.0, 300.0], index=d))
+    assert out["days"] == 3                                   # the zero day is left out
+    assert out["agree"] == pytest.approx(2 / 3)
+
+
+def test_a_change_in_what_one_source_counts_shows_in_every_name_at_once():
+    days = pd.bdate_range("2025-06-02", "2025-11-28")
+    def name(seed):
+        rng = np.random.default_rng(seed)
+        tor = pd.Series(rng.uniform(90, 110, len(days)), index=days)
+        tor[days >= "2025-09-01"] *= 1.5                      # Toronto's figure starts counting more
+        return pd.DataFrame({"tor": tor, "ny": rng.uniform(90, 110, len(days))})
+    step, typical = common_step({f"N{i}": name(i) for i in range(5)}, "2025-09")
+    assert step == pytest.approx(np.log(1.5), abs=0.05)
+    assert step >= typical
 
 
 def test_a_one_for_one_listing_trades_at_the_exchange_rate():

@@ -3,11 +3,15 @@ Daily share volume, January 2014 (Shopify from its 2015 listing) to 10 Nov 2026.
 Compustat on WRDS; published as shares of volume, ratios and counts only.
 
 0. WHAT THE TWO VOLUMES MEASURE
-   New York: consolidated, every US exchange and off-exchange trade (Compustat's
-   figure equals CRSP's to the share on 1,761 days, 2018 to 2024; checked 14 Nov 2026).
-   Toronto: most likely the Toronto Stock Exchange's own trades only. It equals the
-   volume the Montreal file prints, and shows no step in September 2025, when TMX began
-   publishing a consolidated Canadian figure. Not confirmed by a written definition.
+   New York: consolidated, every US exchange and off-exchange trade. Compustat's
+   figure agrees with CRSP's (consolidated, matched by CUSIP) within 1% on 96.9% of
+   32,868 name-days on 12 names, to 2024 (CRSP's last year on file).
+   Not checked: ABX (no CRSP share with its current CUSIP).
+   Toronto: most likely the Toronto Stock Exchange's own trades only. Compustat's
+   figure agrees with the volume the Montreal file prints within 1% on 94.7% of
+   1,500 name-days. In September 2025, when TMX began publishing a consolidated
+   Canadian figure, the median name's log(Toronto / New York) moved +0.11, against
+   0.27 for a 1-in-20 month: no step. Not confirmed by a written definition.
    So Toronto's share below is a LOWER BOUND on Canada's: one Canadian venue against
    every US one. A FALL over time is ambiguous: it can be trading leaving the TSX for
    another Canadian venue, not for New York. A RISE is not: the TSX gained on every US

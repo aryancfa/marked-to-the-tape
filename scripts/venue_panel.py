@@ -33,12 +33,12 @@ import pandas as pd
 
 from book import load_book
 from loaders.compustat import load_volume_pair
-from loaders.mx import load_mx_futures, load_mx_options
+from loaders.mx import load_mx_futures, load_mx_options, load_mx_underlying
 from replay import value_position
 from run_days import mx_files
 from scenarios import latest_inputs
-from venues import (BUCKETS, PARTICIPATION, WINDOW, adv, bucket, days_to_liquidate, one_for_one,
-                    share_over, single_venue_days, toronto_share)
+from venues import (BUCKETS, PARTICIPATION, WINDOW, adv, bucket, common_step, days_to_liquidate,
+                    one_for_one, same_count, share_over, single_venue_days, toronto_share)
 
 WRDS = ROOT / "data/raw/wrds"
 OUT = ROOT / "reports"
@@ -119,11 +119,36 @@ def main() -> None:
 
     # ---- 0. what the numbers measure ---------------------------------------
     say("0. WHAT THE TWO VOLUMES MEASURE")
-    say("   New York: consolidated, every US exchange and off-exchange trade (Compustat's")
-    say("   figure equals CRSP's to the share on 1,761 days, 2018 to 2024; checked 14 Nov 2026).")
-    say("   Toronto: most likely the Toronto Stock Exchange's own trades only. It equals the")
-    say("   volume the Montreal file prints, and shows no step in September 2025, when TMX began")
-    say("   publishing a consolidated Canadian figure. Not confirmed by a written definition.")
+    crsp, mx = {}, {}
+    for n, p in pairs.items():
+        f = WRDS / f"crsp_volume_{n}.csv"
+        if f.exists():
+            c = pd.read_csv(f, parse_dates=["date"]).set_index("date")["vol"]
+            crsp[n] = same_count(p["ny"], c)
+        u = load_mx_underlying(mx_files(n)) if mx_files(n) else pd.DataFrame()
+        if len(u):
+            u = u[u["underlying"] == n].set_index("date")["volume"]
+            mx[n] = same_count(p["tor"], u.astype(float))
+    agree = lambda d: sum(x["agree"] * x["days"] for x in d.values()) / sum(x["days"] for x in d.values())
+    off = [n for n, x in crsp.items() if x["agree"] < 0.95]
+    unchecked = [n for n in pairs if n not in crsp]
+    ok = {k: v for k, v in crsp.items() if k not in off}
+    say("   New York: consolidated, every US exchange and off-exchange trade. Compustat's")
+    say(f"   figure agrees with CRSP's (consolidated, matched by CUSIP) within 1% on "
+        f"{100 * agree(ok):.1f}% of")
+    say(f"   {sum(x['days'] for x in ok.values()):,} name-days on {len(ok)} names, to 2024 "
+        "(CRSP's last year on file)."
+        + (f" Disagrees: {', '.join(off)}." if off else ""))
+    if unchecked:
+        say(f"   Not checked: {', '.join(unchecked)} (no CRSP share with its current CUSIP).")
+    step, typical = common_step(pairs, "2025-09")
+    say("   Toronto: most likely the Toronto Stock Exchange's own trades only. Compustat's")
+    say(f"   figure agrees with the volume the Montreal file prints within 1% on "
+        f"{100 * agree(mx):.1f}% of")
+    say(f"   {sum(x['days'] for x in mx.values()):,} name-days. In September 2025, when TMX began "
+        "publishing a consolidated")
+    say(f"   Canadian figure, the median name's log(Toronto / New York) moved {step:+.2f}, against")
+    say(f"   {typical:.2f} for a 1-in-20 month: no step. Not confirmed by a written definition.")
     say("   So Toronto's share below is a LOWER BOUND on Canada's: one Canadian venue against")
     say("   every US one. A FALL over time is ambiguous: it can be trading leaving the TSX for")
     say("   another Canadian venue, not for New York. A RISE is not: the TSX gained on every US")

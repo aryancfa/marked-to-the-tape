@@ -8,11 +8,12 @@ venue, and how much trades on each is the first fact behind that choice.
 
 What the volumes measure (checked 14 November 2026, see docs/findings.md):
   New York   consolidated: every US exchange and off-exchange trade. Compustat's
-             figure equals CRSP's to the share on 1,761 days, 2018 to 2024.
+             figure agrees with CRSP's (matched by CUSIP) within 1% on 97% of
+             days, 2014 to 2024 (same_count; scripts/venue_panel.py prints it).
   Toronto    most likely the Toronto Stock Exchange's own trades only, not the
-             other Canadian venues: it equals the volume the Montreal file
-             prints, and it shows no step when TMX began publishing a
-             consolidated Canadian figure in September 2025. NOT confirmed.
+             other Canadian venues: it agrees with the volume the Montreal file
+             prints, and shows no step when TMX began publishing a consolidated
+             Canadian figure in September 2025 (common_step). NOT confirmed.
 So Toronto's share computed here is a LOWER bound on Canada's share: the
 comparison puts one Canadian venue against every US one. A fall over time
 is ambiguous (trading may have left the TSX for another Canadian venue,
@@ -53,6 +54,34 @@ def one_for_one(pair: pd.DataFrame, band: tuple[float, float] = FX_BAND) -> tupl
         return float("nan"), False
     m = float((both["tor_px"] / both["ny_px"]).median())
     return m, band[0] <= m <= band[1]
+
+
+def same_count(a: pd.Series, b: pd.Series, tol: float = 0.01) -> dict:
+    """Two daily volume series for the same share from two sources, on the
+    days both have a positive figure: how many days, the median ratio a/b,
+    and the share of days the two agree within `tol`. Two sources counting
+    the same trades agree on nearly every day."""
+    m = pd.concat([a.rename("a"), b.rename("b")], axis=1).dropna()
+    m = m[(m["a"] > 0) & (m["b"] > 0)]
+    r = m["a"] / m["b"]
+    return dict(days=len(m), median=float(r.median()) if len(m) else float("nan"),
+                agree=float((r.sub(1).abs() <= tol).mean()) if len(m) else float("nan"))
+
+
+def common_step(pairs: dict[str, pd.DataFrame], month: str) -> tuple[float, float]:
+    """Did the basis of either volume change in `month` (for example
+    '2025-09')? Per name, the monthly change in log(Toronto / New York);
+    across names, its median. A change in what one source counts moves
+    every name the same way at once. Returns the median change in that
+    month and the 95th percentile of its absolute size over all months."""
+    logs = {}
+    for n, p in pairs.items():
+        mm = both_open(p)[["tor", "ny"]].resample("ME").sum()
+        mm = mm[(mm["tor"] > 0) & (mm["ny"] > 0)]
+        logs[n] = np.log(mm["tor"] / mm["ny"])
+    med = pd.DataFrame(logs).diff().median(axis=1).dropna()
+    at = med[med.index.strftime("%Y-%m") == month]
+    return (float(at.iloc[0]) if len(at) else float("nan"), float(med.abs().quantile(0.95)))
 
 
 def both_open(pair: pd.DataFrame) -> pd.DataFrame:

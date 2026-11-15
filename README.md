@@ -2,7 +2,7 @@
 
 A risk system for a small book of Canadian listed options. It prices positions with its own engine for American options with discrete dividends. It compares the implied volatilities with Montreal Exchange settlements and with an independent source. Then it replays real historical days and shows what risk is left after hedging with SXF, ZEB and XIU.
 
-**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 91 steps) and 513 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
+**Status:** in progress. Both charts the project is defined by exist. The front chart (model against market) covers fifteen names on six months each. The closing chart (what is left after the hedge) runs on two sample books, with a review queue of the marks to look at each day. Every number is reproduced by one command (`scripts/reproduce_all.py`, 92 steps) and 525 tests pass. The rules are frozen for a test on the next month of data (`docs/frozen-test-plan.md`). Not built: the live data capture. The live page, https://aryancfa.github.io/marked-to-the-tape/, is built by `scripts/build_site.py` from the reports in this repository.
 
 ## What it has found so far
 
@@ -797,6 +797,49 @@ Shopify's earnings (its short-dated vol +9.3 points on 2 November, -12.7 the nex
 day) would have set that bucket's limit by itself. Montreal vol history starts in
 May 2026, so the vega limit is measured on the days on file. It is the one limit
 set with some hindsight.
+
+## Where the interlisted names trade (C6)
+
+Thirteen names in the universe list in Toronto and in New York, one share for one
+(the Toronto close over the New York close sits at the exchange rate, median 1.323).
+A desk working an order chooses a venue, so `scripts/venue_panel.py` →
+`reports/venues.txt/.png` compares daily share volume, January 2014 to 10 November
+2026, from Compustat (`scripts/wrds_ny_volume.py` pulls the New York side). Only
+shares of volume, ratios and counts are published, never a volume.
+
+**What the two numbers measure decides how to read them.** New York is
+consolidated: Compustat's figure agrees with CRSP's within 1% on 96.9% of 32,868
+name-days (12 names, 2014 to 2024, CRSP matched by CUSIP). Toronto is most likely
+the Toronto Stock Exchange alone, not the other Canadian venues: it agrees with the
+volume the Montreal file prints within 1% on 94.7% of 1,500 name-days, and in
+September 2025, when TMX began publishing a consolidated Canadian figure, the
+median name's Toronto-to-New-York ratio moved +0.11 in logs against 0.27 for a
+1-in-20 month: no step. So Toronto's share is a
+lower bound on Canada's. A rise over time is real; a fall may be trading moving to
+another Canadian venue rather than to New York.
+
+| Last 12 months | Toronto's share | Since the first full year |
+|---|---|---|
+| Banks and the insurer (BMO, MFC, RY, TD, CM, BNS) | 66 to 75% | BMO, TD, MFC level or up; CM -16, BNS -14, RY -9 |
+| Energy and the pipeline (ENB, CNQ, SU) | 59 to 65% | all up, CNQ +17, SU +14 |
+| CNR, BCE | 52%, 54% | -2, -9 |
+| Barrick, Shopify | 30%, 17% | +12, +8 |
+
+**When only one market is open,** liquidity does not move across. On a US holiday
+Toronto trades alone at a median 0.34 of its normal volume (58 days since 2014); on
+a Canadian holiday New York trades at 0.60 of its normal (69 days). An order that
+cannot wait for both markets should be sized to that.
+
+**Days to liquidate,** at a fifth of the average daily volume of the 20 sessions
+before: every name's net share delta exits within a day on Toronto alone. The
+options do not: a median of 58 to 59 sessions in their own Montreal series, and one
+of 22 positions sits in a series that did not trade at all in 20 sessions. A desk
+leaves such positions by asking market makers for a price, which is the mark the
+review queue checks.
+
+Not measured: New York trading after 16:00 and intraday time buckets. Both regular
+sessions run 9:30 to 16:00 Eastern and the daily figure does not separate extended
+hours; that needs intraday bars, which the Interactive Brokers capture can record.
 
 ## Implied vol against the vol that followed (B9)
 

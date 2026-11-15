@@ -14,6 +14,10 @@ Saves under data/raw/wrds/ (gitignored, never committed, never redistributed):
   ny_volume_<TICKER>.csv   one row per US trading day: datadate, tic, iid,
                            cshtrd, prccd, curcdd, exchg
 
+  crsp_volume_<TICKER>.csv CRSP's daily volume for the same New York share
+                           (date, vol), to check what Compustat's figure counts:
+                           CRSP's is consolidated across US venues
+
 Prints row counts, date ranges, issue ids and exchange codes only, never
 rows. The login comes from your pgpass file and the username from
 WRDS_USERNAME (hard rule 3).
@@ -67,6 +71,21 @@ def main(start: date) -> None:
                           f"exchg {sorted(set(df.loc[df['iid'] == i, 'exchg'].dropna()))}) "
                           f"{r['count']} days {r['min']} to {r['max']}"
                           for i, r in per.iterrows()))
+        # CRSP is matched on the share's CUSIP, not its ticker: before 2025 the
+        # New York ticker B belonged to Barnes Group, not Barrick
+        cus = db.raw_sql(f"select cusip from {LIB}.security where gvkey = '{g}' and iid = '01'")
+        if cus.empty or not isinstance(cus["cusip"][0], str):
+            print(f"crsp_volume_{t}.csv: not written, no CUSIP for the common share")
+            continue
+        perm = db.raw_sql(f"select distinct permno from crsp.dsenames "
+                          f"where ncusip = '{cus['cusip'][0][:8]}' and nameendt >= '{start}'")
+        if len(perm) != 1:
+            print(f"crsp_volume_{t}.csv: not written, {len(perm)} CRSP permnos for its CUSIP")
+            continue
+        c = db.raw_sql(f"select date, vol from crsp.dsf where permno = {int(perm['permno'][0])} "
+                       f"and date between '{start}' and '{today}' order by date")
+        c.to_csv(OUT / f"crsp_volume_{t}.csv", index=False)
+        print(f"crsp_volume_{t}.csv: {len(c)} days, {c['date'].min()} to {c['date'].max()}")
     db.close()
 
 

@@ -692,6 +692,36 @@ of $14,600 and $4,400 (`scripts/limits.py`, C8). No day is flagged.
   itself, so one vol move size from every bucket is used, measured on the days on
   file.
 
+## Finding 28: Toronto is the main market for the banks, and liquidity does not cross a holiday
+
+`scripts/venue_panel.py` (C6) compares daily share volume in Toronto and New York
+for thirteen interlisted names since 2014.
+
+- **The two volumes are not the same kind of number.** New York's is consolidated
+  (within 1% of CRSP's on 96.9% of 32,868 name-days); Toronto's is most likely the
+  TSX alone (within 1% of the Montreal file's on 94.7% of 1,500 name-days, and no
+  step when TMX began a consolidated figure in September 2025). Toronto's share is therefore a lower bound on Canada's, and a fall over
+  time cannot be told apart from trading moving to another Canadian venue.
+- **Over the last 12 months** Toronto took 66 to 75% of the banks' and Manulife's
+  volume, 59 to 65% of the energy names' and Enbridge's, and 30% and 17% of
+  Barrick's and Shopify's. The energy names have moved toward Toronto since 2014
+  (CNQ +17 points, SU +14): a rise, so not an effect of the basis.
+- **On a US holiday Toronto trades at a median 0.34 of its normal volume; on a
+  Canadian holiday New York trades at 0.60 of its.** Flow that normally uses both
+  markets does not move to the one that is open.
+- **The options are the illiquid part of the books.** At a fifth of average volume,
+  every name's share delta exits within a day; the options take a median 58 to 59
+  sessions in their own series.
+- **A bug caught before publishing:** a twelve-month share computed with a pandas
+  grouping bin was split at New Year, so the table kept only the weeks before it
+  and overstated CNQ by about ten points (64% is right). Replaced with a plain
+  total (`venues.share_over`) and a test across New Year.
+- **A ticker is not an identifier.** CRSP matched by Barrick's New York ticker B
+  returned another company that used B before Barrick did; the agreement check
+  failed on every day and found it. CRSP is now matched by CUSIP, and Barrick,
+  whose CUSIP is newer than CRSP's last year on file, is left unchecked rather
+  than matched wrongly.
+
 ## A fourth outside review (13 November 2026)
 
 A reviewer read the live page as an equity derivatives desk would. It ran nothing,

@@ -258,6 +258,7 @@ The same company trades in Toronto and New York with different liquidity, and ch
 
 - **Done when:** Daily volume by venue for the dual-listed names, with New York trading after 16:00 shown. Intraday time buckets only if your data source provides intraday bars. Optional: days to liquidate each position against average daily volume.
 - **Depends on:** A2, C4
+- **State, 14 November 2026:** built (`src/venues.py`, `load_volume_pair` in `src/loaders/compustat.py`, `scripts/wrds_ny_volume.py`, `scripts/venue_panel.py` → `reports/venues.txt/.png`, on the site's hedge page; 10 tests). Thirteen names, daily share volume 2014 to 10 November 2026, one-for-one listing checked from the price ratio. New York is consolidated (within 1% of CRSP on 97% of name-days, matched by CUSIP); Toronto is most likely the TSX alone, so its share is a lower bound and a fall is ambiguous. Last 12 months: banks and insurer 66 to 75% in Toronto, energy 59 to 65% (up since 2014), Barrick 30%, Shopify 17%. One-market days: Toronto alone at 0.34 of normal volume, New York alone at 0.60. Days to liquidate at 20% of the 20-session average: share deltas within a day, options a median 58 to 59 sessions. NOT built: New York after 16:00 and intraday buckets (daily data does not separate extended hours; needs intraday bars from the Interactive Brokers capture).
 
 ### C7. Fund tab  _(second click)_
 
