@@ -1,5 +1,6 @@
 """test_site.py: the live page is built from committed, derived files only."""
 
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -55,6 +56,29 @@ def test_markdown_handles_what_the_documents_use():
     assert '<a href="findings.html">link</a>' in out and "<code>code</code>" in out
     assert out.count("<ul>") == 2 and out.count("</ul>") == 2 and "one continued" in out
     assert "<th>a</th>" in out and "<td>2</td>" in out
+
+
+def test_the_method_page_carries_the_whole_document_and_its_pdf(site):
+    """Every section of docs/methodology.md is on the Method page, and the PDF
+    it links to is in the site whenever the typeset copy exists."""
+    text = (site / "method.html").read_text(encoding="utf-8")
+    md = (bs.ROOT / "docs/methodology.md").read_text(encoding="utf-8")
+    for heading in re.findall(r"^## (.+)$", md, flags=re.M):
+        assert f"<h3>{bs.inline(heading)}</h3>" in text
+    if (bs.REPORTS / "methodology.pdf").exists():
+        assert 'href="methodology.pdf"' in text and (site / "methodology.pdf").exists()
+
+
+def test_the_methodology_pdf_is_typeset_from_the_current_text():
+    """The committed PDF must not lag the document: rebuild it with
+    scripts/methodology_pdf.py after editing docs/methodology.md."""
+    pdf = bs.REPORTS / "methodology.pdf"
+    md = bs.ROOT / "docs/methodology.md"
+    if not pdf.exists():
+        pytest.skip("no typeset copy yet")
+    digest = hashlib.sha256(md.read_bytes()).hexdigest()
+    assert f"source sha256 {digest}".encode() in pdf.read_bytes(), (
+        "reports/methodology.pdf was typeset from an older docs/methodology.md")
 
 
 def test_text_is_escaped_not_trusted():

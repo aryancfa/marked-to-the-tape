@@ -283,6 +283,7 @@ Nobody clones a repo. A reader spends a few seconds, and a live link is what tho
 - **Done when:** Limitations page, a four-to-six page methodology PDF, the app deployed showing computed results only, a ninety-second walkthrough following the demo order, the live URL on your resume, and a commit history that shows the work in sequence. A two-to-three page findings note in plain language (`docs/findings.md`): what was found, what was rejected and why, and what is still not trusted. Any day or expiry reachable from the demo in under a minute.
 - **Depends on:** everything
 - **State, 13 November 2026:** `scripts/build_site.py` builds a static nine-page site from `reports/`, the README and two documents, and `.github/workflows/pages.yml` deploys it with GitHub Pages (public, not indexed). It is live only once the Pages source is set to GitHub Actions in the repository settings. Not built: the methodology PDF, the walkthrough, and reaching any day or expiry from the page.
+- **State, 14 November 2026, methodology:** `docs/methodology.md` (methods and settings only, no results; each setting named with the module that holds it), typeset by `scripts/methodology_pdf.py` into `reports/methodology.pdf` (five pages; reportlab, pinned, needed by this script only). The PDF carries the hash of the text it was typeset from and a test fails when the two differ. On the site as the Method page, with the PDF linked from it and from the overview. Still not built: the walkthrough, and reaching any day or expiry from the page.
 
 ## Deferred (add later, in this order)
 
@@ -312,34 +313,44 @@ These wait until both charts exist and the project is live.
 
 ## Known limitations (these become the limitations page)
 
+_Checked against the code and the reports on 14 November 2026. Every result figure here is printed by the report named beside it; the rest are settings in the code. The live page's version is the "What is still not trusted" section of `docs/findings.md`._
+
+**Prices and quotes**
 - Model value is not a market price
-- Untraded options settle at prices the exchange calculates, so comparing against them is model against model
-- Last-trade implied vols are not mid-market
 - Most series don't trade on a given day; the chart rests on quote midpoints, and a midpoint is not a price anyone dealt at
-- The share price at the moment the options were quoted is known only to within several basis points, which is around half a vol point at one month
-- Quotes on these options are wide (a median near 50 cents on RY), so most differences will sit inside the spread
-- Deep in-the-money American options carry no recoverable implied vol, so screen on vega
-- The solver's noise floor is 0.04 vol points at 400 steps; smaller differences are rounding
-- The bid-ask spread is a far higher floor, often 0.4 to 2 vol points; a difference inside it is not a disagreement
-- The smile reference is SVI fitted without the strike being judged (one surface per day for thin expiries); the two end strikes of each expiry are judged by a curve extended past its data, under 30 days the fit is loosest, and the per-expiry curves are not tied together across time (4 to 7% of neighbouring pairs cross)
-- History is six months, the most the exchange's site offers in one pass; nothing here has seen a crisis
-- The funding spread is fitted from the same option market the call-put check tests, so that check is not independent on rates
-- Dividends after the last declared one follow a rule from the company's own history, not a forecast
-- Option results cover fifteen names on six months each; two of them (CNQ, CNR) show a gap on declared dividends that has not been closed
-- The exchange's SXO file carries settlements only, so index parity from it reflects the exchange's model, not quotes
-- The vega hedge uses index or ETF options, so gamma and single-name vol that moves apart from index vol stay in the residual
-- Realized-against-implied rests on a handful of non-overlapping windows; it is a description, not a tested strategy
-- Time is calendar days over 365, so weekends carry the same variance as trading days
-- Borrow cost acts like a dividend yield and creates early-exercise value in calls, so one call-put pair can't separate financing from volatility
+- A row with no two-sided quote is inverted from its settlement, which for an untraded series is a price the exchange calculates; comparing against it is model against model (such rows are counted as settlement-only)
 - The exchange's website files are not its official end-of-day data
-- The exchange's own published implied vols use Black-Scholes on American options, which it says overstates them
-- Replay option prices are model prices wherever exchange history doesn't reach
-- Historical moves say nothing about today's liquidity
-- No borrow, no specials, no implied-versus-scheduled dividend
-- Rates are government T-bill yields, below what a dealer funds at; they are day averages, not closing levels, and flat beyond one year
+- The exchange's SXO file carries settlements only, so index parity from it reflects the exchange's model, not quotes
+- Quotes are wide: on RY the median quote half-spread on the median day is 0.67 vol points, from 1.14 at 7 to 30 days down to about 0.4 beyond 120 days (`reports/ry_numbers.txt`). Most differences sit inside the spread, so they say an input may be wrong, not that anyone could trade on them
 - No depth or size at the touch, so exit paths aren't modelled
-- Your engine is not the exchange's model
-- The OptionMetrics check covers the New York listings, not the Montreal ones
+
+**The engine**
+- The solver's noise floor is 0.04 vol points at 400 steps; smaller differences are rounding
+- Deep in-the-money American options carry no recoverable implied vol, so they are screened out on vega and counted
+- Time is calendar days over 365, so weekends carry the same variance as trading days (dividends alone are placed by trading sessions)
+- Your engine is not the exchange's model, and the exchange's own published implied vols use Black-Scholes on American options, which it says overstates them
+- The OptionMetrics check covers the New York listings from June to August 2025; it never overlaps the Montreal files, which start in May 2026
+
+**Inputs**
+- The share price at the moment the options were quoted is implied from the options and known only to within several basis points, which is around half a vol point at one month
+- Rates come from CORRA futures on the exchange's files (Treasury bills, flat beyond one year, on days without them); beyond the last listed contract the last forward is held. Futures settlements are not a dealer's own funding curve
+- The funding spread is fitted from the same option market the call-put check tests, so that check is not independent on rates. A name whose own spread is not yet well measured takes the median of the names that are; that rule was chosen after names were seen to be mis-funded (findings 16), so this sample is not a clean test of it
+- Borrow cost acts like a dividend yield and creates early-exercise value in calls, so option prices can't separate borrow from funding; borrow is assumed zero and specials are not modelled
+- Dividends after the last declared one follow a rule from the company's own history, not a forecast. Dividends the options imply are measured beside the schedule but never fed back as inputs
+
+**The front chart**
+- The smile reference is SVI fitted without the strike being judged (one surface per day for thin expiries); the two end strikes of each expiry are judged by a curve extended past its data, under 30 days the fit is loosest, and the per-expiry curves are not tied together across time (on RY 44 of 921 neighbouring pairs, 4.8%, fail the calendar check: `reports/ry_numbers.txt`)
+- On declared dividends, CNR (-0.11) and ABX (-0.23, on 2 days, so its p-value is too small) keep a call-put gap that survives the stricter multiple-testing rule, and CNQ (-0.17) is significant alone only; none is fully explained (`reports/all_names_summary.txt`)
+- History is about six months, the most the exchange's site offers in one pass. The rules and thresholds were set on those same months, so the results so far are in-sample; the next month's files are the first test the frozen rules have not seen
+
+**The book, hedges and risk**
+- Both books are made up, marked at the exchange's prices each day
+- The vega hedge uses index or ETF options, so gamma and single-name vol that moves apart from index vol stay in the residual
+- The day-ahead VaR goes through delta, gamma and vega, not full revaluation; ES is fully revalued
+- No exchange history reaches the crisis episodes, so their option prices are model prices: vols move by New York's change with the currency removed, or by the vol rule
+- Historical moves say nothing about today's liquidity
+- Toronto volume is most likely the TSX alone, so Toronto's share of an interlisted name's volume is a lower bound and a fall over time is ambiguous; New York trading after 16:00 is not measured
+- Realized-against-implied rests on a handful of non-overlapping windows; it is a description, not a tested strategy
 
 ## Demo order (ninety seconds)
 

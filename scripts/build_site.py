@@ -6,7 +6,8 @@ build_site.py — the live page, built from what is already in reports/ (C9).
 
 A static site: plain HTML and the charts, no server and no script on the
 page. It reads ONLY files that are already committed: reports/ (derived
-statistics), README.md, docs/findings.md and docs/investigations.md. It
+statistics), README.md, docs/findings.md, docs/investigations.md and
+docs/methodology.md (with its typeset copy, reports/methodology.pdf). It
 never opens data/. So the page can show nothing the repository does not
 already show, and hard rule 1 holds by construction: computed results only,
 no price, no quote. A test (tests/test_site.py) checks that it reads nothing
@@ -37,6 +38,7 @@ PAGES = [("index.html", "Overview"), ("front.html", "Model against market"),
          ("hedge.html", "After the hedge"), ("fund.html", "Stress and tail risk"),
          ("vol.html", "Implied against realized"), ("checks.html", "Checks"),
          ("findings.html", "Findings"), ("investigations.html", "Investigations"),
+         ("method.html", "Method"),
          ("limits.html", "Limits")]
 NOTICE = ("Computed results only: differences in vol points, counts, ratios, and dollars on "
           "made-up books. No exchange price or quote appears anywhere on this site.")
@@ -102,7 +104,8 @@ def asset(path: str) -> str:
 
 
 def link(target: str) -> str | None:
-    known = {"findings.md": "findings.html", "investigations.md": "investigations.html"}
+    known = {"findings.md": "findings.html", "investigations.md": "investigations.html",
+             "methodology.md": "method.html"}
     if target.split("/")[-1] in known:
         return known[target.split("/")[-1]]
     if target.startswith("http"):
@@ -320,6 +323,8 @@ def build(out: Path) -> list[Path]:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     findings = (ROOT / "docs/findings.md").read_text(encoding="utf-8")
     cases = (ROOT / "docs/investigations.md").read_text(encoding="utf-8")
+    method = (ROOT / "docs/methodology.md").read_text(encoding="utf-8")
+    pdf = REPORTS / "methodology.pdf"
     stamp = "Not yet reproduced from a clean commit."
     if (REPORTS / "manifest.json").exists():
         m = json.loads((REPORTS / "manifest.json").read_text(encoding="utf-8"))
@@ -343,7 +348,10 @@ def build(out: Path) -> list[Path]:
         + chart("diversified_hedge.png", "The diversified book after each hedge")
         + '<p class="note">A made-up book marked at the exchange\'s prices each day. '
           '<a href="hedge.html">The three stages</a>.</p>'
-        "<h2>What it has found so far</h2>" + markdown(section(readme, "What it has found so far")))
+        "<h2>What it has found so far</h2>" + markdown(section(readme, "What it has found so far"))
+        + '<p class="note">How every number is made: <a href="method.html">the method</a>'
+        + (', also as a <a href="methodology.pdf">PDF</a>' if pdf.exists() else "")
+        + ".</p>")
 
     pick = '<div class="pick">' + "".join(f'<a href="#{n}">{n}</a>' for n in NAMES) + "</div>"
     body = ("<h2>Model against market, by name</h2>"
@@ -494,6 +502,10 @@ def build(out: Path) -> list[Path]:
 
     pages["findings.html"] = markdown(findings)
     pages["investigations.html"] = markdown(cases)
+    pages["method.html"] = (
+        ('<p class="note">The same text as a <a href="methodology.pdf">PDF</a>.</p>'
+         if pdf.exists() else "")
+        + markdown(method.split("\n", 1)[1] if method.startswith("# ") else method))
     pages["limits.html"] = ("<h2>What is still not trusted</h2>"
                             + markdown(section(findings, "What is still not trusted"))
                             + "<h2>What does not exist yet</h2>"
@@ -506,6 +518,8 @@ def build(out: Path) -> list[Path]:
         dest = out / "img" / p.relative_to(REPORTS)
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(p, dest)
+    if pdf.exists():
+        shutil.copyfile(pdf, out / "methodology.pdf")
     (out / "robots.txt").write_text("User-agent: *\nDisallow: /\n", encoding="utf-8")
     (out / ".nojekyll").write_text("", encoding="utf-8")
     written = []

@@ -918,8 +918,10 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
 
 - **Fifteen names, six months.** Nothing here has seen a crisis, a dividend cut or
   a hard-to-borrow share.
-- **Two names with a gap on declared dividends:** CNQ (-0.17, half explained) and
-  CNR (-0.11, a drifting spread, diagnosed and not changed). MFC is explained on 9
+- **Gaps on declared dividends:** CNQ (-0.17, half explained; significant alone but
+  not under the stricter multiple-testing rule) and CNR (-0.11, a drifting spread,
+  diagnosed and not changed; significant under it). ABX (-0.23) is significant
+  too, but on 2 days, which makes its p-value too small. MFC is explained on 9
   days only.
 - **The funding spread differs by name, 13 to 49 basis points.** It is one number
   standing for funding, expected dividends and borrow together.
@@ -997,4 +999,5 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
   fall; a 20% fall is ten times larger than any of them.
 - Any day before May 2026. OptionMetrics on this subscription has no Canadian
   listings, so Montreal history cannot be extended from it.
-- A methodology note and a walkthrough. The live page is charts and reports.
+- A walkthrough. The live page is charts, reports and the method
+  (`docs/methodology.md`); no day or expiry can yet be picked on it.
