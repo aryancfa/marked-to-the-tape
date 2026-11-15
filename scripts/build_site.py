@@ -21,11 +21,13 @@ Uses the standard library only, so the deploy job needs no install.
 
 from __future__ import annotations
 
+import csv
 import html
 import json
 import re
 import shutil
 import sys
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,7 +40,7 @@ PAGES = [("index.html", "Overview"), ("front.html", "Model against market"),
          ("hedge.html", "After the hedge"), ("fund.html", "Stress and tail risk"),
          ("vol.html", "Implied against realized"), ("checks.html", "Checks"),
          ("findings.html", "Findings"), ("investigations.html", "Investigations"),
-         ("method.html", "Method"),
+         ("days.html", "Pick a day"), ("method.html", "Method"),
          ("limits.html", "Limits")]
 NOTICE = ("Computed results only: differences in vol points, counts, ratios, and dollars on "
           "made-up books. No exchange price or quote appears anywhere on this site.")
@@ -79,6 +81,11 @@ margin:10px 0 18px}
 .tile .v{font-size:24px;font-weight:600;margin:2px 0;font-variant-numeric:tabular-nums}
 .tile .n{font-size:12.5px;color:var(--mute);line-height:1.4}
 details{margin:10px 0}summary{cursor:pointer;color:var(--acc)}
+.cal{font-size:14px;margin:4px 0}.cal b{display:inline-block;min-width:5.5em;font-weight:600}
+.cal a{display:inline-block;min-width:1.9em;text-align:right;text-decoration:none}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.big{font-weight:700}
+.steps{font-size:14px;margin:6px 0 14px}
 footer{border-top:1px solid var(--line);padding:14px 0 30px;color:var(--mute);font-size:13px}
 """
 
@@ -211,14 +218,18 @@ def folded(title: str, body: str) -> str:
     return f"<details><summary>{html.escape(title)}</summary>{body}</details>"
 
 
-def page(file: str, body: str, stamp: str) -> str:
-    title = dict(PAGES)[file]
-    nav = "".join(f'<a href="{f}"{" class=on" if f == file else ""}>{t}</a>' for f, t in PAGES)
+def page(file: str, body: str, stamp: str, title: str | None = None, up: str = "") -> str:
+    """One page. `file` is the nav entry it sits under; `up` is the path back
+    to the site's root from a page in a subfolder (day pages: '../../')."""
+    title = title or dict(PAGES)[file]
+    nav = "".join(f'<a href="{up}{f}"{" class=on" if f == file else ""}>{t}</a>'
+                  for f, t in PAGES)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>{title} · Marked to the Tape</title><style>{CSS}</style></head>
+<title>{html.escape(title)} · Marked to the Tape</title>
+<link rel="stylesheet" href="{up}style.css"></head>
 <body><header><div class="wrap"><h1>Marked to the Tape</h1><nav>{nav}</nav></div></header>
 <main><div class="wrap">{body}</div></main>
 <footer><div class="wrap">{NOTICE}<br>{stamp}</div></footer></body></html>
@@ -317,6 +328,163 @@ def desk_summary() -> str:
             + "".join(f"<li>{d}</li>" for d in decide) + "</ul>")
 
 
+# ---------------------------------------------------------------- any day, any expiry
+
+DAYS = REPORTS / "days"          # written by scripts/day_tables.py
+DAY_PANELS = [("pair", "Call minus put", 2),          # a pair's quote bar is its two quotes'
+              ("smile", "Strike minus smile", 1),
+              ("exch_call", "Ours minus exchange: calls", 1),
+              ("exch_put", "Ours minus exchange: puts", 1)]
+CARRY = {"calibrated": "calibrated: the share price was implied from this expiry, so its "
+                       "call-minus-put gap is zero by construction and left out",
+         "declared only": "declared dividends only",
+         "projected dividend": "rests on a projected dividend"}
+BUCKET = re.compile(r"^pair_(\d\.\d\d-\d\.\d\d)$")
+
+
+def table(path: Path) -> list[dict]:
+    with open(path, newline="", encoding="utf-8") as fh:
+        return list(csv.DictReader(fh))
+
+
+def num(v: str) -> float | None:
+    try:
+        x = float(v)
+    except (TypeError, ValueError):
+        return None
+    return x if x == x else None                       # nan -> None
+
+
+def vp(v: str, bar: float | None = None, bars: int = 1) -> str:
+    """A difference in vol points as a table cell; bold when it is larger than
+    the expiry's typical quote bar (two for a call-put pair)."""
+    x = num(v)
+    if x is None:
+        return '<td class="num">–</td>'
+    big = bar is not None and abs(x) > bars * bar
+    return f'<td class="num{" big" if big else ""}">{x:+.2f}</td>'
+
+
+def day_label(d: str) -> str:
+    return date.fromisoformat(d).strftime("%a %d %b %Y").replace(" 0", " ")
+
+
+def day_file(name: str, d: str) -> str:
+    return f"day/{name}/{d}.html"
+
+
+def day_index() -> dict[str, tuple[list[dict], list[dict]]]:
+    """Every name that has day tables: (its days, its expiry rows)."""
+    out = {}
+    for n in NAMES:
+        days, exps = DAYS / f"{n.lower()}_days.csv", DAYS / f"{n.lower()}_expiries.csv"
+        if days.exists() and exps.exists():
+            out[n] = (table(days), table(exps))
+    return out
+
+
+def days_page(index: dict) -> str:
+    """The picker: each name's trading days, a row per month."""
+    if not index:
+        return '<p class="note">reports/days has not been produced yet.</p>'
+    body = ("<h2>Any day, any expiry</h2>"
+            "<p>Pick a name and a day. The day's page shows every expiry against the "
+            "three references, in vol points, with the day's rejections and the funding "
+            "spread it was priced with. From there, the previous and next days and the same day "
+            "on the other names are one click away.</p>"
+            '<p class="note">These are the days the front chart is drawn from: those priced with a '
+            "funding spread. The first weeks of each name's files come before any spread had been "
+            "measured from earlier days, so they are not here.</p>"
+            '<div class="pick">' + "".join(f'<a href="#{n}">{n}</a>' for n in index) + "</div>")
+    for n, (days, _) in index.items():
+        months: dict[str, list[str]] = {}
+        for r in days:
+            months.setdefault(r["date"][:7], []).append(r["date"])
+        body += f'<h3 id="{n}">{n}: {len(days)} days</h3>'
+        for m, ds in months.items():
+            body += (f'<div class="cal"><b>{date.fromisoformat(m + "-01").strftime("%b %Y")}</b>'
+                     + "".join(f'<a href="{day_file(n, d)}">{int(d[8:])}</a>' for d in ds)
+                     + "</div>")
+    return body
+
+
+def one_day_page(name: str, i: int, days: list[dict], exps: list[dict],
+                 on_day: dict[str, list[str]]) -> str:
+    """One name on one day: the day in numbers, then every expiry."""
+    r, d = days[i], days[i]["date"]
+    up = "../../"
+    steps = [f'<a href="{up}days.html#{name}">all {name} days</a>']
+    if i > 0:
+        steps.insert(0, f'<a href="{days[i - 1]["date"]}.html">&larr; {day_label(days[i - 1]["date"])}</a>')
+    if i + 1 < len(days):
+        steps.append(f'<a href="{days[i + 1]["date"]}.html">{day_label(days[i + 1]["date"])} &rarr;</a>')
+    others = [n for n in on_day.get(d, []) if n != name]
+    rows = [e for e in exps if e["date"] == d]
+
+    spread = num(r["spread_bp"])
+    body = (f"<h2>{name}, {day_label(d)}</h2>"
+            f'<p class="steps">{" &middot; ".join(steps)}</p>'
+            + (f'<p class="steps">Same day on another name:</p><div class="pick">' + "".join(
+                f'<a href="../{n}/{d}.html">{n}</a>' for n in others) + "</div>" if others else "")
+            + '<p class="steps">Expiries:</p><div class="pick">' + "".join(
+                f'<a href="#e{e["expiry"]}">{date.fromisoformat(e["expiry"]).strftime("%d %b %y").lstrip("0")}</a>'
+                for e in rows) + "</div>"
+            + "<ul>"
+            f'<li>{r["rows"]} option rows; {r["inverted"]} inverted, {r["rejected"]} rejected'
+            + (f' ({html.escape(r["rejections"])})' if r["rejections"] else "") + ".</li>"
+            f'<li>Evidence: {r["traded"]} traded, {r["quoted"]} quoted only, '
+            f'{r["settlement_only"]} settlement only, {r["no_price"]} with no price.</li>'
+            + (f'<li>Rates: {html.escape(r["rates"])} plus a funding spread of {spread:.1f} basis '
+               f'points a year, FITTED FROM OPTIONS ({html.escape(r["spread_source"])}).</li>'
+               if spread is not None else
+               f'<li>Rates: {html.escape(r["rates"])}, no funding spread applied.</li>')
+            + "</ul>"
+            '<p class="note">Differences are in vol points, the mean over the strikes in each '
+            "expiry. Bold: larger than the expiry's median quote bar (two bars for a call-put "
+            "pair), so too large for the quote's own width to explain on its own. Ours minus the "
+            "exchange compares two models, not two prices.</p>")
+
+    head = ("<tr><th>Expiry</th><th class=num>Days</th><th>Carry</th>"
+            "<th class=num>Rows</th><th class=num>Rejected</th><th class=num>Quote bar</th>"
+            + "".join(f"<th class=num>{t}</th>" for _, t, _ in DAY_PANELS) + "</tr>")
+    body += "<table>" + head
+    for e in rows:
+        bar = num(e["quote_bar"])
+        body += (f'<tr><td><a href="#e{e["expiry"]}">{e["expiry"]}</a></td>'
+                 f'<td class=num>{e["days"]}</td><td>{html.escape(e["carry"] or "–")}</td>'
+                 f'<td class=num>{e["rows"]}</td><td class=num>{e["rejected"]}</td>'
+                 + (f"<td class=num>{bar:.2f}</td>" if bar is not None else "<td class=num>–</td>")
+                 + "".join(vp(e[f"{p}_mean"], bar, k) for p, _, k in DAY_PANELS) + "</tr>")
+    body += "</table>"
+
+    buckets = [m.group(1) for k in (exps[0] if exps else {}) if (m := BUCKET.match(k))]
+    for e in rows:
+        bar = num(e["quote_bar"])
+        fit = {"slice": "its own curve", "surface": "the day's surface (too few strikes for a "
+               "curve of its own)"}.get(e["smile_fit"], "no curve")
+        body += (f'<h3 id="e{e["expiry"]}">Expiry {e["expiry"]}, {e["days"]} days</h3>'
+                 f'<p class="note">{html.escape(CARRY.get(e["carry"], e["carry"]))}. Smile: '
+                 f"{fit}"
+                 + ("; POOR FIT: the curve misses a typical quote by more than a quote bar, so "
+                    "its residuals describe the curve, not the quotes" if e["smile_poor_fit"] == "True"
+                    else "")
+                 + f'. {e["rows"]} rows, {e["rejected"]} rejected'
+                 + (f' ({html.escape(e["rejections"])})' if e["rejections"] else "")
+                 + f'; {e["traded"]} traded, {e["quoted"]} quoted only, '
+                 f'{e["settlement_only"]} settlement only.</p>'
+                 "<table><tr><th>Reference</th><th class=num>Count</th>"
+                 + "".join(f"<th class=num>{b}</th>" for b in buckets)
+                 + "<th class=num>All</th></tr>")
+        for p, t, k in DAY_PANELS:
+            body += (f"<tr><td>{t}</td><td class=num>{e[f'{p}_n']}</td>"
+                     + "".join(vp(e[f"{p}_{b}"], bar, k) for b in buckets)
+                     + vp(e[f"{p}_mean"], bar, k) + "</tr>")
+        body += ("</table><p class=note>Count: call-put pairs on the first line, options on the "
+                 "others. Columns are strike over share price; strikes outside "
+                 f"{buckets[0][:4]} to {buckets[-1][-4:]} count in All only.</p>" if buckets else "</table>")
+    return body
+
+
 # ---------------------------------------------------------------- pages
 
 def build(out: Path) -> list[Path]:
@@ -343,7 +511,7 @@ def build(out: Path) -> list[Path]:
         + chart("ry_front_chart.png", "Royal Bank: implied vol against three references")
         + '<p class="note">Royal Bank options, six months. Each cell is a difference in vol '
           'points; bold means more than two standard errors from zero. '
-          '<a href="front.html">Fifteen names</a>.</p>'
+          '<a href="front.html">Fifteen names</a>; <a href="days.html">any day or expiry</a>.</p>'
         "<h2>What is left after the hedge</h2>"
         + chart("diversified_hedge.png", "The diversified book after each hedge")
         + '<p class="note">A made-up book marked at the exchange\'s prices each day. '
@@ -358,7 +526,8 @@ def build(out: Path) -> list[Path]:
             "<p>Each implied vol is compared with three references: the call against the put "
             "at the same strike, the strike against a smile fitted through its neighbours, and "
             "the exchange's own published vol. Differences are pooled over days, by days to "
-            "expiry and by strike relative to the share price.</p>" + pick
+            "expiry and by strike relative to the share price. To see one day and its "
+            'expiries instead of the pool, <a href="days.html">pick a day</a>.</p>' + pick
             + "<h3>All fifteen names</h3>" + report("all_names_summary.txt"))
     for n in NAMES:
         body += (f'<h3 id="{n}">{n}</h3>' + chart(f"{n.lower()}_front_chart.png", f"{n} front chart")
@@ -502,6 +671,8 @@ def build(out: Path) -> list[Path]:
 
     pages["findings.html"] = markdown(findings)
     pages["investigations.html"] = markdown(cases)
+    index = day_index()
+    pages["days.html"] = days_page(index)
     pages["method.html"] = (
         ('<p class="note">The same text as a <a href="methodology.pdf">PDF</a>.</p>'
          if pdf.exists() else "")
@@ -522,10 +693,22 @@ def build(out: Path) -> list[Path]:
         shutil.copyfile(pdf, out / "methodology.pdf")
     (out / "robots.txt").write_text("User-agent: *\nDisallow: /\n", encoding="utf-8")
     (out / ".nojekyll").write_text("", encoding="utf-8")
+    (out / "style.css").write_text(CSS, encoding="utf-8")
     written = []
     for file, body in pages.items():
         (out / file).write_text(page(file, body, stamp), encoding="utf-8")
         written.append(out / file)
+    on_day: dict[str, list[str]] = {}
+    for n, (days, _) in index.items():
+        for r in days:
+            on_day.setdefault(r["date"], []).append(n)
+    for n, (days, exps) in index.items():
+        (out / "day" / n).mkdir(parents=True, exist_ok=True)
+        for i, r in enumerate(days):
+            f = out / day_file(n, r["date"])
+            f.write_text(page("days.html", one_day_page(n, i, days, exps, on_day), stamp,
+                              title=f"{n} {r['date']}", up="../../"), encoding="utf-8")
+            written.append(f)
     return written
 
 

@@ -999,5 +999,5 @@ a two-sided quote, 25% on a trade and 1% on a settlement alone.
   fall; a 20% fall is ten times larger than any of them.
 - Any day before May 2026. OptionMetrics on this subscription has no Canadian
   listings, so Montreal history cannot be extended from it.
-- A walkthrough. The live page is charts, reports and the method
-  (`docs/methodology.md`); no day or expiry can yet be picked on it.
+- A walkthrough. The live page is charts, reports, the method
+  (`docs/methodology.md`) and a page for every day and name.

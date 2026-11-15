@@ -81,6 +81,31 @@ def test_the_methodology_pdf_is_typeset_from_the_current_text():
         "reports/methodology.pdf was typeset from an older docs/methodology.md")
 
 
+def test_every_day_is_reachable_and_every_link_on_a_day_page_resolves(site):
+    """C9: any day or expiry in under a minute. The picker links every day of
+    every name with tables; a day page's links (previous, next, same day on
+    other names, back to the picker) all land on pages that exist, and every
+    expiry link has its section."""
+    index = bs.day_index()
+    if not index:
+        pytest.skip("reports/days not produced yet")
+    picker = (site / "days.html").read_text(encoding="utf-8")
+    for n, (days, exps) in index.items():
+        for r in days:
+            assert f'href="{bs.day_file(n, r["date"])}"' in picker
+    for n, (days, exps) in index.items():
+        for r in (days[0], days[len(days) // 2], days[-1]):
+            f = site / bs.day_file(n, r["date"])
+            text = f.read_text(encoding="utf-8")
+            assert bs.NOTICE in text and 'href="../../style.css"' in text
+            for href in re.findall(r'href="([^"#]+\.html)', text):
+                assert (f.parent / href).resolve().exists(), f"{f.name} links to {href}"
+            for anchor in re.findall(r'href="#(e[\d-]+)"', text):
+                assert f'id="{anchor}"' in text
+            want = sum(1 for e in exps if e["date"] == r["date"])
+            assert len(re.findall(r'<h3 id="e[\d-]+"', text)) == want
+
+
 def test_text_is_escaped_not_trusted():
     assert "<script>" not in bs.markdown("a <script>alert(1)</script> b")
     assert "&lt;" in bs.inline("x < y")

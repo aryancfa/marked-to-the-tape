@@ -159,6 +159,11 @@ the count that survives a multiple-testing correction is reported
 **Rejections** are counted by reason on every chart, with the split between
 traded, quoted and settlement-only rows.
 
+**Every day and expiry** is also published on its own (`scripts/day_tables.py`):
+the same differences for one name on one day, by expiry and by moneyness
+bucket, never by strike, because a strike with its moneyness gives the
+implied share price back.
+
 ## 7. The book
 
 **Positions** are listed options, index futures, ETFs and shares, read from a

@@ -1,0 +1,105 @@
+date,rows,inverted,rejected,rejections,traded,quoted,settlement_only,no_price,spread_bp,spread_source,rates
+2026-06-08,290,278,12,spread wider than limit 11; no volume or open interest 1,26,263,1,0,45.1,"pooled across names, earlier days",CORRA futures
+2026-06-09,290,275,15,spread wider than limit 11; below intrinsic 2; vega too small to invert 1; no volume or open interest 1,58,229,3,0,46.0,"pooled across names, earlier days",CORRA futures
+2026-06-10,300,282,18,spread wider than limit 14; below intrinsic 3; no volume or open interest 1,38,261,1,0,47.5,"pooled across names, earlier days",CORRA futures
+2026-06-11,324,307,17,spread wider than limit 16; no volume or open interest 1,38,285,1,0,48.4,"pooled across names, earlier days",CORRA futures
+2026-06-12,318,294,24,spread wider than limit 21; vega too small to invert 1; no bracket vol below floor 1; no volume or open interest 1,56,260,2,0,45.0,"pooled across names, earlier days",CORRA futures
+2026-06-15,294,279,15,spread wider than limit 11; no price to invert 4,33,258,0,3,44.8,"pooled across names, earlier days",CORRA futures
+2026-06-16,292,277,15,spread wider than limit 14; vega too small to invert 1,50,241,1,0,44.8,"pooled across names, earlier days",CORRA futures
+2026-06-17,314,294,20,spread wider than limit 17; no bracket vol below floor 2; no volume or open interest 1,55,255,4,0,44.8,"pooled across names, earlier days",CORRA futures
+2026-06-18,336,303,33,spread wider than limit 20; no bracket vol below floor 4; no volume or open interest 4; below intrinsic 4; vega too small to invert 1,71,259,6,0,44.8,"pooled across names, earlier days",CORRA futures
+2026-06-19,344,300,44,below intrinsic 13; no bracket vol below floor 13; spread wider than limit 11; no volume or open interest 6; vega too small to invert 1,75,252,17,0,44.8,"pooled across names, earlier days",CORRA futures
+2026-06-22,300,277,23,spread wider than limit 16; no bracket vol below floor 3; below intrinsic 3; no volume or open interest 1,46,253,1,0,44.8,"pooled across names, earlier days",CORRA futures
+2026-06-23,296,277,19,spread wider than limit 13; vega too small to invert 3; no volume or open interest 2; below intrinsic 1,53,239,4,0,29.5,"own options, earlier days",CORRA futures
+2026-06-24,314,289,25,spread wider than limit 15; below intrinsic 4; vega too small to invert 3; no volume or open interest 2; no price to invert 1,36,272,5,1,29.4,"own options, earlier days",CORRA futures
+2026-06-25,322,300,22,spread wider than limit 15; no volume or open interest 5; no bracket vol below floor 1; below intrinsic 1,64,250,8,0,29.7,"own options, earlier days",CORRA futures
+2026-06-26,334,297,37,spread wider than limit 16; below intrinsic 8; no volume or open interest 8; no bracket vol below floor 4; vega too small to invert 1,51,271,12,0,29.8,"own options, earlier days",CORRA futures
+2026-06-29,290,262,28,spread wider than limit 15; below intrinsic 7; no bracket vol below floor 4; no volume or open interest 2,52,236,2,0,30.0,"own options, earlier days",CORRA futures
+2026-06-30,302,273,29,spread wider than limit 16; below intrinsic 8; no volume or open interest 5,39,258,5,0,30.4,"own options, earlier days",CORRA futures
+2026-07-02,312,264,48,spread wider than limit 17; below intrinsic 14; no bracket vol below floor 9; no volume or open interest 8,72,230,10,0,30.7,"own options, earlier days",CORRA futures
+2026-07-03,330,288,42,spread wider than limit 17; no volume or open interest 8; no bracket vol below floor 7; below intrinsic 7; vega too small to invert 3,39,282,9,0,30.6,"own options, earlier days",CORRA futures
+2026-07-06,284,265,19,spread wider than limit 16; no volume or open interest 3,43,238,3,0,30.6,"own options, earlier days",CORRA futures
+2026-07-07,282,258,24,spread wider than limit 16; below intrinsic 5; no volume or open interest 2; vega too small to invert 1,57,223,2,0,30.6,"own options, earlier days",CORRA futures
+2026-07-08,302,265,37,spread wider than limit 19; below intrinsic 8; no volume or open interest 7; no bracket vol below floor 3,92,203,7,0,31.0,"own options, earlier days",CORRA futures
+2026-07-09,314,290,24,spread wider than limit 19; no volume or open interest 5,48,260,6,0,31.7,"own options, earlier days",CORRA futures
+2026-07-10,326,291,35,spread wider than limit 21; below intrinsic 8; no volume or open interest 4; vega too small to invert 1; no bracket vol below floor 1,56,263,7,0,32.1,"own options, earlier days",CORRA futures
+2026-07-13,274,257,17,spread wider than limit 15; no volume or open interest 2,37,234,3,0,32.3,"own options, earlier days",CORRA futures
+2026-07-14,280,260,20,spread wider than limit 14; no price to invert 4; no volume or open interest 2,50,223,3,4,32.9,"own options, earlier days",CORRA futures
+2026-07-15,278,259,19,spread wider than limit 18; no volume or open interest 1,49,228,1,0,32.9,"own options, earlier days",CORRA futures
+2026-07-16,288,261,27,spread wider than limit 21; no bracket vol below floor 3; no volume or open interest 2; below intrinsic 1,57,228,3,0,33.0,"own options, earlier days",CORRA futures
+2026-07-17,300,270,30,spread wider than limit 12; no bracket vol below floor 9; no volume or open interest 6; below intrinsic 2; vega too small to invert 1,53,236,11,0,32.9,"own options, earlier days",CORRA futures
+2026-07-20,266,250,16,spread wider than limit 12; no bracket vol below floor 4,37,229,0,0,33.4,"own options, earlier days",CORRA futures
+2026-07-21,266,255,11,spread wider than limit 6; vega too small to invert 2; no bracket vol below floor 2; no volume or open interest 1,48,216,2,0,33.5,"own options, earlier days",CORRA futures
+2026-07-22,268,261,7,spread wider than limit 4; vega too small to invert 2; no bracket vol below floor 1,40,227,1,0,33.5,"own options, earlier days",CORRA futures
+2026-07-23,286,277,9,no bracket vol below floor 5; spread wider than limit 4,57,227,2,0,33.6,"own options, earlier days",CORRA futures
+2026-07-24,288,273,15,spread wider than limit 9; vega too small to invert 5; no bracket vol below floor 1,48,238,2,0,33.9,"own options, earlier days",CORRA futures
+2026-07-27,248,240,8,spread wider than limit 4; vega too small to invert 3; no volume or open interest 1,32,215,1,0,33.8,"own options, earlier days",CORRA futures
+2026-07-28,250,235,15,no bracket vol below floor 6; below intrinsic 3; spread wider than limit 3; vega too small to invert 2; no volume or open interest 1,55,194,1,0,33.8,"own options, earlier days",CORRA futures
+2026-07-29,252,237,15,spread wider than limit 6; below intrinsic 5; no volume or open interest 2; vega too small to invert 2,73,177,2,0,33.9,"own options, earlier days",CORRA futures
+2026-07-30,272,251,21,below intrinsic 10; spread wider than limit 8; no volume or open interest 3,62,206,4,0,34.0,"own options, earlier days",CORRA futures
+2026-07-31,274,254,20,spread wider than limit 10; below intrinsic 8; no volume or open interest 2,56,216,2,0,34.4,"own options, earlier days",CORRA futures
+2026-08-04,246,242,4,spread wider than limit 3; below intrinsic 1,46,200,0,0,34.6,"own options, earlier days",CORRA futures
+2026-08-05,248,235,13,spread wider than limit 13,44,204,0,0,34.8,"own options, earlier days",CORRA futures
+2026-08-06,266,257,9,spread wider than limit 6; below intrinsic 3,41,225,0,0,34.7,"own options, earlier days",CORRA futures
+2026-08-07,266,254,12,spread wider than limit 7; below intrinsic 3; no volume or open interest 1; vega too small to invert 1,36,229,1,0,35.1,"own options, earlier days",CORRA futures
+2026-08-10,242,234,8,spread wider than limit 5; below intrinsic 2; no volume or open interest 1,28,213,1,0,35.4,"own options, earlier days",CORRA futures
+2026-08-11,242,232,10,spread wider than limit 5; vega too small to invert 4; no volume or open interest 1,30,210,2,0,35.5,"own options, earlier days",CORRA futures
+2026-08-12,232,225,7,spread wider than limit 7,34,198,0,0,35.6,"own options, earlier days",CORRA futures
+2026-08-13,250,242,8,spread wider than limit 6; vega too small to invert 1; no volume or open interest 1,37,211,2,0,36.0,"own options, earlier days",CORRA futures
+2026-08-14,250,240,10,spread wider than limit 6; no bracket vol below floor 1; vega too small to invert 1; below intrinsic 1; no volume or open interest 1,34,212,4,0,36.0,"own options, earlier days",CORRA futures
+2026-08-17,214,214,0,,47,167,0,0,36.0,"own options, earlier days",CORRA futures
+2026-08-18,222,220,2,spread wider than limit 2,50,172,0,0,36.0,"own options, earlier days",CORRA futures
+2026-08-19,248,241,7,spread wider than limit 6; below intrinsic 1,99,148,1,0,36.0,"own options, earlier days",CORRA futures
+2026-08-20,258,254,4,below intrinsic 3; spread wider than limit 1,69,189,0,0,36.0,"own options, earlier days",CORRA futures
+2026-08-21,292,281,11,below intrinsic 6; spread wider than limit 5,52,239,1,0,36.0,"own options, earlier days",CORRA futures
+2026-08-24,280,274,6,spread wider than limit 5; below intrinsic 1,60,220,0,0,36.0,"own options, earlier days",CORRA futures
+2026-08-25,264,252,12,spread wider than limit 6; below intrinsic 6,78,185,1,0,36.0,"own options, earlier days",CORRA futures
+2026-08-26,264,251,13,spread wider than limit 10; vega too small to invert 3,40,222,2,0,36.0,"own options, earlier days",CORRA futures
+2026-08-27,298,282,16,spread wider than limit 11; below intrinsic 4; vega too small to invert 1,53,242,3,0,35.9,"own options, earlier days",CORRA futures
+2026-08-28,284,255,29,spread wider than limit 16; below intrinsic 13,35,246,3,0,35.8,"own options, earlier days",CORRA futures
+2026-08-31,262,250,12,spread wider than limit 8; below intrinsic 4,50,211,1,0,35.7,"own options, earlier days",CORRA futures
+2026-09-01,272,247,25,below intrinsic 16; spread wider than limit 9,42,228,2,0,35.6,"own options, earlier days",CORRA futures
+2026-09-02,276,265,11,spread wider than limit 11,40,234,2,0,35.7,"own options, earlier days",CORRA futures
+2026-09-03,314,302,12,spread wider than limit 12,68,241,5,0,35.6,"own options, earlier days",CORRA futures
+2026-09-04,322,305,17,spread wider than limit 12; below intrinsic 5,36,280,6,0,35.5,"own options, earlier days",CORRA futures
+2026-09-08,288,277,11,spread wider than limit 10; vega too small to invert 1,36,250,2,0,35.4,"own options, earlier days",CORRA futures
+2026-09-09,288,280,8,spread wider than limit 6; below intrinsic 2,44,243,1,0,35.3,"own options, earlier days",CORRA futures
+2026-09-10,290,285,5,spread wider than limit 3; below intrinsic 2,48,240,2,0,35.2,"own options, earlier days",CORRA futures
+2026-09-11,308,297,11,spread wider than limit 6; vega too small to invert 2; below intrinsic 2; no bracket vol below floor 1,63,241,4,0,35.1,"own options, earlier days",CORRA futures
+2026-09-14,266,259,7,below intrinsic 4; spread wider than limit 3,25,239,2,0,34.9,"own options, earlier days",CORRA futures
+2026-09-15,266,261,5,spread wider than limit 4; below intrinsic 1,35,229,2,0,34.8,"own options, earlier days",CORRA futures
+2026-09-16,298,294,4,spread wider than limit 3; vega too small to invert 1,36,259,3,0,34.7,"own options, earlier days",CORRA futures
+2026-09-17,304,290,14,below intrinsic 8; no price to invert 4; spread wider than limit 2,35,262,4,3,34.5,"own options, earlier days",CORRA futures
+2026-09-18,300,287,13,below intrinsic 6; spread wider than limit 4; no price to invert 2; vega too small to invert 1,52,242,5,1,34.5,"own options, earlier days",CORRA futures
+2026-09-21,272,269,3,spread wider than limit 2; no volume or open interest 1,55,215,2,0,34.4,"own options, earlier days",CORRA futures
+2026-09-22,282,259,23,spread wider than limit 12; below intrinsic 10; no price to invert 1,50,229,2,1,34.3,"own options, earlier days",CORRA futures
+2026-09-23,280,269,11,spread wider than limit 10; no volume or open interest 1,43,234,3,0,34.2,"own options, earlier days",CORRA futures
+2026-09-24,312,295,17,spread wider than limit 12; vega too small to invert 5,26,283,3,0,33.9,"own options, earlier days",CORRA futures
+2026-09-25,316,295,21,spread wider than limit 14; vega too small to invert 3; below intrinsic 2; no price to invert 2,45,267,3,1,33.9,"own options, earlier days",CORRA futures
+2026-09-28,284,267,17,spread wider than limit 10; below intrinsic 6; no volume or open interest 1,25,258,1,0,33.8,"own options, earlier days",CORRA futures
+2026-09-29,272,256,16,below intrinsic 10; spread wider than limit 4; no volume or open interest 2,31,239,2,0,33.7,"own options, earlier days",CORRA futures
+2026-09-30,288,278,10,spread wider than limit 6; no volume or open interest 4,39,245,4,0,33.5,"own options, earlier days",CORRA futures
+2026-10-01,296,290,6,spread wider than limit 3; no volume or open interest 2; below intrinsic 1,56,237,3,0,33.5,"own options, earlier days",CORRA futures
+2026-10-02,306,292,14,spread wider than limit 12; no volume or open interest 2,40,261,5,0,33.4,"own options, earlier days",CORRA futures
+2026-10-05,274,260,14,spread wider than limit 5; below intrinsic 4; no bracket vol below floor 4; no volume or open interest 1,63,205,6,0,33.4,"own options, earlier days",CORRA futures
+2026-10-06,276,259,17,spread wider than limit 9; below intrinsic 3; vega too small to invert 3; no volume or open interest 1; no bracket vol below floor 1,23,249,4,0,33.3,"own options, earlier days",CORRA futures
+2026-10-07,264,238,26,spread wider than limit 15; vega too small to invert 7; below intrinsic 4,59,201,4,0,33.1,"own options, earlier days",CORRA futures
+2026-10-08,296,279,17,spread wider than limit 13; below intrinsic 3; vega too small to invert 1,51,240,5,0,33.1,"own options, earlier days",CORRA futures
+2026-10-09,314,286,28,spread wider than limit 13; below intrinsic 10; vega too small to invert 3; no bracket vol below floor 2,36,267,11,0,32.9,"own options, earlier days",CORRA futures
+2026-10-13,274,264,10,spread wider than limit 6; vega too small to invert 2; no volume or open interest 1; no bracket vol below floor 1,42,229,3,0,32.8,"own options, earlier days",CORRA futures
+2026-10-14,320,296,24,spread wider than limit 11; below intrinsic 5; vega too small to invert 3; no bracket vol below floor 3; no volume or open interest 2,44,270,6,0,32.7,"own options, earlier days",CORRA futures
+2026-10-15,326,311,15,below intrinsic 5; spread wider than limit 4; no bracket vol below floor 3; no volume or open interest 2; vega too small to invert 1,49,271,6,0,32.4,"own options, earlier days",CORRA futures
+2026-10-16,326,316,10,spread wider than limit 7; no volume or open interest 2; vega too small to invert 1,52,265,9,0,32.1,"own options, earlier days",CORRA futures
+2026-10-19,290,273,17,spread wider than limit 9; no bracket vol below floor 5; vega too small to invert 2; no volume or open interest 1,39,248,3,0,32.0,"own options, earlier days",CORRA futures
+2026-10-20,290,283,7,no bracket vol below floor 3; spread wider than limit 2; vega too small to invert 1; no volume or open interest 1,25,262,3,0,31.8,"own options, earlier days",CORRA futures
+2026-10-21,278,267,11,no bracket vol below floor 5; spread wider than limit 2; vega too small to invert 2; no volume or open interest 2,39,236,3,0,31.5,"own options, earlier days",CORRA futures
+2026-10-22,306,286,20,spread wider than limit 11; no bracket vol below floor 5; no volume or open interest 3; vega too small to invert 1,42,258,6,0,31.3,"own options, earlier days",CORRA futures
+2026-10-23,324,312,12,spread wider than limit 4; no bracket vol below floor 4; vega too small to invert 2; no volume or open interest 2,58,262,4,0,31.1,"own options, earlier days",CORRA futures
+2026-10-26,272,258,14,spread wider than limit 9; no bracket vol below floor 3; vega too small to invert 2,32,240,0,0,30.9,"own options, earlier days",CORRA futures
+2026-10-27,284,258,26,spread wider than limit 13; no bracket vol below floor 11; vega too small to invert 2,64,220,0,0,30.6,"own options, earlier days",CORRA futures
+2026-10-28,290,261,29,no bracket vol below floor 13; spread wider than limit 12; vega too small to invert 4,49,241,0,0,30.4,"own options, earlier days",CORRA futures
+2026-10-29,306,281,25,spread wider than limit 21; vega too small to invert 4,77,229,0,0,30.1,"own options, earlier days",CORRA futures
+2026-10-30,314,292,22,below intrinsic 10; spread wider than limit 9; no volume or open interest 3,79,232,3,0,30.0,"own options, earlier days",CORRA futures
+2026-11-02,298,295,3,spread wider than limit 3,44,254,0,0,29.6,"own options, earlier days",CORRA futures
+2026-11-03,286,280,6,spread wider than limit 6,32,254,0,0,29.5,"own options, earlier days",CORRA futures
+2026-11-04,288,277,11,spread wider than limit 10; below intrinsic 1,64,224,0,0,29.2,"own options, earlier days",CORRA futures

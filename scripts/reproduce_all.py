@@ -61,6 +61,7 @@ def steps() -> list[tuple[str, list[str]]]:
         out.append((f"days_{n}", [S + "run_days.py", n]))
         out.append((f"chart_{n}", [S + "front_chart.py", n]))
     out.append(("summary", [S + "summary_names.py"]))
+    out.append(("day_tables", [S + "day_tables.py"]))
     out += [(f"split_{n}", [S + "funding_split.py", n]) for n in NAMES if n not in ("SHOP", "ZEB")]
     out.append(("dividends", [S + "dividend_three_way.py"]))
     out.append(("index_funding", [S + "index_funding.py"]))
