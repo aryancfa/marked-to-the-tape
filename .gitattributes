@@ -1,0 +1,5 @@
+# Byte-exact files: never convert line endings. reportlab writes PDFs as plain
+# ASCII, so git would otherwise treat them as text and a Windows checkout would
+# insert carriage returns, breaking the byte offsets a PDF depends on.
+*.pdf binary
+*.png binary
