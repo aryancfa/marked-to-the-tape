@@ -76,7 +76,7 @@ def test_the_methodology_pdf_is_typeset_from_the_current_text():
     md = bs.ROOT / "docs/methodology.md"
     if not pdf.exists():
         pytest.skip("no typeset copy yet")
-    digest = hashlib.sha256(md.read_bytes()).hexdigest()
+    digest = hashlib.sha256(md.read_bytes().replace(bytes([13, 10]), bytes([10]))).hexdigest()
     assert f"source sha256 {digest}".encode() in pdf.read_bytes(), (
         "reports/methodology.pdf was typeset from an older docs/methodology.md")
 

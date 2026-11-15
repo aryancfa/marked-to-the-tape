@@ -156,8 +156,9 @@ def footer(canvas, doc) -> None:
 
 def build(source: Path = SOURCE, target: Path = TARGET) -> int:
     # The source's hash goes in the PDF's keywords, so a test can tell when the
-    # committed PDF was typeset from an older text (tests/test_site.py).
-    digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    # committed PDF was typeset from an older text (tests/test_site.py). Line
+    # endings are normalised first: a Windows checkout has CRLF, the CI runner LF.
+    digest = hashlib.sha256(source.read_bytes().replace(bytes([13, 10]), bytes([10]))).hexdigest()
     doc = SimpleDocTemplate(str(target), pagesize=letter, leftMargin=0.85 * inch,
                             rightMargin=0.85 * inch, topMargin=0.75 * inch,
                             bottomMargin=0.8 * inch, title="Marked to the Tape: methodology",
